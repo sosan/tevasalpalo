@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reproductor</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .video-container {
+            width: 100%;
+            background: #000;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 20px 0;
+            position: relative;
+            padding-top: 56.25%;
+            /* 16:9 Aspect Ratio */
+        }
+
+        #videoPlayer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+
+        #statusMessage {
+            text-align: center;
+            color: #fd7a7a;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="player-container">
+        <div class="video-container">
+            <video id="videoPlayer" autoplay muted controls></video>
+            <div id="statusMessage">Cargando reproductor...</div>
+        </div>
+    </div>
+
+</body>
+<script>
+    function loadVideo() {
+        const contentId = "{{ .ContentId }}";
+        const acestreamId = "{{ .AcestreamId }}"; // El original, por si acaso
+        if (acestreamId == "") {
+            return;
+        }
+        let hlsUrl = `http://127.0.0.1:6878/ace/manifest.m3u8?id=${acestreamId}`;
+        const video = document.getElementById('videoPlayer');
+        const statusMessage = document.getElementById('statusMessage');
+
+        if (Hls.isSupported()) {
+            statusMessage.textContent = "Conectando al stream...";
+            const hls = new Hls({
+                enableWorker: true,
+                lowLatencyMode: false,
+                backBufferLength: 90,
+
+                // Buffer
+                maxBufferLength: 60,
+                maxMaxBufferLength: 120,
+                maxBufferSize: 60 * 1000 * 1000,
+
+                // Latencia
+                liveSyncDuration: 30,
+                liveMaxLatencyDuration: 60,
+
+                // Recuperación de errores
+                fragLoadingRetryDelay: 2000,
+                manifestLoadingRetryDelay: 5000,
+                levelLoadingRetryDelay: 5000,
+
+                // Calidad
+                capLevelToPlayerSize: true,
+                startLevel: -1
+            });
+
+            hls.on(Hls.Events.MEDIA_ATTACHED, function () {
+                console.log("HLS.js: Media attached");
+            });
+
+            hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
+                console.log("HLS.js: Manifest parsed. Niveles de calidad: ", data.levels.length);
+                // statusMessage.textContent = "Stream cargado. Iniciando reproducción...";
+                // Intentar reproducir automáticamente
+                video.play().then(() => {
+                    console.log("Reproducción iniciada automáticamente.");
+                    statusMessage.style.display = 'none';
+                }).catch(e => {
+                    console.warn("Autoplay bloqueado o fallido:", e);
+                    // statusMessage.textContent = "Haz clic en el video para iniciar la reproducción.";
+                    // Asegurarse de que el mensaje sea visible si autoplay falla
+                    statusMessage.style.display = 'block';
+                });
+            });
+
+            // Manejo de errores
+            hls.on(Hls.Events.ERROR, function (event, data) {
+                if (data.fatal) {
+                    switch (data.type) {
+                        case Hls.ErrorTypes.NETWORK_ERROR:
+                            // statusMessage.textContent = `❌ Error de red: ${data.details}. ¿Está el motor Ace Stream ejecutándose en 127.0.0.1:6878?`;
+                            console.error("HLS.js: Error de red fatal", data);
+                            // Opcional: intentar reconectar automáticamente después de un tiempo
+                            hls.startLoad();
+                            // setTimeout(() => hls.startLoad(), 5000);
+                            break;
+                        case Hls.ErrorTypes.MEDIA_ERROR:
+                            // statusMessage.textContent = `❌ Error de medios: ${data.details}.`;
+                            console.error("HLS.js: Error de medios fatal", data);
+                            // Opcional: intentar recuperarse
+                            hls.recoverMediaError();
+                            break;
+                        default:
+                            // statusMessage.textContent = `❌ Error fatal: ${data.details}`;
+                            console.error("HLS.js: Error fatal", data);
+                            hls.destroy();
+                            break;
+                    }
+                } else {
+                    // Errores no fatales, solo se registran
+                    console.warn("HLS.js: Error (no fatal)", data);
+                }
+            });
+
+
+            try {
+                hls.loadSource(hlsUrl);
+                hls.attachMedia(video);
+            } catch (e) {
+                console.error("Error al inicializar HLS.js:", e);
+                // statusMessage.textContent = `❌ Error al cargar el stream: ${e.message}`;
+            }
+
+        } 
+        else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            // Para Safari en macOS/iOS que soportan HLS nativamente
+            console.log("Usando soporte HLS nativo del navegador (Safari).");
+            // statusMessage.textContent = "Usando reproductor nativo...";
+            video.src = hlsUrl;
+            video.addEventListener('loadedmetadata', function () {
+                // statusMessage.textContent = "Metadata cargada. Iniciando reproducción...";
+                video.play().then(() => {
+                    console.log("Reproducción iniciada en Safari.");
+                    // statusMessage.style.display = 'none';
+                }).catch(e => {
+                    console.warn("Autoplay bloqueado en Safari:", e);
+                    // statusMessage.textContent = "Haz clic en el video para iniciar la reproducción.";
+                });
+            });
+            video.addEventListener('error', function (e) {
+                console.error("Error de video en Safari:", video.error);
+                // statusMessage.textContent = `❌ Error de video en Safari: ${video.error ? video.error.message : 'Desconocido'}`;
+            });
+        } else {
+            console.error("Este navegador no soporta HLS.");
+        }
+
+    }
+
+    window.addEventListener("DOMContentLoaded", loadVideo);
+
+</script>
+
+</html>

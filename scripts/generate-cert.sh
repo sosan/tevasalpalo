@@ -1,0 +1,2 @@
+openssl req -x509 -newkey rsa:2048 -keyout ../certs/key.pem -out ../certs/cert.pem -days 365 -nodes -subj "/CN=AceStream Portable"
+openssl pkcs12 -export -in ../certs/cert.pem -inkey ../certs/key.pem -out ../certs/certificado.pfx -name "AceStream Developer"

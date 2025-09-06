@@ -1,0 +1,321 @@
+/* --- Variables CSS para valores comunes (opcional, pero recomendado) --- */
+:root {
+  /* Colores (ejemplos, reemplazar con los reales) */
+  --color-neutral-default: #333333;
+  --color-neutral-nLv1: #666666;
+  --color-primary-default: #007bff;
+  --color-surface-s1: #ffffff;
+  --color-surface-s2: #cacaca;
+  --color-transparent: transparent;
+
+  /* Espaciados (ejemplos) */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+
+  /* Tamaños */
+  --size-32px: 32px;
+  --size-star-icon: 18px;
+  --size-24px: 24px;
+  --size-28px: 28px;
+
+  /* Otros */
+  --border-radius-sm: 4px;
+  --border-radius-lg: 8px;
+  --box-shadow-2: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --transition-default: background-color 0.2s ease-in-out;
+
+  --color-surface-s1: #ffffff;
+  /* Ejemplo: Blanco */
+  --color-surface-s2: #f5f5f5;
+  /* Ejemplo: Gris muy claro */
+
+  --border-radius-lg: 8px;
+  /* Ejemplo */
+
+  --box-shadow-elevation-2: 0 2px 4px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  /* Ejemplo */
+
+}
+
+
+.competitions-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-sm);
+  padding-inline: var(--spacing-lg);
+  position: relative;
+}
+
+.box-competition {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* gap: var(--spacing-lg); */
+  /* padding-left: var(--spacing-sm); */
+  /* padding-right: var(--spacing-sm); */
+  /* padding-top: var(--spacing-lg); */
+  /* padding-bottom: var(--spacing-lg); */
+  background-color: #dcecff;
+  border-radius: var(--border-radius-sm);
+  height: 100%;
+  align-items: center;
+}
+
+.sizebox-competition-grid {
+  height: 120px;
+}
+
+.position-relative {
+  position: relative;
+}
+
+.box-competition-content {
+  align-items: center;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  overflow: hidden;
+  display: flex
+}
+
+.image-competition-content {
+  height: 32px;
+  width: 32px;
+  object-fit: contain;
+  font-size: 0px;
+}
+
+.text-competition-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+}
+
+
+.style-text-competition-content {}
+
+/* --- Estilos Base y Layout --- */
+
+/* Clase base para la tarjeta principal */
+.card-component {
+
+  /* background-color: var(--color-surface-s1);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow-2);
+  position: relative; */
+
+}
+
+@media (min-width: 768px) {
+  .card-component {
+    /* background-color: var(--color-surface-s1);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--box-shadow-2);
+    position: relative; */
+  }
+}
+
+/** ---------------------- ******/
+
+
+/* --- Estilos base del componente card --- */
+.card-component {
+  /* position: relative;
+  background-color: var(--color-surface-s1);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow-elevation-2); */
+}
+
+.icon-star {
+  width: var(--size-star-icon);
+  height: var(--size-star-icon);
+}
+
+.position-icon-star {
+  position: absolute;
+  top: 13%;
+  margin-left: 9%;
+
+}
+
+.close-dialog-config-menu {
+  position: sticky;
+  width: 40px;
+  height: 40px;
+  place-self: flex-end;
+  cursor: pointer;
+}
+
+
+dialog {
+  margin: 10px 40px 40px 40px;
+  border: 2px solid #ccc;
+  border-radius: 5px;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  width: 90%;
+
+}
+
+dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0.801);
+}
+
+#openDialogBtn {
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+
+.close-dialog {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  float: right;
+}
+
+.content-config {
+  display: flex;
+  flex-direction: column;
+}
+
+.comeptitions-interest {
+  display: flex;
+  align-items: center;
+  padding-bottom: var(--spacing-xs);
+  padding-top: var(--spacing-md);
+  padding-inline: var(--spacing-lg);
+}
+
+.competition-section {
+  padding-top: 10px;
+}
+
+
+.competition-general-title {
+  height: 50px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+  font-size: larger;
+  font-weight: 700;
+}
+
+
+.competition-title {
+  height: 30px;
+  padding-left: 12px;
+}
+
+.margin-competition-other {
+  margin-top: 60px;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+
+.competition-others {
+  height: 50px;
+  width: 100%;
+  background-color: #dcecff;
+  line-height: 24px;
+  color: var(--colors-neutrals-n-lv1);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  padding-left: 20px;
+  user-select: none;
+
+}
+
+.table-other-competitions {
+  display: flex;
+  flex-direction: column;
+  background-color: #d4c1f6;
+}
+
+.li-other-competitions {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 50px;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #f0f0f0;
+  padding-left: 4em;
+  padding-right: 2em;
+}
+
+
+.other-competition-grid {
+  padding-right: 20px;
+  padding-left: 20px;
+  cursor: pointer;
+}
+
+/* Title otras competiciones*/
+.competition-others-title {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  background-color: #dcecff;
+  padding-left: 1em;
+  padding-right: 2em;
+}
+
+.competition-others-title::-webkit-details-marker {
+  display: none;
+}
+
+.competition-others-title {
+  list-style: none;
+}
+
+.competition-others-title .chevron::before {
+  content: "▶";
+  transition: transform 0.2s;
+  display: inline-block;
+  font-size: 0.9em;
+  color: #0071ea;
+}
+
+.other-competition-grid[open] .competition-others-title .chevron::before {
+  transform: rotate(90deg);
+}
+
+/* Title competitions desde paises */
+.competition-others-content {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1em 2em;
+}
+
+.competition-others-content::-webkit-details-marker {
+  display: none;
+}
+
+.competition-others-content {
+  list-style: none;
+}
+
+.competition-others-content .chevron::before {
+  content: "▶";
+  transition: transform 0.2s;
+  display: inline-block;
+  font-size: 0.9em;
+  color: #0071ea;
+}
+
+.competition-details[open] .competition-others-content .chevron::before {
+  transform: rotate(90deg);
+}

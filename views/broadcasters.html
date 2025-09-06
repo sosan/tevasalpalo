@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Enlaces a Broadcasters - TVAS AL PALO!</title>
+    <link rel="stylesheet" href="/css/broadcasters.css">
+</head>
+
+<body>
+    <header>
+        <a href="/">
+            <img src="./images/tvas.png" alt="tvas al palo!">
+        </a>
+        
+    </header>
+    <h1>📺 Todos los canales</h1>
+    {{ range $name, $info := .Broadcasters }}
+    <div class="broadcaster">
+        <div class="broadcaster-name">{{ $name }}</div>
+        <ol class="link-list">
+            {{ range $info.Links }}
+            <li><a href="/player/{{ . }}" target="_blank">🔗 Ver canal</a></li>
+            {{ else }}
+            <li><em>Sin enlaces disponibles</em></li>
+            {{ end }}
+        </ol>
+    </div>
+    {{ end }}
+</body>
+
+</html>

@@ -1,0 +1,184 @@
+name: Build Test Scan and Publish
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+# Don't run multiple releases concurrently.
+concurrency: release
+
+jobs:
+  build-test-image:
+    name: Build Image for Testing
+    runs-on: ubuntu-22.04
+    permissions:
+      packages: write
+    steps:
+      - name: Setup docker buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to github registry ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push to GHCR
+        uses: docker/build-push-action@v5
+        with:
+          file: ./Dockerfile.linux
+          push: true
+          tags: ghcr.io/${{ github.actor }}/${{ github.event.repository.name }}:${{ github.run_id }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+  test-unit:
+    name: Unit tests in Docker
+    needs: [build-test-image]
+    runs-on: ubuntu-22.04
+    permissions:
+      packages: read
+    steps:
+      - name: Checkout git repo
+        uses: actions/checkout@v4
+
+      - name: Login to github registry ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Unit Testing
+        run: |
+          go test update/need_test.go update/need.go update/auto.go update/version.go
+
+  test-integration:
+    name: Integration tests in Compose
+    needs: [build-test-image]
+    runs-on: ubuntu-22.04
+    permissions:
+      packages: read
+    steps:
+      - name: Checkout git repo
+        uses: actions/checkout@v4
+      
+      - name: Login to github registry ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # solo testing de healthcheck
+      # - name: Test healthcheck in Docker Compose
+      #   run: |
+      #     export TESTING_IMAGE=ghcr.io/${{ github.actor }}/${{ github.event.repository.name }}:${{ github.run_id }}
+      #     echo 'Testing image: "$TESTING_IMAGE"'
+      #     echo 'docker compose -f docker-compose.test.yml up --exit-code-from test-integration-app'
+
+  scan-image:
+    name: Scan Image with Trivy
+    needs: [build-test-image]
+    runs-on: ubuntu-22.04
+
+    permissions:
+      contents: read # for actions/checkout to fetch code
+      packages: read # needed to pull docker image to ghcr.io
+      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
+    steps:
+      - name: Checkout git repo
+        uses: actions/checkout@v4
+          
+      - name: Login to github registry ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull image to scan
+        run: docker pull ghcr.io/${{ github.actor }}/${{ github.event.repository.name }}:${{ github.run_id }}
+        
+      - name: Run Trivy for all CVEs
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ghcr.io/${{ github.actor }}/${{ github.event.repository.name }}:${{ github.run_id }}
+          format: table
+          exit-code: 0
+  
+  upload-artifact:
+    name: Upload ${{ matrix.arch }} artifacts
+    # needs: [scan-image]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        goos: [windows]
+        artifact_name: [portable.exe]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache and Install apt (.deb) Packages
+        uses: eth-pkg/apt-deb-cache@v0.2.6
+        with:
+          packages: 'megatools'
+
+      - name: Build binary
+        run: |
+          megadl --path ./assets/ ${{ secrets.URL_ASSET_ZIPPED }}
+          export VERSION_BUILD=$(date -u "+%Y-%m-%dT%H:%M:%SZ")
+          echo ${VERSION_BUILD} > date_build_${{ matrix.artifact_name }}.txt
+          # CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=amd64 go build -ldflags="-X 'main/update.VersionBuild=${VERSION_BUILD}'" -o ${{ matrix.artifact_name }}
+
+          # Cargar variables de entorno desde .env.prod
+          if [ -f ".env.prod" ]; then
+              export $(cat .env.prod | xargs)
+          else
+              echo "❌ Archivo .env.prod no encontrado."
+              exit 1
+          fi
+
+          # Verificar que las variables de entorno se cargaron correctamente
+          echo "🛠️ Variables de entorno cargadas:"
+          echo "ENV: $ENV"
+          echo "GOOS: $GOOS"
+          echo "GOARCH: $GOARCH"
+          echo "CGO_ENABLED: $CGO_ENABLED"
+
+          # Ejecutar el comando de compilación
+          echo "🚀 Compilando para $GOOS/$GOARCH..."
+          # go build -o ../build/portable.exe ../.
+          # GOOS=$GOOS GOARCH=$GOARCH CGO_ENABLED=$CGO_ENABLED go build -ldflags="-X 'main/update.VersionBuild=${VERSION_BUILD}'" -o ../build/portable.exe ../.
+          CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=amd64 go build -ldflags="-X 'main/update.VersionBuild=${VERSION_BUILD}'" -o ./build/${{ matrix.artifact_name }}
+
+          # Verificar si la compilación fue exitosa
+          if [ $? -eq 0 ]; then
+              echo "✅ Compilación exitosa: ./build/portable.exe"
+          else
+              echo "❌ Error durante la compilación."
+              exit 1
+          fi
+
+
+
+
+      - name: Upload binaries to release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Release"
+          body: "Nueva version"
+          draft: false
+          prerelease: false
+          tag_name: latest
+          files: |
+            ./build/${{ matrix.artifact_name }}
+            date_build_${{ matrix.artifact_name }}.txt
+
+# shasum -a 256 ${{ matrix.artifact_name }} | cut -d' ' -f1 > checksum_${{ matrix.artifact_name }}.txt
+# echo "VERSION_BUILD=${date}" >> "$GITHUB_OUTPUT"
+# docker run --rm ghcr.io/${{ github.actor }}/${{ github.event.repository.name }}:${{ github.run_id }} echo "lanzar comando para test npm run tests"

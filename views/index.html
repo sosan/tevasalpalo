@@ -1,0 +1,25 @@
+{{ define "index" }}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TVAS AL PALO!</title>
+    <link rel="stylesheet" href="/css/reset.css">
+    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="/css/modal.css">
+    <script src="/js/index.js" defer></script>
+    <script> let topCompetitions = {{ .topCompetitionsJSON }}; </script>
+    <script> let days = {{ .DaysJSON }}; </script>
+</head>
+
+<body>
+    {{template "header" . }}
+    <main>
+        <ol id="daylist" class="auto-items daylist"></ol>
+    </main>
+</body>
+
+</html>
+{{ end }}

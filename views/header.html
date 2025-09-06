@@ -1,0 +1,146 @@
+{{ define "header" }}
+<header class="header-wrapper">
+    <a href="/" class="logo">
+        <img src="./images/tvas.png" alt="tvas al palo!" title="TVAS AL PALO!">
+    </a>
+    <div class="main-menu">
+        <ul class="menu-ul">
+            <li class=" active">
+                <a class="header-menu" href="/">
+                    <svg class="img-header" xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#d5dceb"
+                        viewBox="0 0 16 16">
+                        <path
+                            d="M8.707 1.5a1 1 0 0 0-1.414 0L.646 8.146a.5.5 0 0 0 .708.708L2 8.207V13.5A1.5 1.5 0 0 0 3.5 15h9a1.5 1.5 0 0 0 1.5-1.5V8.207l.646.647a.5.5 0 0 0 .708-.708L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293zM13 7.207V13.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V7.207l5-5z">
+                        </path>
+                    </svg>
+                    <span class="block">Inicio</span></a>
+            </li>
+
+            <li>
+                <a class="header-menu" href="/broadcasters">
+                    <svg class="img-header" xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#d5dceb"
+                        viewBox="0 0 16 16">
+                        <path
+                            d="M2.5 13.5A.5.5 0 0 1 3 13h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5M13.991 3l.024.001a1.5 1.5 0 0 1 .538.143.76.76 0 0 1 .302.254c.067.1.145.277.145.602v5.991l-.001.024a1.5 1.5 0 0 1-.143.538.76.76 0 0 1-.254.302c-.1.067-.277.145-.602.145H2.009l-.024-.001a1.5 1.5 0 0 1-.538-.143.76.76 0 0 1-.302-.254C1.078 10.502 1 10.325 1 10V4.009l.001-.024a1.5 1.5 0 0 1 .143-.538.76.76 0 0 1 .254-.302C1.498 3.078 1.675 3 2 3zM14 2H2C0 2 0 4 0 4v6c0 2 2 2 2 2h12c2 0 2-2 2-2V4c0-2-2-2-2-2">
+                        </path>
+                    </svg>
+                    <span class="block whitespace-nowrap">Todos los canales</span></a>
+
+            </li>
+
+
+            <li>
+                <a id="openConfigMenuBtn" class="header-menu" href="#" class="settings_overlay">
+                    <svg class="img-header" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="25"
+                        height="25" fill="#d5dceb">
+                        <path
+                            d="M 9.6660156 2 L 9.1757812 4.5234375 C 8.3516137 4.8342536 7.5947862 5.2699307 6.9316406 5.8144531 L 4.5078125 4.9785156 L 2.171875 9.0214844 L 4.1132812 10.708984 C 4.0386488 11.16721 4 11.591845 4 12 C 4 12.408768 4.0398071 12.832626 4.1132812 13.291016 L 4.1132812 13.292969 L 2.171875 14.980469 L 4.5078125 19.021484 L 6.9296875 18.1875 C 7.5928951 18.732319 8.3514346 19.165567 9.1757812 19.476562 L 9.6660156 22 L 14.333984 22 L 14.824219 19.476562 C 15.648925 19.165543 16.404903 18.73057 17.068359 18.185547 L 19.492188 19.021484 L 21.826172 14.980469 L 19.886719 13.291016 C 19.961351 12.83279 20 12.408155 20 12 C 20 11.592457 19.96113 11.168374 19.886719 10.710938 L 19.886719 10.708984 L 21.828125 9.0195312 L 19.492188 4.9785156 L 17.070312 5.8125 C 16.407106 5.2676813 15.648565 4.8344327 14.824219 4.5234375 L 14.333984 2 L 9.6660156 2 z M 11.314453 4 L 12.685547 4 L 13.074219 6 L 14.117188 6.3945312 C 14.745852 6.63147 15.310672 6.9567546 15.800781 7.359375 L 16.664062 8.0664062 L 18.585938 7.40625 L 19.271484 8.5917969 L 17.736328 9.9277344 L 17.912109 11.027344 L 17.912109 11.029297 C 17.973258 11.404235 18 11.718768 18 12 C 18 12.281232 17.973259 12.595718 17.912109 12.970703 L 17.734375 14.070312 L 19.269531 15.40625 L 18.583984 16.59375 L 16.664062 15.931641 L 15.798828 16.640625 C 15.308719 17.043245 14.745852 17.36853 14.117188 17.605469 L 14.115234 17.605469 L 13.072266 18 L 12.683594 20 L 11.314453 20 L 10.925781 18 L 9.8828125 17.605469 C 9.2541467 17.36853 8.6893282 17.043245 8.1992188 16.640625 L 7.3359375 15.933594 L 5.4140625 16.59375 L 4.7285156 15.408203 L 6.265625 14.070312 L 6.0878906 12.974609 L 6.0878906 12.972656 C 6.0276183 12.596088 6 12.280673 6 12 C 6 11.718768 6.026742 11.404282 6.0878906 11.029297 L 6.265625 9.9296875 L 4.7285156 8.59375 L 5.4140625 7.40625 L 7.3359375 8.0683594 L 8.1992188 7.359375 C 8.6893282 6.9567546 9.2541467 6.6314701 9.8828125 6.3945312 L 10.925781 6 L 11.314453 4 z M 12 8 C 9.8034768 8 8 9.8034768 8 12 C 8 14.196523 9.8034768 16 12 16 C 14.196523 16 16 14.196523 16 12 C 16 9.8034768 14.196523 8 12 8 z M 12 10 C 13.111477 10 14 10.888523 14 12 C 14 13.111477 13.111477 14 12 14 C 10.888523 14 10 13.111477 10 12 C 10 10.888523 10.888523 10 12 10 z">
+                        </path>
+                    </svg>
+                    <span class="block">Configuración</span>
+                </a>
+            </li>
+            <li>
+                <a class="header-menu" href="#" class="settings_language">
+                    <img class="imglang img-header" src="/images/es.svg" alt="Español" title="Español">
+                    <span class="block">Idioma</span></a>
+            </li>
+            <li>
+                <dialog id="config-menu">
+                    <div class="content-config">
+                        <button class="close-dialog-config-menu">X</button>
+                        <div class="card-component position-relative">
+                            <div class="">
+                                <div class="comeptitions-interest">
+                                    <span class="competition-title">Competiciones que quieres ver</span>
+                                </div>
+                            </div>
+                            <ul class="competitions-grid position-relative">
+                                {{ range $name, $details := .topCompetitions }}
+                                <li class="sizebox-competition-grid position-relative">
+                                    <a href="#">
+                                        <div class="box-competition position-relative">
+                                            <div class="box-competition-content">
+                                                <img src="/images/{{ $details.Icon }}" alt="{{ $details.Titulo }}"
+                                                    class="image-competition-content">
+                                                <div class="text-competition-content">
+                                                    <span class="style-text-competition-content">{{ $details.Titulo }}</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <svg class="icon-star position-icon-star" width="20" height="20" viewBox="0 0 20 20" fill="none"
+                                                    xmlns="http://www.w3.org/2000/svg">
+                                                    <path
+                                                        d="M9.53418 1.57715C9.69958 1.15244 10.3004 1.15245 10.4658 1.57715L12.3408 6.39746C12.5538 6.94497 13.0668 7.31806 13.6533 7.35156L18.8174 7.64551C19.2726 7.67139 19.4585 8.24268 19.1055 8.53125L15.1006 11.8037C14.6456 12.1755 14.4491 12.7794 14.5986 13.3477L15.915 18.3496C16.0308 18.7905 15.5446 19.1441 15.1611 18.8975L10.8115 16.0996C10.3173 15.7818 9.6827 15.7818 9.18848 16.0996L4.83887 18.8975C4.4554 19.1441 3.96917 18.7905 4.08496 18.3496L5.40137 13.3477C5.55093 12.7794 5.35443 12.1755 4.89941 11.8037L0.894531 8.53125C0.541516 8.24268 0.727372 7.67139 1.18262 7.64551L6.34668 7.35156C6.93317 7.31806 7.44622 6.94498 7.65918 6.39746L9.53418 1.57715Z"
+                                                        fill="#0071ea" stroke="#0071ea" stroke-width="2" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </li>
+                                {{ end }}
+                            </ul>
+                        </div>
+                        <div class="card-component">
+                            <details class="other-competition-grid">
+                                <summary class="competition-others-title margin-competition-other">
+                                    <span class="competition-general-title">Otras Competiciones</span>
+                                    <span class="chevron"></span>
+                                </summary>
+                                <ul class="table-other-competitions">
+                                    {{ range $countryName, $countryCompetitions := .allCompetitions }}
+                                    <li class="">
+                                        <details class="competition-details">
+                                            <summary class="competition-others-content">
+                                                <span class="competition-title">{{ $countryName }}</span>
+                                                <span class="chevron"></span>
+                                            </summary>
+                                            {{ range $competitionName, $competitionDetails := $countryCompetitions }}
+                                            <a href="#" class="li-other-competitions toggle-competition" data-competition="{{ $competitionName }}">
+                                                <div>{{ $competitionName }}</div>
+                                                <div class="">
+                                                    <svg class="icon-star" width="20" height="20" viewBox="0 0 20 20" fill="{{ if $competitionDetails.Top }} #0071ea {{ else}} none {{ end }}"
+                                                        xmlns="http://www.w3.org/2000/svg">
+                                                        <path
+                                                            d="M9.53418 1.57715C9.69958 1.15244 10.3004 1.15245 10.4658 1.57715L12.3408 6.39746C12.5538 6.94497 13.0668 7.31806 13.6533 7.35156L18.8174 7.64551C19.2726 7.67139 19.4585 8.24268 19.1055 8.53125L15.1006 11.8037C14.6456 12.1755 14.4491 12.7794 14.5986 13.3477L15.915 18.3496C16.0308 18.7905 15.5446 19.1441 15.1611 18.8975L10.8115 16.0996C10.3173 15.7818 9.6827 15.7818 9.18848 16.0996L4.83887 18.8975C4.4554 19.1441 3.96917 18.7905 4.08496 18.3496L5.40137 13.3477C5.55093 12.7794 5.35443 12.1755 4.89941 11.8037L0.894531 8.53125C0.541516 8.24268 0.727372 7.67139 1.18262 7.64551L6.34668 7.35156C6.93317 7.31806 7.44622 6.94498 7.65918 6.39746L9.53418 1.57715Z"
+                                                            fill="" stroke="#0071ea" stroke-width="2" />
+                                                    </svg>
+                                                </div>
+                                            </a>
+                                            {{ end }}
+                                        </details>
+                                    </li>
+                                    {{ end }}
+                                </ul>
+
+                            </details>
+                        </div>
+                    </div>
+                </dialog>
+            </li>
+        </ul>
+    </div>
+</header>
+<script>
+    const dialog = document.getElementById('config-menu');
+    const openBtn = document.getElementById('openConfigMenuBtn');
+    const closeBtn = document.querySelector('.close-dialog-config-menu');
+
+    openBtn.addEventListener('click', () => {
+        dialog.showModal();
+    });
+
+    closeBtn.addEventListener('click', () => {
+        dialog.close();
+    });
+
+    // Opcional: Cerrar haciendo clic fuera del contenido del diálogo (solo showModal)
+    dialog.addEventListener('click', (event) => {
+        // dialog.close() se puede llamar aquí también, pero hay que tener cuidado
+        // con cerrarlo al hacer clic dentro. Una forma más robusta es comprobar el target.
+        if (event.target === dialog) {
+            dialog.close();
+        }
+    });
+</script>
+{{ end }}
