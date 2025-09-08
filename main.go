@@ -11,6 +11,8 @@ import (
 )
 
 func init() {
+	// transform uri links to base64 uri safe
+	broadcasterToAcestream = transformUriSafeBroadcasters(broadcasterToAcestream)
 	env := os.Getenv("ENV")
 	fmt.Println(update.GetVersionBuild())
 	if env == "dev" {

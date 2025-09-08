@@ -32,30 +32,6 @@ type DayView struct {
 	Competitions  map[string][]MatchView
 }
 
-// var defaultSportsInterest = map[string]string{
-// "Fútbol": "Fútbol",
-// "Automovilismo": "Automovilismo",
-// "Tenis": "Tenis",
-// "MMA": "MMA",
-
-// }
-
-// var defaultSpainCompetitionInterest = map[string]string{
-// 	"La Liga EA Sports":      "La Liga EA Sports",
-// 	"LaLiga Hypermotion":     "LaLiga Hypermotion",
-// 	"Copa del Rey":           "Copa del Rey",
-// 	"Supercopa de España":    "Supercopa de España",
-// 	"Champions League":       "Champions League",
-// 	"Europa League":          "Europa League",
-// 	"Premier League":         "Premier League",
-// 	"Bundesliga":             "Bundesliga",
-// 	"Ligue 1":                "Ligue 1",
-// 	"Serie A Italiana":       "Serie A Italiana",
-// 	"Nations League":         "Nations League",
-// 	"FIFA Copa Mundial 2026": "FIFA Copa Mundial 2026",
-// 	"Mundial de Clubes":      "Mundial de Clubes",
-// }
-
 type CompetitionDetail struct {
 	Titulo string `json:"titulo"`
 	Top    bool   `json:"top"`
@@ -71,8 +47,8 @@ var topCompetitions map[string]CompetitionDetail
 var allCompetitions = AllCompetitions{
 	"Sports": CountryCompetitions{
 		"Tenis":                  {Titulo: "Tenis", Top: true, Icon: "tenis.png"},
-		"FIFA Copa Mundial 2026": {Titulo: "Munidal", Top: true, Icon: "mundial.png"},
-		"Mundial Clubes":         {Titulo: "Munidal", Top: true, Icon: "mundialclubes.png"},
+		"FIFA Copa Mundial 2026": {Titulo: "Mundial", Top: true, Icon: "mundial.png"},
+		"Mundial Clubes":         {Titulo: "Mundial Clubes", Top: true, Icon: "mundialclubes.png"},
 		"FIA Fórmula 2":          {Titulo: "FIA Fórmula 2", Top: true, Icon: "formula2.png"},
 		"FIA Fórmula 3":          {Titulo: "FIA Fórmula 3", Top: true, Icon: "formula3.png"},
 		"Fórmula 1":              {Titulo: "Fórmula 1", Top: true, Icon: "formula1.png"},
@@ -80,21 +56,24 @@ var allCompetitions = AllCompetitions{
 		"Moto3":                  {Titulo: "Moto3", Top: true, Icon: "moto3.png"},
 		"MotoGP":                 {Titulo: "MotoGP", Top: true, Icon: "motogp.png"},
 		"Boxeo":                  {Titulo: "Boxeo", Top: true, Icon: "boxeo.png"},
+		"UFC":                    {Titulo: "UFC", Top: true, Icon: "ufc.png"},
 	},
 	"España": CountryCompetitions{
 		"LaLiga":                        {Titulo: "LaLiga", Top: true, Icon: "liga.png"},
 		"LaLiga Hypermotion":            {Titulo: "LaLiga 2", Top: true, Icon: "liga2.png"},
-		"Primera Federación":            {Titulo: "Primera Federación", Top: false, Icon: "uefa.png"},
-		"Segunda Federación":            {Titulo: "Segunda Federación", Top: false, Icon: "uefa.png"},
-		"Copa del Rey":                  {Titulo: "Copa del Rey", Top: false, Icon: "uefa.png"},
-		"Supercopa de España":           {Titulo: "Supercopa de España", Top: false, Icon: "uefa.png"},
+		"Liga Endesa":                   {Titulo: "Liga Endesa", Top: true, Icon: "endesa.png"},
+		"Primera FEB":                   {Titulo: "Primera FEB", Top: false, Icon: "primerafeb.png"},
+		// "Primera Federacion":            {Titulo: "Primera Federacion", Top: false, Icon: "primerafede.png"},
+		// "Segunda Federación":            {Titulo: "Segunda Federación", Top: false, Icon: "segundafede.png"},
+		"Copa del Rey":                  {Titulo: "Copa del Rey", Top: true, Icon: "uefa.png"},
+		"Supercopa de España":           {Titulo: "Supercopa de España", Top: true, Icon: "uefa.png"},
 		"Liga F Moeve":                  {Titulo: "Liga F Moeve", Top: false, Icon: "uefa.png"},
 		"Copa Federación":               {Titulo: "Copa Federación", Top: false, Icon: "uefa.png"},
 		"Supercopa Femenina":            {Titulo: "Supercopa Femenina", Top: false, Icon: "uefa.png"},
 		"Copa de SM La Reina":           {Titulo: "Copa de SM La Reina", Top: false, Icon: "uefa.png"},
 		"División de Honor Juvenil":     {Titulo: "División de Honor Juvenil", Top: false, Icon: "uefa.png"},
-		"Primera Federacion Women":      {Titulo: "Primera Federacion Women", Top: false, Icon: "uefa.png"},
-		"Segunda Federación Femenina":   {Titulo: "Segunda Federación Femenina", Top: false, Icon: "uefa.png"},
+		// "Primera Federación Women":      {Titulo: "Primera Federacion Women", Top: false, Icon: "primerafede.png"},
+		// "Segunda Federación Femenina":   {Titulo: "Segunda Federación Femenina", Top: false, Icon: "segundafede.png"},
 		"Spain U19 Cup":                 {Titulo: "Spain U19 Cup", Top: false, Icon: "uefa.png"},
 		"U19 Division de Honor Juvenil": {Titulo: "U19 Division de Honor Juvenil", Top: false, Icon: "uefa.png"},
 	},
@@ -151,6 +130,7 @@ var allCompetitions = AllCompetitions{
 		"Seconde Ligue Women":      {Titulo: "Seconde Ligue Women", Top: false, Icon: "uefa.png"},
 	},
 	"Europa": CountryCompetitions{
+		"Euroliga":                                  {Titulo: "Euroliga", Top: false, Icon: "euroliga.png"},
 		"UEFA Champions League":                     {Titulo: "UEFA Champions League", Top: true, Icon: "champions.png"},
 		"UEFA Europa League":                        {Titulo: "UEFA Europa League", Top: true, Icon: "uefa.png"},
 		"UEFA Conference League":                    {Titulo: "UEFA Conference League", Top: true, Icon: "conference.png"},

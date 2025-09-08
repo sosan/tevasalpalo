@@ -19,15 +19,30 @@ import (
 //go:embed views/*.html
 var viewsFS embed.FS
 
+type Match struct {
+	Competition  string            `json:"competition"`
+	Date         string            `json:"date"`
+	Time         string            `json:"time"`
+	Event        string            `json:"event"`
+	Broadcasters []BroadcasterInfo `json:"channels"`
+	Country      string            `json:"-"`
+	Sport        string            `json:"-"`
+}
+
+type BroadcasterInfo struct {
+	Name  string   `json:"name"`
+	Logo  string   `json:"logo"`
+	Links []string `json:"link,omitempty"`
+}
+
 func startWebServer() error {
 	topCompetitions = transformCompetitionsToTop(allCompetitions)
-	
+
 	engine := html.NewFileSystem(http.FS(viewsFS), ".html")
 
 	app := fiber.New(fiber.Config{
 		Views: engine,
 	})
-
 
 	app.Use("/css", filesystem.New(filesystem.Config{
 		Root:       http.FS(viewsFS),
@@ -48,61 +63,44 @@ func startWebServer() error {
 	}))
 
 	app.Get("/", func(c *fiber.Ctx) error {
-		// TODO: si da err 520, retry
-		days, err := fetchScheduleMatchesFutbolEnCasa()
+		days, daysJSON, topCompetitionsJSON, err := fetchEvents()
 		if err != nil {
-			// Loggear el error completo para depuración
-			log.Printf("Error fetching schedule: %v", err)
-			// Devolver un error al cliente
-			return c.Status(fiber.StatusInternalServerError).SendString("Error al obtener la programación")
+			c.Status(fiber.StatusInternalServerError).SendString("Error al obtener la programación")
 		}
-
-		daysJSONBytes, err := json.Marshal(days)
-		if err != nil {
-			log.Printf("Error marshaling days to JSON: %v", err)
-			return c.Status(fiber.StatusInternalServerError).SendString("Error al procesar los datos para JS")
-		}
-		daysJSON := template.JS(daysJSONBytes)
-
-		topCompetitionsBytes, err := json.Marshal(topCompetitions)
-		if err != nil {
-			log.Printf("Error marshaling days to JSON: %v", err)
-			return c.Status(fiber.StatusInternalServerError).SendString("Error al procesar los datos para JS")
-		}
-		topCompetitionsJSON := template.JS(topCompetitionsBytes)
-		
 		return c.Render("index", fiber.Map{
-			"DaysJSON":        daysJSON,
-			"Days":            days,
-			"allCompetitions": allCompetitions,
-			"topCompetitions": topCompetitions,
+			"Days":                days,
+			"allCompetitions":     allCompetitions,
+			"topCompetitions":     topCompetitions,
+			"DaysJSON":            daysJSON,
 			"topCompetitionsJSON": topCompetitionsJSON,
 		})
 	})
 
 	app.Get("/broadcasters", func(c *fiber.Ctx) error {
+		days, daysJSON, topCompetitionsJSON, err := fetchEvents()
+		if err != nil {
+			c.Status(fiber.StatusInternalServerError).SendString("Error al obtener la programación")
+		}
 		return c.Render("views/broadcasters", fiber.Map{
-			"Broadcasters": broadcasterToAcestream,
+			"Broadcasters":        broadcasterToAcestream,
+			"DaysJSON":            daysJSON,
+			"Days":                days,
+			"allCompetitions":     allCompetitions,
+			"topCompetitions":     topCompetitions,
+			"topCompetitionsJSON": topCompetitionsJSON,
 		})
 	})
 
 	app.Get("/player/:id", func(c *fiber.Ctx) error {
-		// Obtener el ID del parámetro de la URL
 		acestreamId := c.Params("id")
-
 		if acestreamId == "" {
-			// Manejar el error, por ejemplo, loguearlo y devolver un error al cliente
 			fmt.Printf("Error obteniendo content_id para stream_id %s\n", acestreamId)
-			// Opcional: Devolver el stream_id original como fallback si es un content_id válido
-			// Pero normalmente si falla aquí, es mejor mostrar un error.
-			// Para depurar, puedes pasar el stream_id y manejarlo en JS
 			return c.Status(500).Render("player", fiber.Map{
 				"AcestreamId": acestreamId, // Pasar el original
 				"Error":       fmt.Sprintf("No se pudo obtener el content ID: %v", acestreamId),
 			})
 		}
 
-		// 3. Renderizar la plantilla con el content_id obtenido
 		return c.Render("views/player", fiber.Map{
 			"AcestreamId": acestreamId,
 			"Error":       nil,
@@ -112,17 +110,28 @@ func startWebServer() error {
 	return app.Listen("0.0.0.0:3000")
 }
 
-type Match struct {
-	Competition  string            `json:"competition"`
-	Date         string            `json:"date"`
-	Time         string            `json:"time"`
-	Event        string            `json:"event"`
-	Broadcasters []BroadcasterInfo `json:"channels"`
-	Country      string            `json:"-"`
-	Sport        string            `json:"-"`
-}
+func fetchEvents() ([]DayView, *template.JS, *template.JS, error) {
+	// TODO: si da err 520, retry
+	days, err := fetchScheduleMatchesFutbolEnCasa()
+	if err != nil {
+		// Loggear el error completo para depuración
+		log.Printf("Error fetching schedule: %v", err)
+		// Devolver un error al cliente
+		return nil, nil, nil, fmt.Errorf("Error al obtener la programación")
+	}
 
-type BroadcasterInfo struct {
-	Name  string   `json:"name"`
-	Links []string `json:"link,omitempty"`
+	daysJSONBytes, err := json.Marshal(days)
+	if err != nil {
+		log.Printf("Error marshaling days to JSON: %v", err)
+		return nil, nil, nil, fmt.Errorf("Error al obtener la programación")
+	}
+	daysJSON := template.JS(daysJSONBytes)
+
+	topCompetitionsBytes, err := json.Marshal(topCompetitions)
+	if err != nil {
+		log.Printf("Error marshaling days to JSON: %v", err)
+		return nil, nil, nil, fmt.Errorf("Error al obtener la programación")
+	}
+	topCompetitionsJSON := template.JS(topCompetitionsBytes)
+	return days, &daysJSON, &topCompetitionsJSON, nil
 }
