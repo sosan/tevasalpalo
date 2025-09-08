@@ -46,7 +46,7 @@
                     <span class="block">Idioma</span></a>
             </li>
             <li>
-                <dialog id="config-menu">
+                <dialog id="config-menu" class="config-menu">
                     <div class="content-config">
                         <button class="close-dialog-config-menu">X</button>
                         <div class="card-component position-relative">
@@ -61,7 +61,7 @@
                                     <a href="#">
                                         <div class="box-competition position-relative">
                                             <div class="box-competition-content">
-                                                <img src="/images/{{ $details.Icon }}" alt="{{ $details.Titulo }}"
+                                                <img src="/images/logos-competitions/{{ $details.Icon }}" alt="{{ $details.Titulo }}"
                                                     class="image-competition-content">
                                                 <div class="text-competition-content">
                                                     <span class="style-text-competition-content">{{ $details.Titulo }}</span>
@@ -121,26 +121,7 @@
         </ul>
     </div>
 </header>
-<script>
-    const dialog = document.getElementById('config-menu');
-    const openBtn = document.getElementById('openConfigMenuBtn');
-    const closeBtn = document.querySelector('.close-dialog-config-menu');
-
-    openBtn.addEventListener('click', () => {
-        dialog.showModal();
-    });
-
-    closeBtn.addEventListener('click', () => {
-        dialog.close();
-    });
-
-    // Opcional: Cerrar haciendo clic fuera del contenido del diálogo (solo showModal)
-    dialog.addEventListener('click', (event) => {
-        // dialog.close() se puede llamar aquí también, pero hay que tener cuidado
-        // con cerrarlo al hacer clic dentro. Una forma más robusta es comprobar el target.
-        if (event.target === dialog) {
-            dialog.close();
-        }
-    });
-</script>
+<script> let topCompetitions = {{ .topCompetitionsJSON }}; </script>
+<script> let days = {{ .DaysJSON }}; </script>
+<script src="/js/modal.js" defer></script>
 {{ end }}

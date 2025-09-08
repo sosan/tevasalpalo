@@ -52,13 +52,27 @@
 
 </body>
 <script>
+    function fromBase64Url(str) {
+        const padding = '='.repeat((4 - str.length % 4) % 4);
+        const base64 = (str + padding)
+            .replace(/-/g, '+')
+            .replace(/_/g, '/');
+        return atob(base64);
+    }
+
     function loadVideo() {
-        const contentId = "{{ .ContentId }}";
-        const acestreamId = "{{ .AcestreamId }}"; // El original, por si acaso
+        let acestreamId = "{{ .AcestreamId }}";
         if (acestreamId == "") {
             return;
         }
         let hlsUrl = `http://127.0.0.1:6878/ace/manifest.m3u8?id=${acestreamId}`;
+        if (acestreamId.includes(";") === true) {
+            const splitted = acestreamId.split(";")[1];
+            const decoded = fromBase64Url(splitted);
+            acestreamId = decoded;
+        }
+        hlsUrl = acestreamId;
+
         const video = document.getElementById('videoPlayer');
         const statusMessage = document.getElementById('statusMessage');
 
@@ -145,7 +159,7 @@
                 // statusMessage.textContent = `❌ Error al cargar el stream: ${e.message}`;
             }
 
-        } 
+        }
         else if (video.canPlayType('application/vnd.apple.mpegurl')) {
             // Para Safari en macOS/iOS que soportan HLS nativamente
             console.log("Usando soporte HLS nativo del navegador (Safari).");

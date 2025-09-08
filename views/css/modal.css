@@ -141,12 +141,20 @@
 
 }
 
+.config-menu {
+  overflow: auto;
+  overscroll-behavior: contain;
+  /* overscroll-behavior: none; */
+}
+
 .close-dialog-config-menu {
-  position: sticky;
+  position: fixed;
   width: 40px;
   height: 40px;
   place-self: flex-end;
   cursor: pointer;
+  z-index: 5;
+  right: 90px;
 }
 
 

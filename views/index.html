@@ -10,8 +10,12 @@
     <link rel="stylesheet" href="/css/index.css">
     <link rel="stylesheet" href="/css/modal.css">
     <script src="/js/index.js" defer></script>
-    <script> let topCompetitions = {{ .topCompetitionsJSON }}; </script>
-    <script> let days = {{ .DaysJSON }}; </script>
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+    <link rel="manifest" href="/images/site.webmanifest">
+    <meta name="theme-color" content="#ffffff">
 </head>
 
 <body>
@@ -20,6 +24,5 @@
         <ol id="daylist" class="auto-items daylist"></ol>
     </main>
 </body>
-
 </html>
 {{ end }}

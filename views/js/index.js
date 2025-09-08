@@ -2,16 +2,6 @@ document.addEventListener("DOMContentLoaded", function () {
     console.log("Datos de días cargados:", days);
     console.log("Top Competitions para filtrar:", topCompetitions);
     renderFullSchedule(days);
-
-    // 2. Configurar los botones de filtro que ya existen en el header
-    // (Generados por el template `header.html`)
-    // setupFilterButtons();
-
-    // 3. Aplicar filtro inicial, por ejemplo, mostrar todas
-    // filterByCompetition('all');
-
-    // 4. Opcional: Destacar competiciones top visualmente
-    // highlightTopCompetitions();
 });
 
 /**

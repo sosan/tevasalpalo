@@ -3,30 +3,38 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Enlaces a Broadcasters - TVAS AL PALO!</title>
+    <title>Ver Canales - TVAS AL PALO!</title>
+    <link rel="stylesheet" href="/css/reset.css">
+    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="/css/modal.css">
     <link rel="stylesheet" href="/css/broadcasters.css">
+    <script src="/js/index.js" defer></script>
 </head>
 
 <body>
-    <header>
-        <a href="/">
-            <img src="./images/tvas.png" alt="tvas al palo!">
-        </a>
-        
-    </header>
-    <h1>📺 Todos los canales</h1>
-    {{ range $name, $info := .Broadcasters }}
-    <div class="broadcaster">
-        <div class="broadcaster-name">{{ $name }}</div>
-        <ol class="link-list">
-            {{ range $info.Links }}
-            <li><a href="/player/{{ . }}" target="_blank">🔗 Ver canal</a></li>
-            {{ else }}
-            <li><em>Sin enlaces disponibles</em></li>
+    {{template "header" . }}
+    <main>
+        <h1>📺 Todos los canales ({{ len .Broadcasters }} canales)</h1>
+        <div class="cards-container grid grid-cols lg:grid-cols-4 gap-10 p-5 mb-10">
+            {{ range $name, $info := .Broadcasters }}
+            <div
+                class="card bg-white shadow-lg rounded-2xl overflow-hidden transform transition-transform hover:scale-105 hover:shadow-2xl">
+                <div class="h-48 flex items-center justify-center bg-gray-100">
+                    <img src="/images/logos-tv/{{ .Logo }}" alt="{{ $name }}" class="h-24 w-24 object-contain">
+                </div>
+                <div class="p-6 text-center">
+                    <h3 class="text-gray-900 font-bold text-xl mb-2">{{ $name }}</h3>
+                    <ol class="link-list">
+                        {{ range $info.Links }}
+                        <li><a class="link-a" href="/player/{{ . }}" target="_blank">🔗 Ver canal</a></li>
+                        {{ end }}
+                    </ol>
+                </div>
+            </div>
             {{ end }}
-        </ol>
-    </div>
-    {{ end }}
+        </div>
+
+    </main>
 </body>
 
 </html>
