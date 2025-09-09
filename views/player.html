@@ -69,9 +69,8 @@
         if (acestreamId.includes(";") === true) {
             const splitted = acestreamId.split(";")[1];
             const decoded = fromBase64Url(splitted);
-            acestreamId = decoded;
+            hlsUrl = decoded;
         }
-        hlsUrl = acestreamId;
 
         const video = document.getElementById('videoPlayer');
         const statusMessage = document.getElementById('statusMessage');
