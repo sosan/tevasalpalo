@@ -30,9 +30,31 @@ var broadcasterGatewayMap = map[string][]string{
 	"Movistar Golf (FHD)":                {"M+ GOLF", "Movistar Golf"},
 	"Eurosport (FHD)":                    {"EUROSPORT 1"},
 	"Eurosport 2 (FHD)":                  {"EUROSPORT 2"},
+	"M.LaLiga2":                          {"M+ LALIGA 2", "M+ LALIGA 2 TV"},
+	"DAZNLaLiga":                         {"DAZN LALIGA", "DAZN LALIGA TV"},
+	"Eurosport2":                         {"EUROSPORT 2"},
+	"DAZNF1":                             {"DAZN F1"},
+	"LaLigaSmartbank":                    {"LALIGA HYPERMOTION", "LALIGA TV HYPERMOTION"},
+	"LaLigaSmartbank3":                   {"LALIGA HYPERMOTION 3"},
+	"Deporte2":                           {"M+ DEPORTES 2"},
+	"Campeones2":                         {"M+ LIGA DE CAMPEONES 2"},
+	"MovistarPlus":                       {"Movistar Plus", "Movistar Plus+", "M+"},
+	"Dazn1":                              {"DAZN 1", "DAZN"},
+	"Deporte":                            {"M+ DEPORTES"},
+	"Deporte3":                           {"M+ DEPORTES 3"},
+	"Deporte4":                           {"M+ DEPORTES 4"},
+	"Campeones3":                         {"M+ LIGA DE CAMPEONES 3"},
+	"LaLigaSmartbank2":                   {"LALIGA HYPERMOTION 2"},
+	"Vamos":                              {"M+ VAMOS"},
+	"Deporte5":                           {"M+ DEPORTES 5"},
+	"Campeones":                          {"M+ LIGA DE CAMPEONES"},
+	"M.LaLiga":                           {"M+ LALIGA", "M+ LALIGA TV"},
+	"M.LaLiga3":                          {"M+ LALIGA 3", "M+ LALIGA 3 TV"},
+	"Eurosport":                          {"EUROSPORT 1"},
+	"Dazn2":                              {"DAZN 2"},
 }
 
-func updateBroadcasterMapWithGateway(existingMap map[string]BroadcasterInfo, newData map[string][]string) {
+func updateBroadcasterMapWithGateway(existingMap map[string]BroadcasterInfo, newData map[string][]string) map[string]BroadcasterInfo {
 	for extractedName, links := range newData {
 		mappedKeys, exists := broadcasterGatewayMap[extractedName]
 		if !exists {
@@ -51,6 +73,7 @@ func updateBroadcasterMapWithGateway(existingMap map[string]BroadcasterInfo, new
 			}
 		}
 	}
+	return existingMap
 }
 
 func removeDuplicates(slice []string) []string {

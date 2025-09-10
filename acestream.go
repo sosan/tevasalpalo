@@ -2,9 +2,7 @@ package main
 
 import (
 	"archive/zip"
-	"bytes"
 	"embed"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"log"
@@ -17,8 +15,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-
-	"github.com/PuerkitoBio/goquery"
 )
 
 //go:embed assets/acestream-runtime-windows.zip
@@ -207,47 +203,4 @@ func openBrowser(url string) {
 		}
 	}
 	_ = cmd.Start()
-}
-
-func fetchUpdatedList() error {
-	body, err := FetchWebData("https://shickat.me/")
-	if err != nil {
-		return err
-	}
-	extractedData := extractDataFromWebShitkat(body)
-	updateBroadcasterMapWithGateway(broadcasterToAcestream, extractedData)
-
-	return err
-}
-
-func extractDataFromWebShitkat(body []byte) map[string][]string {
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
-	if err != nil {
-		return nil
-	}
-
-	extractedData := make(map[string][]string)
-	doc.Find(".canal-card").Each(func(i int, card *goquery.Selection) {
-		nombre := card.Find(".canal-nombre").Text()
-		acestreamLink := strings.TrimSpace(card.Find(".acestream-link").Text()) //.AttrOr("href", "")
-		extractedData[nombre] = append(extractedData[nombre], acestreamLink)
-	})
-	return extractedData
-}
-
-func transformUriSafeBroadcasters(broadcasterToAcestream map[string]BroadcasterInfo) map[string]BroadcasterInfo {
-	for key, _ := range broadcasterToAcestream {
-		for i := 0; i < len(broadcasterToAcestream[key].Links); i++ {
-			if strings.Contains(broadcasterToAcestream[key].Links[i], ":") {
-				encoded := changeLinkToUriSafe(broadcasterToAcestream[key].Links[i])
-				broadcasterToAcestream[key].Links[i] = fmt.Sprintf(";%s", encoded)
-			}
-		}
-	}
-	return broadcasterToAcestream
-}
-
-func changeLinkToUriSafe(url string) string {
-	encodedRaw := base64.RawURLEncoding.EncodeToString([]byte(url))
-	return encodedRaw
 }

@@ -65,7 +65,7 @@ func startWebServer() error {
 	app.Get("/", func(c *fiber.Ctx) error {
 		days, daysJSON, topCompetitionsJSON, err := fetchEvents()
 		if err != nil {
-			c.Status(fiber.StatusInternalServerError).SendString("Error al obtener la programación")
+			return c.Status(fiber.StatusInternalServerError).SendString("Error al obtener la programación")
 		}
 		return c.Render("index", fiber.Map{
 			"Days":                days,
@@ -79,7 +79,7 @@ func startWebServer() error {
 	app.Get("/broadcasters", func(c *fiber.Ctx) error {
 		days, daysJSON, topCompetitionsJSON, err := fetchEvents()
 		if err != nil {
-			c.Status(fiber.StatusInternalServerError).SendString("Error al obtener la programación")
+			return c.Status(fiber.StatusInternalServerError).SendString("Error al obtener la programación")
 		}
 		return c.Render("views/broadcasters", fiber.Map{
 			"Broadcasters":        broadcasterToAcestream,
@@ -95,10 +95,7 @@ func startWebServer() error {
 		acestreamId := c.Params("id")
 		if acestreamId == "" {
 			fmt.Printf("Error obteniendo content_id para stream_id %s\n", acestreamId)
-			return c.Status(500).Render("player", fiber.Map{
-				"AcestreamId": acestreamId, // Pasar el original
-				"Error":       fmt.Sprintf("No se pudo obtener el content ID: %v", acestreamId),
-			})
+			return c.Status(500).SendString("No se pudo obtener el content ID")
 		}
 
 		return c.Render("views/player", fiber.Map{
