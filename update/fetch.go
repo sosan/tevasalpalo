@@ -9,7 +9,6 @@ import (
 )
 
 func GetRequestRaw(uri string, token string) (*io.ReadCloser, int) {
-
 	clientHttp := http.Client{Timeout: time.Duration(60) * time.Second}
 
 	req, _ := http.NewRequest("GET", uri, nil)
