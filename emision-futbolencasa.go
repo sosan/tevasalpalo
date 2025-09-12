@@ -3,21 +3,11 @@ package main
 import (
 	"bytes"
 	"fmt"
-
-	// "io"
-	// "net/http"
+	"github.com/PuerkitoBio/goquery"
 	"regexp"
-	// "sort"
 	"strings"
 	"time"
 	"unicode"
-
-	// "time"
-
-	"github.com/PuerkitoBio/goquery"
-	// "golang.org/x/net/html/charset"
-	// "golang.org/x/text/encoding/htmlindex"
-	// "golang.org/x/text/transform"
 )
 
 type MatchView struct {
@@ -44,216 +34,6 @@ type AllCompetitions map[string]CountryCompetitions
 
 var topCompetitions map[string]CompetitionDetail
 
-var allCompetitions = AllCompetitions{
-	"Sports": CountryCompetitions{
-		"Tenis":                  {Titulo: "Tenis", Top: true, Icon: "tenis.png"},
-		"FIFA Copa Mundial 2026": {Titulo: "Mundial", Top: true, Icon: "mundial.png"},
-		"Mundial Clubes":         {Titulo: "Mundial Clubes", Top: true, Icon: "mundialclubes.png"},
-		"FIA Fórmula 2":          {Titulo: "FIA Fórmula 2", Top: true, Icon: "formula2.png"},
-		"FIA Fórmula 3":          {Titulo: "FIA Fórmula 3", Top: true, Icon: "formula3.png"},
-		"Fórmula 1":              {Titulo: "Fórmula 1", Top: true, Icon: "formula1.png"},
-		"Moto2":                  {Titulo: "Moto2", Top: true, Icon: "moto2.png"},
-		"Moto3":                  {Titulo: "Moto3", Top: true, Icon: "moto3.png"},
-		"MotoGP":                 {Titulo: "MotoGP", Top: true, Icon: "motogp.png"},
-		"Boxeo":                  {Titulo: "Boxeo", Top: true, Icon: "boxeo.png"},
-		"UFC":                    {Titulo: "UFC", Top: true, Icon: "ufc.png"},
-	},
-	"España": CountryCompetitions{
-		"LaLiga":                        {Titulo: "LaLiga", Top: true, Icon: "liga.png"},
-		"LaLiga Hypermotion":            {Titulo: "LaLiga 2", Top: true, Icon: "liga2.png"},
-		"Liga Endesa":                   {Titulo: "Liga Endesa", Top: true, Icon: "endesa.png"},
-		"Primera FEB":                   {Titulo: "Primera FEB", Top: false, Icon: "primerafeb.png"},
-		// "Primera Federacion":            {Titulo: "Primera Federacion", Top: false, Icon: "primerafede.png"},
-		// "Segunda Federación":            {Titulo: "Segunda Federación", Top: false, Icon: "segundafede.png"},
-		"Copa del Rey":                  {Titulo: "Copa del Rey", Top: true, Icon: "uefa.png"},
-		"Supercopa de España":           {Titulo: "Supercopa de España", Top: true, Icon: "uefa.png"},
-		"Liga F Moeve":                  {Titulo: "Liga F Moeve", Top: false, Icon: "uefa.png"},
-		"Copa Federación":               {Titulo: "Copa Federación", Top: false, Icon: "uefa.png"},
-		"Supercopa Femenina":            {Titulo: "Supercopa Femenina", Top: false, Icon: "uefa.png"},
-		"Copa de SM La Reina":           {Titulo: "Copa de SM La Reina", Top: false, Icon: "uefa.png"},
-		"División de Honor Juvenil":     {Titulo: "División de Honor Juvenil", Top: false, Icon: "uefa.png"},
-		// "Primera Federación Women":      {Titulo: "Primera Federacion Women", Top: false, Icon: "primerafede.png"},
-		// "Segunda Federación Femenina":   {Titulo: "Segunda Federación Femenina", Top: false, Icon: "segundafede.png"},
-		"Spain U19 Cup":                 {Titulo: "Spain U19 Cup", Top: false, Icon: "uefa.png"},
-		"U19 Division de Honor Juvenil": {Titulo: "U19 Division de Honor Juvenil", Top: false, Icon: "uefa.png"},
-	},
-	"Inglaterra": CountryCompetitions{
-		"Premier League":              {Titulo: "Premier League", Top: true, Icon: "premiere.png"},
-		"Championship":                {Titulo: "Championship", Top: false, Icon: "uefa.png"},
-		"League One":                  {Titulo: "League One", Top: false, Icon: "uefa.png"},
-		"League Two":                  {Titulo: "League Two", Top: false, Icon: "uefa.png"},
-		"National League":             {Titulo: "National League", Top: false, Icon: "uefa.png"},
-		"FA Cup":                      {Titulo: "FA Cup", Top: false, Icon: "uefa.png"},
-		"FA Cup, Qualification":       {Titulo: "FA Cup, Qualification", Top: false, Icon: "uefa.png"},
-		"EFL Cup":                     {Titulo: "EFL Cup", Top: false, Icon: "uefa.png"},
-		"Football League Trophy":      {Titulo: "Football League Trophy", Top: false, Icon: "uefa.png"},
-		"FA Women's Championship":     {Titulo: "FA Women's Championship", Top: false, Icon: "uefa.png"},
-		"Community Shield":            {Titulo: "Community Shield", Top: false, Icon: "uefa.png"},
-		"Women's Super League":        {Titulo: "Women's Super League", Top: false, Icon: "uefa.png"},
-		"Women's FA Cup":              {Titulo: "Women's FA Cup", Top: false, Icon: "uefa.png"},
-		"FA Women's League Cup":       {Titulo: "FA Women's League Cup", Top: false, Icon: "uefa.png"},
-		"England National League Cup": {Titulo: "England National League Cup", Top: false, Icon: "uefa.png"},
-		"Baller League UK":            {Titulo: "Baller League UK", Top: false, Icon: "uefa.png"},
-		"FA Youth Cup":                {Titulo: "FA Youth Cup", Top: false, Icon: "uefa.png"},
-	},
-	"Alemania": CountryCompetitions{
-		"Bundesliga":    {Titulo: "Bundesliga", Top: true, Icon: "bundesliga.png"},
-		"2. Bundesliga": {Titulo: "2. Bundesliga", Top: false, Icon: "uefa.png"},
-		"DFB Pokal":     {Titulo: "DFB Pokal", Top: false, Icon: "uefa.png"},
-		"DFL Supercup":  {Titulo: "DFL Supercup", Top: false, Icon: "uefa.png"},
-	},
-	"Italia": CountryCompetitions{
-		"Serie A":                {Titulo: "Serie A", Top: true, Icon: "seriea.png"},
-		"Serie B":                {Titulo: "Serie B", Top: false, Icon: "uefa.png"},
-		"Campionato Primavera 1": {Titulo: "Campionato Primavera 1", Top: false, Icon: "uefa.png"},
-		"Campionato Primavera 2": {Titulo: "Campionato Primavera 2", Top: false, Icon: "uefa.png"},
-		"Serie C, Playoffs":      {Titulo: "Serie C, Playoffs", Top: false, Icon: "uefa.png"},
-		"Supercoppa Serie C":     {Titulo: "Supercoppa Serie C", Top: false, Icon: "uefa.png"},
-		"Serie D Poule Scudetto": {Titulo: "Serie D Poule Scudetto", Top: false, Icon: "uefa.png"},
-		"Serie A Women":          {Titulo: "Serie A Women", Top: false, Icon: "uefa.png"},
-		"Coppa Italia Femminile": {Titulo: "Coppa Italia Femminile", Top: false, Icon: "uefa.png"},
-		"Supercoppa Primavera":   {Titulo: "Supercoppa Primavera", Top: false, Icon: "uefa.png"},
-		"Trofeo Dossena":         {Titulo: "Trofeo Dossena", Top: false, Icon: "uefa.png"},
-		"Serie D, Girone H":      {Titulo: "Serie D, Girone H", Top: false, Icon: "uefa.png"},
-		"Serie B Femminile":      {Titulo: "Serie B Femminile", Top: false, Icon: "uefa.png"},
-	},
-	"Francia": CountryCompetitions{
-		"Ligue 1":                  {Titulo: "Ligue 1", Top: true, Icon: "ligue1.png"},
-		"Ligue 2":                  {Titulo: "Ligue 2", Top: false, Icon: "uefa.png"},
-		"National 1":               {Titulo: "National 1", Top: false, Icon: "uefa.png"},
-		"National 2":               {Titulo: "National 2", Top: false, Icon: "uefa.png"},
-		"Coupe de France":          {Titulo: "Coupe de France", Top: false, Icon: "uefa.png"},
-		"Trophée des Champions":    {Titulo: "Trophée des Champions", Top: false, Icon: "uefa.png"},
-		"Première Ligue, Féminine": {Titulo: "Première Ligue, Féminine", Top: false, Icon: "uefa.png"},
-		"Coupe de France, Women":   {Titulo: "Coupe de France, Women", Top: false, Icon: "uefa.png"},
-		"Championnat National U19": {Titulo: "Championnat National U19", Top: false, Icon: "uefa.png"},
-		"Seconde Ligue Women":      {Titulo: "Seconde Ligue Women", Top: false, Icon: "uefa.png"},
-	},
-	"Europa": CountryCompetitions{
-		"Euroliga":                                  {Titulo: "Euroliga", Top: false, Icon: "euroliga.png"},
-		"UEFA Champions League":                     {Titulo: "UEFA Champions League", Top: true, Icon: "champions.png"},
-		"UEFA Europa League":                        {Titulo: "UEFA Europa League", Top: true, Icon: "uefa.png"},
-		"UEFA Conference League":                    {Titulo: "UEFA Conference League", Top: true, Icon: "conference.png"},
-		"UEFA Super Cup":                            {Titulo: "UEFA Super Cup", Top: false, Icon: "uefa.png"},
-		"UEFA Nations League":                       {Titulo: "UEFA Nations League", Top: false, Icon: "uefa.png"},
-		"UEFA Women's Nations League":               {Titulo: "UEFA Women's Nations League", Top: false, Icon: "uefa.png"},
-		"Women's Euro":                              {Titulo: "Women's Euro", Top: false, Icon: "uefa.png"},
-		"Women's Euro, Qualification":               {Titulo: "Women's Euro, Qualification", Top: false, Icon: "uefa.png"},
-		"U21 European Championship":                 {Titulo: "U21 European Championship", Top: false, Icon: "uefa.png"},
-		"U21 Euro Qualification":                    {Titulo: "U21 Euro Qualification", Top: false, Icon: "uefa.png"},
-		"U19 European Championship Qualif.":         {Titulo: "U19 European Championship Qualif.", Top: false, Icon: "uefa.png"},
-		"U17 European Championship":                 {Titulo: "U17 European Championship", Top: false, Icon: "uefa.png"},
-		"U17 European Championship, Qual.":          {Titulo: "U17 European Championship, Qual.", Top: false, Icon: "uefa.png"},
-		"U19 European Women's Championship Qualif.": {Titulo: "U19 European Women's Championship Qualif.", Top: false, Icon: "uefa.png"},
-		"U17 European Women's Championship":         {Titulo: "U17 European Women's Championship", Top: false, Icon: "uefa.png"},
-		"UEFA Youth League":                         {Titulo: "UEFA Youth League", Top: false, Icon: "uefa.png"},
-	},
-	"América del Sur": CountryCompetitions{
-		"CONMEBOL Libertadores":             {Titulo: "CONMEBOL Libertadores", Top: false, Icon: "uefa.png"},
-		"CONMEBOL Sudamericana":             {Titulo: "CONMEBOL Sudamericana", Top: false, Icon: "uefa.png"},
-		"CONMEBOL Recopa":                   {Titulo: "CONMEBOL Recopa", Top: false, Icon: "uefa.png"},
-		"Copa América":                      {Titulo: "Copa América", Top: false, Icon: "uefa.png"},
-		"World Cup Qual. CONMEBOL":          {Titulo: "World Cup Qual. CONMEBOL", Top: false, Icon: "uefa.png"},
-		"U17 CONMEBOL Championship":         {Titulo: "U17 CONMEBOL Championship", Top: false, Icon: "uefa.png"},
-		"U20 CONMEBOL Libertadores":         {Titulo: "U20 CONMEBOL Libertadores", Top: false, Icon: "uefa.png"},
-		"U20 CONMEBOL Championship":         {Titulo: "U20 CONMEBOL Championship", Top: false, Icon: "uefa.png"},
-		"U20 CONMEBOL Women's Championship": {Titulo: "U20 CONMEBOL Women's Championship", Top: false, Icon: "uefa.png"},
-		"Copa Libertadores Femenina":        {Titulo: "Copa Libertadores Femenina", Top: false, Icon: "uefa.png"},
-		"Copa América Femenina":             {Titulo: "Copa América Femenina", Top: false, Icon: "uefa.png"},
-		"U17 CONMEBOL Women's Championship": {Titulo: "U17 CONMEBOL Women's Championship", Top: false, Icon: "uefa.png"},
-		"U13 Liga Evolución":                {Titulo: "U13 Liga Evolución", Top: false, Icon: "uefa.png"},
-		"U16 Liga Evolución, Women":         {Titulo: "U16 Liga Evolución, Women", Top: false, Icon: "uefa.png"},
-		"U14 Liga Evolución, Women":         {Titulo: "U14 Liga Evolución, Women", Top: false, Icon: "uefa.png"},
-		"U15 CONMEBOL Championship":         {Titulo: "U15 CONMEBOL Championship", Top: false, Icon: "uefa.png"},
-		"CONMEBOL Pre-Olympic":              {Titulo: "CONMEBOL Pre-Olympic", Top: false, Icon: "uefa.png"},
-	},
-	"Brasil": CountryCompetitions{
-		"Serie A":          {Titulo: "Serie A", Top: false, Icon: "uefa.png"},
-		"Copa do Brasil":   {Titulo: "Copa do Brasil", Top: false, Icon: "uefa.png"},
-		"Série B":          {Titulo: "Série B", Top: false, Icon: "uefa.png"},
-		"Internacional":    {Titulo: "Internacional", Top: false, Icon: "uefa.png"},
-		"Fortaleza SC":     {Titulo: "Fortaleza SC", Top: false, Icon: "uefa.png"},
-		"Sport Recife":     {Titulo: "Sport Recife", Top: false, Icon: "uefa.png"},
-		"Vasco da Gama":    {Titulo: "Vasco da Gama", Top: false, Icon: "uefa.png"},
-		"Grêmio":           {Titulo: "Grêmio", Top: false, Icon: "uefa.png"},
-		"Ceará":            {Titulo: "Ceará", Top: false, Icon: "uefa.png"},
-		"São Paulo":        {Titulo: "São Paulo", Top: false, Icon: "uefa.png"},
-		"Atlético Mineiro": {Titulo: "Atlético Mineiro", Top: false, Icon: "uefa.png"},
-		"Palmeiras":        {Titulo: "Palmeiras", Top: false, Icon: "uefa.png"},
-	},
-	"Argentina": CountryCompetitions{
-		"Primera División": {Titulo: "Primera División", Top: false, Icon: "uefa.png"},
-		"Copa Argentina":   {Titulo: "Copa Argentina", Top: false, Icon: "uefa.png"},
-
-		// "River Plate":       {Titulo: "River Plate", Top: false, Icon: "uefa.png" },
-		// "San Martín SJ":     {Titulo: "San Martín SJ", Top: false, Icon: "uefa.png" },
-		// "Racing Avellaneda": {Titulo: "Racing Avellaneda", Top: false, Icon: "uefa.png" },
-		// "Unión Santa Fe":    {Titulo: "Unión Santa Fe", Top: false, Icon: "uefa.png" },
-		// "Gimnasia LP":       {Titulo: "Gimnasia LP", Top: false, Icon: "uefa.png" },
-		// "Atlético Tucumán":  {Titulo: "Atlético Tucumán", Top: false, Icon: "uefa.png" },
-		// "Platense":          {Titulo: "Platense", Top: false, Icon: "uefa.png" },
-		// "Godoy Cruz":        {Titulo: "Godoy Cruz", Top: false, Icon: "uefa.png" },
-		// "Estudiantes LP":    {Titulo: "Estudiantes LP", Top: false, Icon: "uefa.png" },
-		// "Aldosivi":          {Titulo: "Aldosivi", Top: false},
-		// "Independiente":     {Titulo: "Independiente", Top: false},
-		// "Miramar Misiones":  {Titulo: "Miramar Misiones", Top: false},
-		// "Cerro Largo":       {Titulo: "Cerro Largo", Top: false},
-	},
-
-	"Colombia": CountryCompetitions{
-		"Primera A":                {Titulo: "Primera A", Top: false, Icon: "uefa.png"},
-		"Copa Colombia":            {Titulo: "Copa Colombia", Top: false, Icon: "uefa.png"},
-		"Santa Fe":                 {Titulo: "Santa Fe", Top: false, Icon: "uefa.png"},
-		"Once Caldas":              {Titulo: "Once Caldas", Top: false, Icon: "uefa.png"},
-		"Deportes Tolima":          {Titulo: "Deportes Tolima", Top: false, Icon: "uefa.png"},
-		"Bucaramanga":              {Titulo: "Bucaramanga", Top: false, Icon: "uefa.png"},
-		"Águilas Doradas Rionegro": {Titulo: "Águilas Doradas Rionegro", Top: false, Icon: "uefa.png"},
-		"Boyacá Chicó":             {Titulo: "Boyacá Chicó", Top: false, Icon: "uefa.png"},
-		"LDU Quito":                {Titulo: "LDU Quito", Top: false, Icon: "uefa.png"},
-		"El Nacional":              {Titulo: "El Nacional", Top: false, Icon: "uefa.png"},
-	},
-	"Venezuela": CountryCompetitions{
-		"Primera División": {Titulo: "Primera División", Top: false, Icon: "uefa.png"},
-		"Trujillanos":      {Titulo: "Trujillanos", Top: false, Icon: "uefa.png"},
-		"Héroes de Falcón": {Titulo: "Héroes de Falcón", Top: false, Icon: "uefa.png"},
-	},
-	"Ecuador": CountryCompetitions{
-		"Serie A":      {Titulo: "Serie A", Top: false, Icon: "uefa.png"},
-		"Barcelona SC": {Titulo: "Barcelona SC", Top: false, Icon: "uefa.png"},
-		"U. Católica":  {Titulo: "U. Católica", Top: false, Icon: "uefa.png"},
-		"Delfín SC":    {Titulo: "Delfín SC", Top: false, Icon: "uefa.png"},
-		"Libertad FC":  {Titulo: "Libertad FC", Top: false, Icon: "uefa.png"},
-		"LDU Quito":    {Titulo: "LDU Quito", Top: false, Icon: "uefa.png"},
-		"El Nacional":  {Titulo: "El Nacional", Top: false, Icon: "uefa.png"},
-	},
-	"Estados Unidos": CountryCompetitions{
-		"Major League Soccer (MLS)": {Titulo: "Major League Soccer (MLS)", Top: false, Icon: "uefa.png"},
-		"US Open Cup":               {Titulo: "US Open Cup", Top: false, Icon: "uefa.png"},
-		"Seattle Sounders":          {Titulo: "Seattle Sounders", Top: false, Icon: "uefa.png"},
-		"Inter Miami CF":            {Titulo: "Inter Miami CF", Top: false, Icon: "uefa.png"},
-		"Los Angeles FC":            {Titulo: "Los Angeles FC", Top: false, Icon: "uefa.png"},
-		"San Diego FC":              {Titulo: "San Diego FC", Top: false, Icon: "uefa.png"},
-		"Columbus Crew":             {Titulo: "Columbus Crew", Top: false, Icon: "uefa.png"},
-		"New England Revolution":    {Titulo: "New England Revolution", Top: false, Icon: "uefa.png"},
-		"FC Cincinnati":             {Titulo: "FC Cincinnati", Top: false, Icon: "uefa.png"},
-		"New York City":             {Titulo: "New York City", Top: false, Icon: "uefa.png"},
-		"Sporting KC":               {Titulo: "Sporting KC", Top: false, Icon: "uefa.png"},
-	},
-	"México": CountryCompetitions{
-		"Liga MX": {Titulo: "Liga MX", Top: false, Icon: "uefa.png"},
-		"Copa MX": {Titulo: "Copa MX", Top: false, Icon: "uefa.png"},
-
-		"Chivas Guadalajara": {Titulo: "Chivas Guadalajara", Top: false, Icon: "uefa.png"},
-		"Club América":       {Titulo: "Club América", Top: false, Icon: "uefa.png"},
-	},
-	"Arabia Saudita": CountryCompetitions{
-		"Saudi Professional League": {Titulo: "Saudi Professional League", Top: false, Icon: "uefa.png"},
-
-		"Al Nassr": {Titulo: "Al Nassr", Top: false, Icon: "uefa.png"},
-		"Al Hilal": {Titulo: "Al Hilal", Top: false, Icon: "uefa.png"},
-	},
-}
-
 // Función auxiliar para obtener texto plano sin espacios extra
 func cleanTextForTabsNewlines(s string) string {
 	if strings.Contains(s, "(") {
@@ -265,21 +45,29 @@ func cleanTextForTabsNewlines(s string) string {
 
 // Función auxiliar para obtener el título de la competición
 func getCompetitionTitle(details *goquery.Selection) string {
-	// Intenta obtener el título del label
 	competitionLabel := details.Find("label").First()
 	if title, exists := competitionLabel.Attr("title"); exists && title != "" {
+		if title == "La Liga EA Sports" {
+			title = "LaLiga"
+		}
 		return cleanTextForTabsNewlines(title)
 	}
-	// Si no hay título, usa el texto del label
+	
 	if text := cleanTextForTabsNewlines(competitionLabel.Text()); text != "" {
+		if text == "La Liga EA Sports" {
+			text = "LaLiga"
+		}
 		return text
 	}
-	// Si no hay label, busca en span (como en "Torneo Clausura")
+	
 	competitionSpan := details.Find("span").First()
 	if title, exists := competitionSpan.Attr("title"); exists && title != "" {
+		if title == "La Liga EA Sports" {
+			title = "LaLiga"
+		}
 		return cleanTextForTabsNewlines(title)
 	}
-	// Si no hay título, usa el texto del span
+	
 	return cleanTextForTabsNewlines(competitionSpan.Text())
 }
 
@@ -354,7 +142,7 @@ func prepareMatchDay(body []byte) ([]DayView, error) {
 
 		details := row.Find("td.detalles")
 		competitionName := getCompetitionTitle(details)
-
+		
 		var sport string = "Desconocido"
 		sportImg := details.Find("ul > li > div.contenedorImgCompeticion img")
 		if sportImg.Length() > 0 {

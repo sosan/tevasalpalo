@@ -1,8 +1,34 @@
+const updateBoton = document.getElementById("updateboton");
+
+updateBoton.addEventListener("click",async function(event) {
+    if (updateBoton) {
+        event.preventDefault();
+
+        const request = await fetch('/update', { method: 'GET' });
+        if (request.ok) {
+            console.log("Actualización iniciada.");
+        } else {
+            console.error("Error al iniciar la actualización:", request.statusText);
+        }
+
+        const data = await request.json();
+        setInterval(async () => {
+            const request = await fetch('/healthz', { method: 'GET' });
+            if (request.ok) {
+                const data = await request.json();
+                
+            }
+        }, 10_000);
+    }
+});
+
 document.addEventListener("DOMContentLoaded", function () {
     console.log("Datos de días cargados:", days);
     console.log("Top Competitions para filtrar:", topCompetitions);
     renderFullSchedule(days);
 });
+
+
 
 /**
  * Genera todo el HTML de la programación dentro de #daylist

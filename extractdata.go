@@ -11,7 +11,7 @@ import (
 	"github.com/grafov/m3u8"
 )
 
-var filterList = []string {
+var filterList = []string{
 	"ESPN HD",
 	"ESPN 2 HD",
 	"ESPN 3 HD",
@@ -19,10 +19,9 @@ var filterList = []string {
 	"ESPN 5 HD",
 	"ESPN 6 HD",
 	"ESPN 7 HD",
-
 }
 
-func fetchUpdatedList() error {
+func FetchUpdatedList() error {
 	body, err := FetchWebData("https://shickat.me/")
 	if err != nil {
 		return err
@@ -121,14 +120,12 @@ func extractDataFromWebElCano(body []byte) (map[string][]string, error) {
 			if name == "Dedporte2" {
 				name = "Deporte2"
 			}
-			extractedData[name] = append(extractedData[name], link.URL )
+			extractedData[name] = append(extractedData[name], link.URL)
 		}
 	}
 
 	return extractedData, nil
 }
-
-
 
 func extractDataFromWebShitkat(body []byte) map[string][]string {
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
@@ -162,13 +159,12 @@ func changeLinkToUriSafe(url string) string {
 	return encodedRaw
 }
 
-
 func extractDataFromM3U8(body []byte, filterList []string) (map[string][]string, error) {
 	p, listType, err := m3u8.Decode(*bytes.NewBuffer(body), false)
 	if err != nil {
 		return nil, err
 	}
-	var mediapl  *m3u8.MediaPlaylist
+	var mediapl *m3u8.MediaPlaylist
 	// var masterpl *m3u8.MasterPlaylist
 	switch listType {
 	case m3u8.MEDIA:
@@ -183,7 +179,7 @@ func extractDataFromM3U8(body []byte, filterList []string) (map[string][]string,
 	for i := 0; i < len(mediapl.Segments); i++ {
 		name := mediapl.Segments[i].Title
 		link := mediapl.Segments[i].URI
-		extractedData[name] = append(extractedData[name], link )
+		extractedData[name] = append(extractedData[name], link)
 	}
 	return extractedData, nil
 }

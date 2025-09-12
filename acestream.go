@@ -54,7 +54,7 @@ func findLinkForBroadcaster(name string) []string {
 	return []string{}
 }
 
-func runAceStream() error {
+func RunAceStream() error {
 	exePath, err := os.Executable()
 	if err != nil {
 		log.Fatal("No se pudo obtener la ruta del ejecutable: ", err)

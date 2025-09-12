@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"streaming/update"
+	"main/update"
 	"syscall"
 	"time"
 )
@@ -26,13 +26,13 @@ func main() {
 	log.Println("📡 Obteniendo lista de emisiones TV...")
 	go func() {
 		// donwload updated lists
-		err := fetchUpdatedList()
+		err := FetchUpdatedList()
 		if err != nil {
 			log.Printf("Error al obtener la programación")
 		}
 
 		log.Println("🌐 Servidor web iniciando en http://localhost:3000")
-		if err := startWebServer(); err != nil {
+		if err := StartWebServer(); err != nil {
 			log.Printf("❌ Error en servidor web: %v", err)
 		}
 	}()
@@ -41,7 +41,7 @@ func main() {
 
 	env := os.Getenv("ENV")
 	if env != "dev" {
-		if err := runAceStream(); err != nil {
+		if err := RunAceStream(); err != nil {
 			log.Fatal("❌ Error al iniciar AceStream: ", err)
 		}
 	} else {

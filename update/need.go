@@ -2,6 +2,8 @@ package update
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"strings"
 	"time"
 )
@@ -17,6 +19,7 @@ func getRemoteVersionBuild() time.Time {
 	uri := getRemotePathBuildDate()
 	versionDate, statusCode := GetRequest(uri, "")
 	if statusCode != 200 {
+		log.Printf("Remote version not found %s", uri)
 		versionDate = []byte("")
 	}
 	strVersion := cleanRawDate(string(versionDate))
@@ -33,6 +36,9 @@ func cleanRawDate(dateRaw string) string {
 }
 
 func getRemotePathBuildDate() string {
-	fileName := getFileName()
+	fileName := getFileNameRemoteVersion()
+	if os.Getenv("ENV") == "dev" {
+		fileName = "portable.exe"
+	}
 	return fmt.Sprintf("%s/date_build_%s.txt", URI_DOWNLOAD, fileName)
 }

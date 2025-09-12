@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"main/update"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
@@ -35,7 +36,7 @@ type BroadcasterInfo struct {
 	Links []string `json:"link,omitempty"`
 }
 
-func startWebServer() error {
+func StartWebServer() error {
 	topCompetitions = transformCompetitionsToTop(allCompetitions)
 
 	engine := html.NewFileSystem(http.FS(viewsFS), ".html")
@@ -101,6 +102,20 @@ func startWebServer() error {
 		return c.Render("views/player", fiber.Map{
 			"AcestreamId": acestreamId,
 			"Error":       nil,
+		})
+	})
+
+	app.Get("/update", func(c *fiber.Ctx) error {
+		update.ForceUpdate()
+
+		return c.JSON(fiber.Map{
+			"sendedupdate": true,
+		})
+	})
+
+	app.Get("/healthz", func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{
+			"ok": true,
 		})
 	})
 

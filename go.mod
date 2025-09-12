@@ -1,4 +1,4 @@
-module streaming
+module main
 
 go 1.24
 
