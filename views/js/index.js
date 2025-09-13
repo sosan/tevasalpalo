@@ -26,16 +26,22 @@ updateBoton.addEventListener("click", async function (event) {
                     const request = await fetch('/healthz', { method: 'GET' });
                     if (request.ok) {
                         const data = await request.json();
-                        contentUpdating.innerHTML = "<p>Actualización terminada</p>";
+                        if (data.ok) {
+                            contentUpdating.innerText = "Actualización terminada";
+                        }
+                        clearInterval(intervalHealthz);
                         setTimeout(() => {
                             dialogUpdating.close();
                         }, 5000);
-                        clearInterval(intervalHealthz);
                         return;
                     }
                 } catch (error) {
                     clearInterval(intervalHealthz);
-                    console.error("Error al verificar el estado de salud:", error);
+                    // console.error("Error al verificar el estado de salud:", error);
+                    // contentUpdating.innerText = `Error en la actualización`;
+                    setTimeout(() => {
+                        dialogUpdating.close();
+                    }, 5000);
                 }
             }, 10_000);
         } catch (error) {
