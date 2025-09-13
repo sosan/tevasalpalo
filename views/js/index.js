@@ -3,14 +3,17 @@ const dialogUpdating = document.getElementById('dialog-updating');
 const contentUpdating = document.getElementById('content-updating');
 const messageWarn = document.getElementById('message-warn');
 const oneHour = 60 * 60 * 1000;
+let updating = false;
+let updatingcheck = false;
 
 updateBoton.addEventListener("click", async function (event) {
     if (updateBoton) {
         event.preventDefault();
+        if (updating) return;
         try {
             updateBoton.ariaDisabled = "true";
             updateBoton.disabled = true;
-
+            updating = true;
             const request = await fetch('/update', { method: 'GET' });
             dialogUpdating.showModal();
             if (request.ok) {
@@ -19,6 +22,7 @@ updateBoton.addEventListener("click", async function (event) {
             } else {
                 updateBoton.ariaDisabled = "false";
                 updateBoton.disabled = false;
+                updating = false;
                 console.error("Error al iniciar la actualización:", request.statusText);
                 contentUpdating.innerText = `Error al iniciar la actualización`;
                 setTimeout(() => {
@@ -34,6 +38,7 @@ updateBoton.addEventListener("click", async function (event) {
                     if (request.ok) {
                         const data = await request.json();
                         if (data.ok) {
+                            updating = false;
                             updateBoton.ariaDisabled = "false";
                             updateBoton.disabled = false;
                             contentUpdating.innerText = "Actualización terminada";
@@ -45,6 +50,7 @@ updateBoton.addEventListener("click", async function (event) {
                         return;
                     }
                 } catch (error) {
+                    updating = false;
                     updateBoton.ariaDisabled = "false";
                     updateBoton.disabled = false;
                     clearInterval(intervalHealthz);
@@ -56,6 +62,7 @@ updateBoton.addEventListener("click", async function (event) {
                 }
             }, 10_000);
         } catch (error) {
+            updating = false;
             updateBoton.ariaDisabled = "false";
             updateBoton.disabled = false;
             console.error("Error al enviar la solicitud de actualización:", error);
@@ -70,11 +77,13 @@ updateBoton.addEventListener("click", async function (event) {
 async function startUpdateCheck() {
     try {
         console.log("Verificando actualizaciones...");
+        updatingcheck = true;
         const request = await fetch('/updateavailable', { method: 'GET' });
         if (request.ok) {
             const data = await request.json();
 
             if (data.needUpdate) {
+                updatingcheck = false;
                 messageWarn.innerText = "¡Nueva versión disponible! Haz clic aquí para actualizar.";
                 messageWarn.classList.remove("display-none");
                 messageWarn.classList.add("display-block");
@@ -88,12 +97,14 @@ async function startUpdateCheck() {
                 }
 
             } else {
+                updatingcheck = false;
                 messageWarn.innerText = "";
                 messageWarn.classList.remove("display-block");
                 messageWarn.classList.add("display-none");
             }
         }
     } catch (error) {
+        updatingcheck = false;
         console.error("Error verificando actualizaciones:", error);
     }
     
@@ -102,6 +113,7 @@ async function startUpdateCheck() {
 document.addEventListener("DOMContentLoaded", function () {
     console.log("Datos de días cargados:", days);
     console.log("Top Competitions para filtrar:", topCompetitions);
+    // solapamiento startUpdateCheck y setinterval
     startUpdateCheck();
     setInterval(startUpdateCheck, oneHour);
     renderFullSchedule(days);
