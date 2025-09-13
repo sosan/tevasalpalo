@@ -1,16 +1,8 @@
 const updateBoton = document.getElementById("updateboton");
-const messageWarnBoton = document.getElementById("message-warn");
 const dialogUpdating = document.getElementById('dialog-updating');
 const contentUpdating = document.getElementById('content-updating');
 const messageWarn = document.getElementById('message-warn');
 const oneHour = 60 * 60 * 1000;
-
-messageWarnBoton.addEventListener("click", function (event) {
-    if (messageWarnBoton) {
-        event.preventDefault();
-        updateBoton.click();
-    }
-});
 
 updateBoton.addEventListener("click", async function (event) {
     if (updateBoton) {
@@ -75,22 +67,43 @@ updateBoton.addEventListener("click", async function (event) {
     }
 });
 
-document.addEventListener("DOMContentLoaded", function () {
-    console.log("Datos de días cargados:", days);
-    console.log("Top Competitions para filtrar:", topCompetitions);
-    // loadActivityModal();
-    setInterval(async () => {
+async function startUpdateCheck() {
+    try {
+        console.log("Verificando actualizaciones...");
         const request = await fetch('/updateavailable', { method: 'GET' });
         if (request.ok) {
             const data = await request.json();
+
             if (data.needUpdate) {
-                messageWarn.innerText = "¡Nueva versión disponible! Haz clic en el botón de actualización.";
+                messageWarn.innerText = "¡Nueva versión disponible! Haz clic aquí para actualizar.";
+                messageWarn.classList.remove("display-none");
+                messageWarn.classList.add("display-block");
+
+                const messageWarnBoton = document.getElementById("message-warn");
+                if (messageWarnBoton) {
+                    messageWarnBoton.addEventListener("click", (event) => {
+                        event.preventDefault();
+                        updateBoton.click();
+                    }, { once: true }); // ⚡ solo 1 vez
+                }
 
             } else {
                 messageWarn.innerText = "";
+                messageWarn.classList.remove("display-block");
+                messageWarn.classList.add("display-none");
             }
         }
-    }, oneHour);
+    } catch (error) {
+        console.error("Error verificando actualizaciones:", error);
+    }
+    
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    console.log("Datos de días cargados:", days);
+    console.log("Top Competitions para filtrar:", topCompetitions);
+    startUpdateCheck();
+    setInterval(startUpdateCheck, oneHour);
     renderFullSchedule(days);
 });
 
