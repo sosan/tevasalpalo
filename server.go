@@ -106,7 +106,7 @@ func StartWebServer() error {
 	})
 
 	app.Get("/update", func(c *fiber.Ctx) error {
-		update.ForceUpdate()
+		go update.ForceUpdate()
 
 		return c.JSON(fiber.Map{
 			"sendedupdate": true,
@@ -114,8 +114,13 @@ func StartWebServer() error {
 	})
 
 	app.Get("/healthz", func(c *fiber.Ctx) error {
+		if update.Updated {
+			return c.JSON(fiber.Map{
+				"ok": true,
+			})
+		}
 		return c.JSON(fiber.Map{
-			"ok": true,
+			"ok": false,
 		})
 	})
 

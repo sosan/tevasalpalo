@@ -1,24 +1,50 @@
 const updateBoton = document.getElementById("updateboton");
+const dialogUpdating = document.getElementById('dialog-updating');
+const contentUpdating = document.getElementById('content-updating');
 
-updateBoton.addEventListener("click",async function(event) {
+updateBoton.addEventListener("click", async function (event) {
     if (updateBoton) {
         event.preventDefault();
-
-        const request = await fetch('/update', { method: 'GET' });
-        if (request.ok) {
-            console.log("Actualización iniciada.");
-        } else {
-            console.error("Error al iniciar la actualización:", request.statusText);
-        }
-
-        const data = await request.json();
-        setInterval(async () => {
-            const request = await fetch('/healthz', { method: 'GET' });
+        try {
+            const request = await fetch('/update', { method: 'GET' });
+            dialogUpdating.showModal();
             if (request.ok) {
-                const data = await request.json();
-                
+                contentUpdating.innerText = "Actualización iniciada. Por favor, espere...";
+                console.log("Actualización iniciada.");
+            } else {
+                console.error("Error al iniciar la actualización:", request.statusText);
+                contentUpdating.innerText = `Error al iniciar la actualización`;
+                setTimeout(() => {
+                    dialogUpdating.close();
+                }, 5000);
+                return;
             }
-        }, 10_000);
+
+            const data = await request.json(); // dummy value
+            const intervalHealthz = setInterval(async () => {
+                try {
+                    const request = await fetch('/healthz', { method: 'GET' });
+                    if (request.ok) {
+                        const data = await request.json();
+                        contentUpdating.innerHTML = "<p>Actualización terminada</p>";
+                        setTimeout(() => {
+                            dialogUpdating.close();
+                        }, 5000);
+                        clearInterval(intervalHealthz);
+                        return;
+                    }
+                } catch (error) {
+                    clearInterval(intervalHealthz);
+                    console.error("Error al verificar el estado de salud:", error);
+                }
+            }, 10_000);
+        } catch (error) {
+            console.error("Error al enviar la solicitud de actualización:", error);
+            contentUpdating.innerText = `Error al iniciar la actualización`;
+            setTimeout(() => {
+                dialogUpdating.close();
+            }, 5000);
+        }
     }
 });
 
@@ -101,7 +127,7 @@ function renderFullSchedule(daysData) {
                 }
 
                 const broadcastersWithLinks = formatBroadcasters(matchData.channels || matchData.Match?.Broadcasters || []);
-                
+
                 matchItem.innerHTML = `
                     <div class="dailytime">
                         <i class="${matchData.Icon}"></i>

@@ -17,23 +17,26 @@ const (
 )
 
 func AutoUpdate() (bool, bool) {
-	updateOk := false
+	// updateOk := false
+	Updated = false
 	needUpdate := getNeedUpdate()
 	if !needUpdate {
-		return needUpdate, updateOk
+		return needUpdate, Updated
 	}
 
 	log.Println("ACTUALIZANDO......")
 	uriDownload := getDownloadURI()
 	err := doUpdate(uriDownload)
 	if err != nil {
-		log.Fatalf("ERROR | No es posible conectarse")
+		log.Print("ERROR | No es posible conectarse")
+		return needUpdate, Updated
 	}
+	Updated = true
 	log.Println("ACTUALIZADO!!")
 	time.Sleep(3 * time.Second)
 	os.Exit(0)
 	// dumy return
-	return needUpdate, updateOk
+	return needUpdate, Updated
 }
 
 func getDownloadURI() string {
@@ -58,28 +61,35 @@ func doUpdate(url string) error {
 	body, statusCode := GetRequestRaw(url, "")
 
 	if statusCode != 200 {
-		log.Fatalf("ERROR | Status code es diferente a 200")
-		return nil
+		defer (*body).Close()
+		log.Print("ERROR | Status code es diferente a 200")
+		return fmt.Errorf("status code es diferente a 200")
 	}
 	err := selfupdate.Apply(*body, selfupdate.Options{})
 	if err != nil {
 		// error handling
 		rerr := selfupdate.RollbackError(err)
 		if rerr != nil {
+			defer (*body).Close()
 			fmt.Printf("ERROR | NO SE HA PODIDO ACTUALIZAR: %v", rerr)
+			return fmt.Errorf("no se ha podido actualizar: %v", rerr)
 		}
 	}
 	defer (*body).Close()
 	return err
 }
+var Updated = false
 
 func ForceUpdate() {
+	Updated = false
 	log.Println("ACTUALIZANDO......")
 	uriDownload := getDownloadURI()
 	err := doUpdate(uriDownload)
 	if err != nil {
-		log.Fatalf("ERROR | No es posible conectarse")
+		log.Print("ERROR | No es posible conectarse")
+		return
 	}
+	Updated = true
 	log.Println("ACTUALIZADO!!")
 	time.Sleep(3 * time.Second)
 	os.Exit(0)
