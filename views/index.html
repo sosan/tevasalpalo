@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="/css/index.css">
     <link rel="stylesheet" href="/css/modal.css">
     <script src="/js/index.js" defer></script>
+    <script src="/js/modal.js" defer></script>
 
     <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
@@ -21,6 +22,7 @@
 <body>
     {{template "header" . }}
     <main>
+        <a id="message-warn" class="message-warn" href="#">¡Nueva versión disponible! Haz clic en el botón de actualización.</a>
         <ol id="daylist" class="auto-items daylist"></ol>
     </main>
 </body>

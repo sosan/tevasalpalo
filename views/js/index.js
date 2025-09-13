@@ -1,17 +1,32 @@
 const updateBoton = document.getElementById("updateboton");
+const messageWarnBoton = document.getElementById("message-warn");
 const dialogUpdating = document.getElementById('dialog-updating');
 const contentUpdating = document.getElementById('content-updating');
+const messageWarn = document.getElementById('message-warn');
+const oneHour = 60 * 60 * 1000;
+
+messageWarnBoton.addEventListener("click", function (event) {
+    if (messageWarnBoton) {
+        event.preventDefault();
+        updateBoton.click();
+    }
+});
 
 updateBoton.addEventListener("click", async function (event) {
     if (updateBoton) {
         event.preventDefault();
         try {
+            updateBoton.ariaDisabled = "true";
+            updateBoton.disabled = true;
+
             const request = await fetch('/update', { method: 'GET' });
             dialogUpdating.showModal();
             if (request.ok) {
                 contentUpdating.innerText = "Actualización iniciada. Por favor, espere...";
                 console.log("Actualización iniciada.");
             } else {
+                updateBoton.ariaDisabled = "false";
+                updateBoton.disabled = false;
                 console.error("Error al iniciar la actualización:", request.statusText);
                 contentUpdating.innerText = `Error al iniciar la actualización`;
                 setTimeout(() => {
@@ -27,6 +42,8 @@ updateBoton.addEventListener("click", async function (event) {
                     if (request.ok) {
                         const data = await request.json();
                         if (data.ok) {
+                            updateBoton.ariaDisabled = "false";
+                            updateBoton.disabled = false;
                             contentUpdating.innerText = "Actualización terminada";
                         }
                         clearInterval(intervalHealthz);
@@ -36,6 +53,8 @@ updateBoton.addEventListener("click", async function (event) {
                         return;
                     }
                 } catch (error) {
+                    updateBoton.ariaDisabled = "false";
+                    updateBoton.disabled = false;
                     clearInterval(intervalHealthz);
                     // console.error("Error al verificar el estado de salud:", error);
                     // contentUpdating.innerText = `Error en la actualización`;
@@ -45,6 +64,8 @@ updateBoton.addEventListener("click", async function (event) {
                 }
             }, 10_000);
         } catch (error) {
+            updateBoton.ariaDisabled = "false";
+            updateBoton.disabled = false;
             console.error("Error al enviar la solicitud de actualización:", error);
             contentUpdating.innerText = `Error al iniciar la actualización`;
             setTimeout(() => {
@@ -57,6 +78,19 @@ updateBoton.addEventListener("click", async function (event) {
 document.addEventListener("DOMContentLoaded", function () {
     console.log("Datos de días cargados:", days);
     console.log("Top Competitions para filtrar:", topCompetitions);
+    // loadActivityModal();
+    setInterval(async () => {
+        const request = await fetch('/updateavailable', { method: 'GET' });
+        if (request.ok) {
+            const data = await request.json();
+            if (data.needUpdate) {
+                messageWarn.innerText = "¡Nueva versión disponible! Haz clic en el botón de actualización.";
+
+            } else {
+                messageWarn.innerText = "";
+            }
+        }
+    }, oneHour);
     renderFullSchedule(days);
 });
 
@@ -208,8 +242,31 @@ function formatBroadcasters(broadcasters) {
 }
 
 
+// function loadActivityModal() {
+//     const dialog = document.getElementById('config-menu');
+//     const openBtn = document.getElementById('openConfigMenuBtn');
+//     const closeBtn = document.querySelector('.close-dialog-config-menu');
 
-window.TVASApp = {
-    // filterByCompetition: filterByCompetition,
-    renderFullSchedule: renderFullSchedule // Por si se necesita re-renderizar
-};
+//     openBtn.addEventListener('click', () => {
+//         dialog.showModal();
+//     });
+
+//     closeBtn.addEventListener('click', () => {
+//         dialog.close();
+//     });
+
+//     // Opcional: Cerrar haciendo clic fuera del contenido del diálogo (solo showModal)
+//     dialog.addEventListener('click', (event) => {
+//         // dialog.close() se puede llamar aquí también, pero hay que tener cuidado
+//         // con cerrarlo al hacer clic dentro. Una forma más robusta es comprobar el target.
+//         if (event.target === dialog) {
+//             dialog.close();
+//         }
+//     });
+// }
+
+
+// window.TVASApp = {
+//     // filterByCompetition: filterByCompetition,
+//     renderFullSchedule: renderFullSchedule // Por si se necesita re-renderizar
+// };

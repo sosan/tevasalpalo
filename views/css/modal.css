@@ -147,7 +147,7 @@
   /* overscroll-behavior: none; */
 }
 
-.close-dialog-config-menu {
+.close-dialog-config-menu, .close-dialog-dialog-updating {
   position: fixed;
   width: 40px;
   height: 40px;

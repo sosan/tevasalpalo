@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func getNeedUpdate() bool {
+func GetNeedUpdate() bool {
 	selfVersion := GetVersionBuild()
 	remoteVersion := getRemoteVersionBuild()
 

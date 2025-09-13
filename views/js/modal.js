@@ -7,6 +7,13 @@ function loadActivityModal() {
     const openBtn = document.getElementById('openConfigMenuBtn');
     const closeBtn = document.querySelector('.close-dialog-config-menu');
     
+    const dialogUpdating = document.getElementById('dialog-updating');
+    const closeBtnUpdate = document.querySelector('.close-dialog-dialog-updating');
+    
+    closeBtnUpdate.addEventListener('click', () => {
+        dialogUpdating.close();
+    });
+    
     openBtn.addEventListener('click', () => {
         dialog.showModal();
     });

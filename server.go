@@ -124,6 +124,15 @@ func StartWebServer() error {
 		})
 	})
 
+	app.Get("/updateavailable", func(c *fiber.Ctx) error {
+		needUpdate := update.GetNeedUpdate()
+		return c.JSON(fiber.Map{
+			"needUpdate": needUpdate,
+		})
+	})
+
+	
+
 	return app.Listen("0.0.0.0:3000")
 }
 

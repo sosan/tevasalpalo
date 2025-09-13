@@ -11,15 +11,15 @@ import (
 )
 
 const (
-	URI_DOWNLOAD = `https://github.com/sosan/tevasalpalo/releases/download/latest`
-	WINDOWS_FILENAME_REMOTE_VERSION =  "portable.exe"
-	LINUX_FILENAME_REMOTE_VERSION =  "portable"
+	URI_DOWNLOAD                    = `https://github.com/sosan/tevasalpalo/releases/download/latest`
+	WINDOWS_FILENAME_REMOTE_VERSION = "portable.exe"
+	LINUX_FILENAME_REMOTE_VERSION   = "portable"
 )
 
 func AutoUpdate() (bool, bool) {
 	// updateOk := false
 	Updated = false
-	needUpdate := getNeedUpdate()
+	needUpdate := GetNeedUpdate()
 	if !needUpdate {
 		return needUpdate, Updated
 	}
@@ -78,6 +78,7 @@ func doUpdate(url string) error {
 	defer (*body).Close()
 	return err
 }
+
 var Updated = false
 
 func ForceUpdate() {
