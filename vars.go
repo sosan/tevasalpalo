@@ -27,6 +27,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "4141892f5df7d6474bf0279895ce02b7336c9928",
 			// "0560234787945a17522e284c4c22bb4df29f33b0",
 		},
+		ShowListChannels: false,
 	},
 	"DAZN 2": {
 		Logo:  "dazn2.png",
@@ -88,8 +89,17 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"ESPN 2": {
 		Logo: "espn.webp",
 		Links: []string{
-			"http://181.205.130.194:4000/play/a07i",            //
-			"http://181.78.106.127:9000/play/ca034/index.m3u8", //
+			"http://181.78.106.127:9000/play/ca034/index.m3u8",
+			// "http://181.205.130.194:4000/play/a07i",
+		},
+	},
+	"ESPN": {
+		Logo: "espn.webp",
+		Links: []string{
+			"http://200.60.124.19:29000/play/a015",
+			// "http://181.78.106.127:9000/play/ca034/index.m3u8",
+			// "http://181.205.130.194:4000/play/a07i",            //
+			// "http://181.78.106.127:9000/play/ca034/index.m3u8", //
 		},
 	},
 	"ESPN 3": {
@@ -119,13 +129,6 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"http://181.205.130.194:4000/play/a07s", //
 
-		},
-	},
-
-	"ESPN": {
-		Logo:  "espn.webp",
-		Links: []string{
-			// "4b048bcfaed7daec454e88f0e29b56756300447d",
 		},
 	},
 	"ESPN DEPORTES": {
@@ -170,6 +173,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "f8d5e39a49b9da0215bbd3d9efb8fb3d06b76892",
 			// "520950d296c952e1864a08e15af9f89f1ab514ec",
 		},
+		ShowListChannels: false,
 	},
 	"M+ LALIGA": {
 		Logo:  "mlaliga.png",
@@ -398,25 +402,24 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	},
 
 	"GOL": {
-		Logo:  "gol.png",
+		Logo: "gol.png",
 		Links: []string{
-			// "b2d560741c006fc5e4a42412bb52dbd25a6a4a3a",
+			"b2d560741c006fc5e4a42412bb52dbd25a6a4a3a",
 			// "472d1f3a658a51bcab0ffa9138e1e28a05fba30b",
-			// "b2d560741c006fc5e4a42412bb52dbd25a6a4a3a",
 		},
 	},
 	"GOL TV": {
-		Logo:  "goltv.png",
+		Logo: "goltv.png",
 		Links: []string{
+			"http://181.188.216.5:18000/play/a0mj/index.m3u8",
 			// "b2d560741c006fc5e4a42412bb52dbd25a6a4a3a",
 			// "472d1f3a658a51bcab0ffa9138e1e28a05fba30b",
-			// "b2d560741c006fc5e4a42412bb52dbd25a6a4a3a",
 		},
 	},
 	"GOLTV PLAY": {
-		Logo:  "golt.png",
+		Logo: "golt.png",
 		Links: []string{
-			// "b2d560741c006fc5e4a42412bb52dbd25a6a4a3a",
+			"b2d560741c006fc5e4a42412bb52dbd25a6a4a3a",
 			// "472d1f3a658a51bcab0ffa9138e1e28a05fba30b",
 			// "b2d560741c006fc5e4a42412bb52dbd25a6a4a3a",
 		},
@@ -457,20 +460,13 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		},
 	},
 
-	"FOX SPORTS": {
+	"FOX SPORTS 1": {
 		Logo: "foxsports1.png",
 		Links: []string{
 			"http://181.78.106.127:9000/play/ca031/index.m3u8", //
 			"http://200.115.120.1:8000/play/ca041/index.m3u8",  //
 		},
 	},
-	"FOX NFL": {
-		Logo: "foxsports1.png",
-		Links: []string{
-			"http://200.115.120.1:8000/play/ca041/index.m3u8", //
-		},
-	},
-
 	"FOX SPORTS 2": {
 		Logo: "foxsports1.png",
 		Links: []string{
@@ -486,7 +482,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		},
 	},
 
-	"SKY SPORTS LA LIGA": {
+	"SKY SPORTS": {
 		Logo: "skysports.png",
 		Links: []string{
 			"http://190.92.10.66:4000/play/a001/index.m3u8", //
@@ -583,7 +579,7 @@ var allCompetitions = AllCompetitions{
 		"DFL Supercup":  {Titulo: "DFL Supercup", Top: false, Icon: "uefa.png"},
 	},
 	"Italia": CountryCompetitions{
-		"Serie A":                {Titulo: "Serie A", Top: true, Icon: "seriea.png"},
+		"Serie A Italiana":       {Titulo: "Serie A", Top: true, Icon: "seriea.png"},
 		"Serie B":                {Titulo: "Serie B", Top: false, Icon: "uefa.png"},
 		"Campionato Primavera 1": {Titulo: "Campionato Primavera 1", Top: false, Icon: "uefa.png"},
 		"Campionato Primavera 2": {Titulo: "Campionato Primavera 2", Top: false, Icon: "uefa.png"},
@@ -612,12 +608,12 @@ var allCompetitions = AllCompetitions{
 	"Europa": CountryCompetitions{
 		"Eurobasket":                                {Titulo: "Eurobasket", Top: true, Icon: "eurobasket.png"},
 		"Euroliga":                                  {Titulo: "Euroliga", Top: false, Icon: "euroliga.png"},
-		"UEFA Champions League":                     {Titulo: "UEFA Champions League", Top: true, Icon: "champions.png"},
-		"UEFA Europa League":                        {Titulo: "UEFA Europa League", Top: true, Icon: "uefa.png"},
-		"UEFA Conference League":                    {Titulo: "UEFA Conference League", Top: true, Icon: "conference.png"},
-		"UEFA Super Cup":                            {Titulo: "UEFA Super Cup", Top: false, Icon: "uefa.png"},
-		"UEFA Nations League":                       {Titulo: "UEFA Nations League", Top: false, Icon: "uefa.png"},
-		"UEFA Women's Nations League":               {Titulo: "UEFA Women's Nations League", Top: false, Icon: "uefa.png"},
+		"Champions League":                          {Titulo: "UEFA Champions League", Top: true, Icon: "champions.png"},
+		"Europa League":                             {Titulo: "UEFA Europa League", Top: true, Icon: "uefa.png"},
+		"Conference League":                         {Titulo: "UEFA Conference League", Top: true, Icon: "conference.png"},
+		"Super Cup":                                 {Titulo: "UEFA Super Cup", Top: false, Icon: "uefa.png"},
+		"Nations League":                            {Titulo: "UEFA Nations League", Top: false, Icon: "uefa.png"},
+		"Women's Nations League":                    {Titulo: "UEFA Women's Nations League", Top: false, Icon: "uefa.png"},
 		"Women's Euro":                              {Titulo: "Women's Euro", Top: false, Icon: "uefa.png"},
 		"Women's Euro, Qualification":               {Titulo: "Women's Euro, Qualification", Top: false, Icon: "uefa.png"},
 		"U21 European Championship":                 {Titulo: "U21 European Championship", Top: false, Icon: "uefa.png"},

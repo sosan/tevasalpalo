@@ -78,6 +78,7 @@
         if (Hls.isSupported()) {
             statusMessage.textContent = "Conectando al stream...";
             const hls = new Hls({
+                
                 enableWorker: true,
                 lowLatencyMode: false,
                 backBufferLength: 90,

@@ -21,23 +21,28 @@ var filterList = []string{
 	"ESPN 7 HD",
 }
 
+const (
+	shickatWeb = "https://shickat.me/"
+	elcanoWeb = "https://ipfs.io/ipns/elcano.top"
+) 
+
 func FetchUpdatedList() error {
-	body, err := FetchWebData("https://shickat.me/")
+	body, err := FetchWebData(shickatWeb)
 	if err != nil {
 		return err
 	}
 	extractedData := extractDataFromWebShitkat(body)
 	broadcasterToAcestream = updateBroadcasterMapWithGateway(broadcasterToAcestream, extractedData)
 
-	body, err = FetchWebData("https://ipfs.io/ipns/elcano.top")
-	if err != nil {
-		return err
-	}
-	extractedData, err = extractDataFromWebElCano(body)
-	if err != nil {
-		return err
-	}
-	broadcasterToAcestream = updateBroadcasterMapWithGateway(broadcasterToAcestream, extractedData)
+	// body, err = FetchWebData(elcanoWeb)
+	// if err != nil {
+	// 	return err
+	// }
+	// extractedData, err = extractDataFromWebElCano(body)
+	// if err != nil {
+	// 	return err
+	// }
+	// broadcasterToAcestream = updateBroadcasterMapWithGateway(broadcasterToAcestream, extractedData)
 
 	// body, err = FetchWebData("https://gist.githubusercontent.com/GUAPACHA/ff9cf6435b379c4c550913fdadc8edc4/raw/563943f091669fc21d96de72d0f9937a9b10221c/the%2520beatles")
 	// if err != nil {
@@ -49,6 +54,9 @@ func FetchUpdatedList() error {
 	// 	return err
 	// }
 	// broadcasterToAcestream = updateBroadcasterMapWithGateway(broadcasterToAcestream, extractedData)
+
+	// programacion espn, skysports
+	
 
 	// transform uri links to base64 uri safe
 	broadcasterToAcestream = transformUriSafeBroadcasters(broadcasterToAcestream)

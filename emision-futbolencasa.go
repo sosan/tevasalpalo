@@ -3,11 +3,12 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
 	"regexp"
 	"strings"
 	"time"
 	"unicode"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
 type MatchView struct {
@@ -52,14 +53,14 @@ func getCompetitionTitle(details *goquery.Selection) string {
 		}
 		return cleanTextForTabsNewlines(title)
 	}
-	
+
 	if text := cleanTextForTabsNewlines(competitionLabel.Text()); text != "" {
 		if text == "La Liga EA Sports" {
 			text = "LaLiga"
 		}
 		return text
 	}
-	
+
 	competitionSpan := details.Find("span").First()
 	if title, exists := competitionSpan.Attr("title"); exists && title != "" {
 		if title == "La Liga EA Sports" {
@@ -67,7 +68,7 @@ func getCompetitionTitle(details *goquery.Selection) string {
 		}
 		return cleanTextForTabsNewlines(title)
 	}
-	
+
 	return cleanTextForTabsNewlines(competitionSpan.Text())
 }
 
@@ -89,7 +90,32 @@ func getTeamName(cell *goquery.Selection) string {
 }
 
 func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
-	body, err := FetchWebData("https://www.futbolenlatv.es/deporte")
+	generalEvents, err := getCompetition("https://www.futbolenlatv.es/deporte")
+	if err != nil {
+		return nil, err
+	}
+
+	eventsFromLigaToMx, err := getCompetition("https://www.futbolenvivomexico.com/competicion/la-liga")
+	if err != nil {
+		return nil, err
+	}
+
+	eventsFromPremierToMx, err := getCompetition("https://www.futbolenvivomexico.com/competicion/premier-league")
+	if err != nil {
+		return nil, err
+	}
+
+	eventsFromCalcioToMx, err := getCompetition("https://www.futbolenvivomexico.com/competicion/calcio-serie-a")
+	if err != nil {
+		return nil, err
+	}
+
+	generalEvents = mixCompetitions(generalEvents, eventsFromLigaToMx, eventsFromPremierToMx, eventsFromCalcioToMx)
+	return generalEvents, err
+}
+
+func getCompetition(uri string) ([]DayView, error) {
+	body, err := FetchWebData(uri)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +168,7 @@ func prepareMatchDay(body []byte) ([]DayView, error) {
 
 		details := row.Find("td.detalles")
 		competitionName := getCompetitionTitle(details)
-		
+
 		var sport string = "Desconocido"
 		sportImg := details.Find("ul > li > div.contenedorImgCompeticion img")
 		if sportImg.Length() > 0 {
@@ -351,4 +377,32 @@ func FormatDateDMYToSpanish(dateStr string) (string, error) {
 	year := t.Year()
 
 	return fmt.Sprintf("%s, %d de %s de %d", weekday, day, month, year), nil
+}
+
+func mixCompetitions(general, liga, premier, calcio []DayView) []DayView {
+	for i := range general {
+		general[i] = addCompetition(general[i], liga)
+		general[i] = addCompetition(general[i], premier)
+		general[i] = addCompetition(general[i], calcio)
+	}
+	return general
+}
+
+func addCompetition(generalCompetition DayView, newCompetition []DayView) DayView {
+	for j := range newCompetition {
+		if newCompetition[j].DateKey == generalCompetition.DateKey {
+			for compKey, matches := range newCompetition[j].Competitions {
+				if generalCompetition.Competitions[compKey] != nil {
+					for _, match := range matches {
+						for o := range generalCompetition.Competitions[compKey] {
+							if generalCompetition.Competitions[compKey][o].Match.Event == match.Event {
+								generalCompetition.Competitions[compKey][o].Broadcasters = append(generalCompetition.Competitions[compKey][o].Broadcasters, match.Broadcasters...)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return generalCompetition
 }

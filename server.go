@@ -31,9 +31,10 @@ type Match struct {
 }
 
 type BroadcasterInfo struct {
-	Name  string   `json:"name"`
-	Logo  string   `json:"logo"`
-	Links []string `json:"link,omitempty"`
+	Name             string   `json:"name"`
+	Logo             string   `json:"logo"`
+	Links            []string `json:"link,omitempty"`
+	ShowListChannels bool     `json:"showListChannels,omitempty"`
 }
 
 func StartWebServer() error {
@@ -130,8 +131,6 @@ func StartWebServer() error {
 			"needUpdate": needUpdate,
 		})
 	})
-
-	
 
 	return app.Listen("0.0.0.0:3000")
 }
