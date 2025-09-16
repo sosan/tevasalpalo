@@ -8,6 +8,7 @@ import (
 	"log"
 	"main/update"
 	"net/http"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
@@ -37,7 +38,7 @@ type BroadcasterInfo struct {
 	ShowListChannels bool     `json:"showListChannels,omitempty"`
 }
 
-func StartWebServer() error {
+func StartWebServer() (*fiber.App, error) {
 	topCompetitions = transformCompetitionsToTop(allCompetitions)
 
 	engine := html.NewFileSystem(http.FS(viewsFS), ".html")
@@ -107,7 +108,15 @@ func StartWebServer() error {
 	})
 
 	app.Get("/update", func(c *fiber.Ctx) error {
-		go update.ForceUpdate()
+		go func() {
+			err := update.ForceUpdate()
+			if err != nil {
+				log.Print("ERROR | No es posible actualizarse")
+				return
+			}
+			time.Sleep(3 * time.Second)
+			shutdownChan <- struct{}{}
+		}()
 
 		return c.JSON(fiber.Map{
 			"sendedupdate": true,
@@ -131,8 +140,13 @@ func StartWebServer() error {
 			"needUpdate": needUpdate,
 		})
 	})
+	go func() {
+        if err := app.Listen("0.0.0.0:3000"); err != nil {
+            log.Printf("❌ Error en servidor web: %v", err)
+        }
+    }()
 
-	return app.Listen("0.0.0.0:3000")
+    return app, nil
 }
 
 func fetchEvents() ([]DayView, *template.JS, *template.JS, error) {

@@ -9,11 +9,9 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -54,7 +52,7 @@ func findLinkForBroadcaster(name string) []string {
 	return []string{}
 }
 
-func RunAceStream() error {
+func RunAceStream() (*exec.Cmd, error) {
 	exePath, err := os.Executable()
 	if err != nil {
 		log.Fatal("No se pudo obtener la ruta del ejecutable: ", err)
@@ -96,15 +94,7 @@ func RunAceStream() error {
 
 	log.Println("✅ Todo listo. ¡A relajarse y disfrutar del contenido! 🍿")
 
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-	<-sigChan
-
-	log.Println("🛑 Cerrando...")
-	if cmd != nil && cmd.Process != nil {
-		return cmd.Process.Kill()
-	}
-	return nil
+	return cmd, err
 }
 
 // extractRuntime extrae el ZIP embebido en el directorio runtime
