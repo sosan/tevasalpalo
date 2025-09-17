@@ -27,10 +27,13 @@ const (
 
 // findLinkForBroadcaster busca un enlace para un nombre de broadcaster.
 // Prioriza la coincidencia exacta, luego parcial.
-func findLinkForBroadcaster(name string) []string {
+func findLinkForBroadcaster(name string, competitionName string) []string {
 	// Coincidencia exacta
 	// quizas pasarlo a minisculas
 	nameUpper := strings.ToUpper(name)
+	if competitionName == "Bundesliga" && nameUpper == "SKY SPORTS" {
+		nameUpper = "SKY SPORTS BUNDESLIGA"
+	}
 	if dataAce, exists := broadcasterToAcestream[nameUpper]; exists {
 		return dataAce.Links
 	}
