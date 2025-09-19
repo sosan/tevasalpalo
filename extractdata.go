@@ -191,3 +191,7 @@ func extractDataFromM3U8(body []byte, filterList []string) (map[string][]string,
 	}
 	return extractedData, nil
 }
+
+func extractDataForDazn() {
+	
+}

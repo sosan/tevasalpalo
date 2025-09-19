@@ -3,7 +3,6 @@ package update
 import (
 	"fmt"
 	"log"
-	"os"
 	"runtime"
 	"time"
 
@@ -34,7 +33,7 @@ func AutoUpdate() (bool, bool) {
 	Updated = true
 	log.Println("ACTUALIZADO!!")
 	time.Sleep(3 * time.Second)
-	os.Exit(0)
+	// os.Exit(0)
 	// dumy return
 	return needUpdate, Updated
 }
@@ -81,17 +80,16 @@ func doUpdate(url string) error {
 
 var Updated = false
 
-func ForceUpdate() {
+func ForceUpdate() error {
 	Updated = false
 	log.Println("ACTUALIZANDO......")
 	uriDownload := getDownloadURI()
 	err := doUpdate(uriDownload)
 	if err != nil {
-		log.Print("ERROR | No es posible conectarse")
-		return
+		log.Print("ERROR | No es posible actualizarse")
+		return err
 	}
 	Updated = true
 	log.Println("ACTUALIZADO!!")
-	time.Sleep(3 * time.Second)
-	os.Exit(0)
+	return err
 }

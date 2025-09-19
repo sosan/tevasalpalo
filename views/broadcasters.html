@@ -17,13 +17,14 @@
         <h1>📺 Todos los canales ({{ len .Broadcasters }} canales)</h1>
         <div class="cards-container grid grid-cols lg:grid-cols-4 gap-10 p-5 mb-10">
             {{ range $name, $info := .Broadcasters }}
+            {{ if $info.ShowListChannels }}
             <div
                 class="card bg-white shadow-lg rounded-2xl overflow-hidden transform transition-transform hover:scale-105 hover:shadow-2xl">
                 <div class="h-48 flex items-center justify-center bg-gray-100">
-                    <img src="/images/logos-tv/{{ .Logo }}" alt="{{ $name }}" class="h-24 w-24 object-contain">
+                    <img src="/images/logos-tv/{{ .Logo }}" alt="{{ $info.Name }}" class="h-24 w-24 object-contain">
                 </div>
                 <div class="p-6 text-center">
-                    <h3 class="text-gray-900 font-bold text-xl mb-2">{{ $name }}</h3>
+                    <h3 class="text-gray-900 font-bold text-xl mb-2">{{ $info.Name }}</h3>
                     <ol class="link-list">
                         {{ range $info.Links }}
                         <li><a class="link-a" href="/player/{{ . }}" target="_blank">🔗 Ver canal</a></li>
@@ -31,6 +32,7 @@
                     </ol>
                 </div>
             </div>
+            {{ end }}
             {{ end }}
         </div>
 

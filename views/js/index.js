@@ -245,7 +245,7 @@ function formatBroadcasters(broadcasters) {
                     return `<a href="/player/${link}" target="_blank" class="broadcaster-link">Link</a>`;
                 } else if (link === undefined || link === null || link === '') {
                     if (broadcaster.name && (broadcaster.name.includes("APLAZADO") || broadcaster.name.includes("POS"))) {
-                        return `<span>${broadcaster.name}</span>`; // Mostrar el nombre si indica estado
+                        return `<span>${broadcaster.name}</span>`;
                     } else {
                         return '<span>Sin link</span>';
                     }

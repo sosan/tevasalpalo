@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+
 	"log"
 	"main/update"
 	"net/http"
@@ -12,6 +13,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
+
+	// "github.com/gofiber/fiber/v2/middleware/proxy"
 	"github.com/gofiber/template/html/v2"
 )
 
@@ -20,23 +23,6 @@ import (
 //go:embed views/css/*.*
 //go:embed views/*.html
 var viewsFS embed.FS
-
-type Match struct {
-	Competition  string            `json:"competition"`
-	Date         string            `json:"date"`
-	Time         string            `json:"time"`
-	Event        string            `json:"event"`
-	Broadcasters []BroadcasterInfo `json:"channels"`
-	Country      string            `json:"-"`
-	Sport        string            `json:"-"`
-}
-
-type BroadcasterInfo struct {
-	Name             string   `json:"name"`
-	Logo             string   `json:"logo"`
-	Links            []string `json:"link,omitempty"`
-	ShowListChannels bool     `json:"showListChannels,omitempty"`
-}
 
 func StartWebServer() (*fiber.App, error) {
 	topCompetitions = transformCompetitionsToTop(allCompetitions)
@@ -56,6 +42,18 @@ func StartWebServer() (*fiber.App, error) {
 	app.Use("/images", filesystem.New(filesystem.Config{
 		Root:       http.FS(viewsFS),
 		PathPrefix: "/views/images",
+		Browse:     false,
+	}))
+
+	app.Use("/player/js", filesystem.New(filesystem.Config{
+		Root:       http.FS(viewsFS),
+		PathPrefix: "/views/js",
+		Browse:     false,
+	}))
+
+	app.Use("/player/css", filesystem.New(filesystem.Config{
+		Root:       http.FS(viewsFS),
+		PathPrefix: "/views/css",
 		Browse:     false,
 	}))
 
@@ -140,18 +138,35 @@ func StartWebServer() (*fiber.App, error) {
 			"needUpdate": needUpdate,
 		})
 	})
-	go func() {
-        if err := app.Listen("0.0.0.0:3000"); err != nil {
-            log.Printf("❌ Error en servidor web: %v", err)
-        }
-    }()
 
-    return app, nil
+	go func() {
+		if err := app.Listen("0.0.0.0:3000"); err != nil {
+			log.Printf("❌ Error en servidor web: %v", err)
+		}
+	}()
+
+	return app, nil
 }
 
 func fetchEvents() ([]DayView, *template.JS, *template.JS, error) {
-	// TODO: si da err 520, retry
-	days, err := fetchScheduleMatchesFutbolEnCasa()
+	// TODO: retry si da err 520, retry
+	var err error
+	var days []DayView
+	for i := 1; i < 10; i++ {
+		days, err = fetchScheduleMatchesFutbolEnCasa()
+		if err != nil {
+			// Loggear el error completo para depuración
+			log.Printf("Error fetching schedule: %v", err)
+			time.Sleep(3 * time.Second)
+			continue
+			// Devolver un error al cliente
+			// return nil, nil, nil, fmt.Errorf("Error al obtener la programación")
+		}
+		if err == nil {
+			break
+		}
+	}
+
 	if err != nil {
 		// Loggear el error completo para depuración
 		log.Printf("Error fetching schedule: %v", err)
