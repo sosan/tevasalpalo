@@ -556,7 +556,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"LALIGA TV HYPERMOTION 2": {
 		Logo:  "mlaligahyper.png",
 		Links: []string{
-			// "8a05571c0c8fe53f160fb7d116cdf97243679e86",
+			"8a05571c0c8fe53f160fb7d116cdf97243679e86",
 		},
 		Name: "LALIGA TV HYPERMOTION 2",
 		ShowListChannels: true,
@@ -564,7 +564,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"LALIGA TV HYPERMOTION 3": {
 		Logo:  "mlaligahyper.png",
 		Links: []string{
-			// "1ba18731a8e18bb4b3a5dfa5bb7b0f05762849a6",
+			"1ba18731a8e18bb4b3a5dfa5bb7b0f05762849a6",
 		},
 		Name: "LALIGA TV HYPERMOTION 3",
 		ShowListChannels: true,
@@ -641,14 +641,14 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Name: "M+ ELLAS VAMOS",
 		ShowListChannels: true,
 	},
-	"LALIGA TV BAR": {
-		Logo:  "laligatvbar.png",
-		Links: []string{
-			// "608b0faf7d3d25f6fe5dba13d5e4b4142949990e",
-		},
-		Name: "LALIGA TV BAR 1",
-		ShowListChannels: true,
-	},
+	// "LALIGA TV BAR": {
+	// 	Logo:  "laligatvbar.png",
+	// 	Links: []string{
+	// 		// "608b0faf7d3d25f6fe5dba13d5e4b4142949990e",
+	// 	},
+	// 	Name: "LALIGA TV BAR 1",
+	// 	ShowListChannels: true,
+	// },
 	
 	"TUDN": {
 		Logo: "tudn.png",
