@@ -119,9 +119,9 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 	// }
 
 	eventsFromLigaToMx, err := getCompetition("https://www.futbolenvivomexico.com/competicion/la-liga")
-	if err != nil {
-		return nil, err
-	}
+	// if err != nil {
+	// 	return nil, err
+	// }
 	//
 	// https://www.futbolenvivomexico.com/competicion/premier-league
 	// https://www.futbolenlatv.es/competicion/premier-league
@@ -131,10 +131,11 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 	// 	return nil, err
 	// }
 
+	// https://www.justwatch.com/mx/futbol/bundesliga
 	eventsFromBundesligaToMx, err := getCompetition("https://www.futbolenvivomexico.com/competicion/bundesliga")
-	if err != nil {
-		return nil, err
-	}
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	// https://www.futbolenvivomexico.com/competicion/calcio-serie-a ESPN
 	// eventsFromCalcio, err := getCompetition("https://www.futebolnatv.pt/campeonato/calcio-serie-a")
@@ -156,7 +157,6 @@ func getCompetition(uri string) ([]DayView, error) {
 	}
 
 	dayviews, err := prepareMatchDay(body)
-	// fmt.Printf("%+v\n", dayviews)
 	return dayviews, err
 }
 
