@@ -16,7 +16,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "36394be1db2e20b5997d987c32fd38c7f0f194b7",
 			// "50a8a13c474848d1efbd5586efdb5b6cdd173fa9",
 		},
-		Name: "DAZN 1",
+		Name:             "DAZN 1",
 		ShowListChannels: true,
 	},
 	"DAZN": {
@@ -30,7 +30,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "0560234787945a17522e284c4c22bb4df29f33b0",
 		},
 		ShowListChannels: false,
-		Name: "DAZN 1",
+		Name:             "DAZN 1",
 	},
 	"DAZN 2": {
 		Logo:  "dazn2.png",
@@ -38,13 +38,13 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "43004e955731cd3afcc34d24e5178d4b427bff37",
 			// "b0eabe0fdd02fdd165896236765a9b753a2ff516",
 		},
-		Name: "DAZN 2",
+		Name:             "DAZN 2",
 		ShowListChannels: true,
 	},
 	"DAZN 3": {
-		Logo:  "dazn3.png",
-		Links: []string{},
-		Name:  "DAZN 3",
+		Logo:             "dazn3.png",
+		Links:            []string{},
+		Name:             "DAZN 3",
 		ShowListChannels: true,
 	},
 	"DAZN 4": {
@@ -56,7 +56,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "7e90956539f4e1318a63f3960e4f75c7c7c5a3b8",
 			// "c21a2524a8de3e1e5b126f2677a3e993d9aa07c4",
 		},
-		Name: "DAZN 4",
+		Name:             "DAZN 4",
 		ShowListChannels: true,
 	},
 	"DAZN LALIGA": {
@@ -66,7 +66,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "1bb5bf76fb2018d6db9aaa29b1467ecdfabe2884",
 			// "f8d5e39a49b9da0215bbd3d9efb8fb3d06b76892",
 		},
-		Name: "DAZN LALIGA 1",
+		Name:             "DAZN LALIGA 1",
 		ShowListChannels: true,
 	},
 	"DAZN LALIGA 2": {
@@ -75,24 +75,24 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "5091ea94b75ba4b50b078b4102a3d0e158ef59c3",
 			// "c976c7b37964322752db562b4ad65515509c8d36",
 		},
-		Name: "DAZN LALIGA 2",
+		Name:             "DAZN LALIGA 2",
 		ShowListChannels: true,
 	},
 
 	"DAZN 1 Bar": {
-		Logo:  "dazn1bar.png",
+		Logo: "dazn1bar.png",
 		Links: []string{
 			"688e785893b50acc1d00cb37f15bfc42e72f5ae3",
 		},
-		Name: "DAZN 1 BAR",
+		Name:             "DAZN 1 BAR",
 		ShowListChannels: true,
 	},
 	"DAZN 2 Bar": {
-		Logo:  "dazn2bar.png",
+		Logo: "dazn2bar.png",
 		Links: []string{
 			"2f9211669499f413dab1a490198afab2a9b4b57c",
 		},
-		Name: "DAZN 2 BAR",
+		Name:             "DAZN 2 BAR",
 		ShowListChannels: true,
 	},
 	"DS SPORT": {
@@ -103,7 +103,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"http://179.63.6.17:9000/play/a08e",                //
 			"http://181.78.106.127:9000/play/ca026/index.m3u8", //
 		},
-		Name: "DSPORT",
+		Name:             "DSPORT",
 		ShowListChannels: true,
 	},
 	"ESPN MX": {
@@ -111,7 +111,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"http://181.78.106.127:9000/play/ca033/index.m3u8", //"",
 		},
-		Name: "ESPN MX",
+		Name:             "ESPN MX",
 		ShowListChannels: true,
 	},
 	// "ESPN MX 2": {
@@ -129,7 +129,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"http://181.78.106.127:9000/play/ca034/index.m3u8",
 			// "http://181.205.130.194:4000/play/a07i",
 		},
-		Name: "ESPN 2",
+		Name:             "ESPN 2",
 		ShowListChannels: true,
 	},
 	"ESPN": {
@@ -140,9 +140,9 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "http://200.60.124.19:29000/play/a015",
 			// "http://181.78.106.127:9000/play/ca034/index.m3u8",
 			// "http://181.205.130.194:4000/play/a07i",            //
-			
+
 		},
-		Name: "ESPN 1",
+		Name:             "ESPN 1",
 		ShowListChannels: true,
 	},
 
@@ -152,7 +152,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"http://45.71.254.1:8000/play/a0e8/index.m3u8",
 			"http://181.78.106.127:9000/play/ca035/index.m3u8", //
 		},
-		Name: "ESPN 3",
+		Name:             "ESPN 3",
 		ShowListChannels: true,
 	},
 	"ESPN 4": {
@@ -160,17 +160,17 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"http://45.71.254.1:8000/play/a0c5/index.m3u8",
 		},
-		Name: "ESPN 3",
+		Name:             "ESPN 3",
 		ShowListChannels: true,
 	},
-	
+
 	"ESPN 5": {
 		Logo: "espn.webp",
 		Links: []string{
 			"http://179.51.136.19:8000/play/a1a6/index.m3u8",
 			// "http://38.41.8.1:8000/play/a07b", //
 		},
-		Name: "ESPN 5",
+		Name:             "ESPN 5",
 		ShowListChannels: true,
 	},
 
@@ -182,7 +182,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "http://38.44.109.41:8003/play/a00u",    //
 			// "http://38.41.8.1:8000/play/a082",       //
 		},
-		Name: "ESPN 6",
+		Name:             "ESPN 6",
 		ShowListChannels: true,
 	},
 
@@ -192,16 +192,16 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"http://181.205.130.194:4000/play/a07s", //
 
 		},
-		Name: "ESPN 7 MX",
+		Name:             "ESPN 7 MX",
 		ShowListChannels: true,
 	},
 	"ESPN DEPORTES": {
-		Logo:  "espndeportes.png",
+		Logo: "espndeportes.png",
 		Links: []string{
 			"https://tvpass.org/live/espn-deportes/sd",
 			"4b048bcfaed7daec454e88f0e29b56756300447d",
 		},
-		Name: "ESPN DEPORTES",
+		Name:             "ESPN DEPORTES",
 		ShowListChannels: true,
 	},
 	"ESPN PREMIUM": {
@@ -210,56 +210,56 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"http://190.102.246.93:9005/play/a00x", //
 			"http://190.102.246.93:9005/play/a029", //
 		},
-		Name: "ESPN PREMIUM",
+		Name:             "ESPN PREMIUM",
 		ShowListChannels: true,
 	},
 	"TNT": {
-		Logo:  "tntsports.png",
+		Logo: "tntsports.png",
 		Links: []string{
 			"efc60cfe5e3a349baa02bcc49f6647c21a9c3c5b",
 		},
-		Name: "TNT SPORTS 1",
+		Name:             "TNT SPORTS 1",
 		ShowListChannels: false,
 	},
 	"TNT SPORTS": {
-		Logo:  "tntsports.png",
+		Logo: "tntsports.png",
 		Links: []string{
 			"efc60cfe5e3a349baa02bcc49f6647c21a9c3c5b",
 		},
-		Name: "TNT SPORTS 1",
+		Name:             "TNT SPORTS 1",
 		ShowListChannels: true,
 	},
 	"TNT SPORTS 1": {
-		Logo:  "tntsports.png",
+		Logo: "tntsports.png",
 		Links: []string{
 			"efc60cfe5e3a349baa02bcc49f6647c21a9c3c5b",
 		},
-		Name: "TNT SPORTS 1",
+		Name:             "TNT SPORTS 1",
 		ShowListChannels: false,
 	},
 	"TNT SPORTS 2": {
-		Logo:  "tntsports.png",
+		Logo: "tntsports.png",
 		Links: []string{
 			"d63d8a57cf471394bfa9f619bbd68b01ae27a801",
 			"",
 		},
-		Name: "TNT SPORTS 2",
+		Name:             "TNT SPORTS 2",
 		ShowListChannels: true,
 	},
 	"TNT SPORTS 3": {
-		Logo:  "tntsports.png",
+		Logo: "tntsports.png",
 		Links: []string{
 			"5f966c123759de46dff29c379266b7a403452033",
 		},
-		Name: "TNT SPORTS 3",
+		Name:             "TNT SPORTS 3",
 		ShowListChannels: true,
 	},
 	"TNT SPORTS 4": {
-		Logo:  "tntsports.png",
+		Logo: "tntsports.png",
 		Links: []string{
 			"fc5089d8e1519872fdf951779ccbca913acc9bce",
 		},
-		Name: "TNT SPORTS 4",
+		Name:             "TNT SPORTS 4",
 		ShowListChannels: true,
 	},
 	"DAZN F1": {
@@ -275,7 +275,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "ed6188dcbb491efeb2092c1a6199226c27f61727",
 			// "6422e8bc34282871634c81947be093c04ad1bb29",
 		},
-		Name: "DAZN F1",
+		Name:             "DAZN F1",
 		ShowListChannels: true,
 	},
 	"DAZN LALIGA TV": {
@@ -286,7 +286,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "f8d5e39a49b9da0215bbd3d9efb8fb3d06b76892",
 			// "520950d296c952e1864a08e15af9f89f1ab514ec",
 		},
-		Name: "DAZN LA LIGA 1",
+		Name:             "DAZN LA LIGA 1",
 		ShowListChannels: false,
 	},
 	"M+ LALIGA": {
@@ -299,7 +299,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "4b528d10eaad747ddf52251206177573ee3e9f74",
 			// "d3de78aebe544611a2347f54d5796bd87f16c92d",
 		},
-		Name: "M+ LALIGA",
+		Name:             "M+ LALIGA",
 		ShowListChannels: true,
 	},
 	"M+ LALIGA TV": {
@@ -310,7 +310,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "4b528d10eaad747ddf52251206177573ee3e9f74",
 			// "d3de78aebe544611a2347f54d5796bd87f16c92d",
 		},
-		Name: "M+ LALIGA",
+		Name:             "M+ LALIGA",
 		ShowListChannels: false,
 	},
 	"M+ LALIGA 2": {
@@ -320,7 +320,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "51b363b1c4d42724e05240ad068ad219df8042ec",
 			// "ad42faa399df66dcd62a1cbc9d1c99ed4512d3b8",
 		},
-		Name: "M+ LALIGA 2",
+		Name:             "M+ LALIGA 2",
 		ShowListChannels: true,
 	},
 	"M+ LALIGA 2 TV": {
@@ -330,7 +330,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "51b363b1c4d42724e05240ad068ad219df8042ec",
 			// "ad42faa399df66dcd62a1cbc9d1c99ed4512d3b8",
 		},
-		Name: "M+ LALIGA 2",
+		Name:             "M+ LALIGA 2",
 		ShowListChannels: false,
 	},
 	"M+ LALIGA 3": {
@@ -338,7 +338,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			// "382b14499e3d76e557d449d2e5bbc4e4bd63bd39",
 		},
-		Name: "M+ LALIGA 3",
+		Name:             "M+ LALIGA 3",
 		ShowListChannels: true,
 	},
 	"M+ LALIGA 3 TV": {
@@ -346,7 +346,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			// "382b14499e3d76e557d449d2e5bbc4e4bd63bd39",
 		},
-		Name: "M+ LALIGA 3",
+		Name:             "M+ LALIGA 3",
 		ShowListChannels: false,
 	},
 	"M+ LIGA DE CAMPEONES": {
@@ -360,11 +360,11 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "afbf2a479c5a5072698139f0f556ef3e77a99bd0",
 			// "dfa66881b9613a77bd5479f6eedc5542504c3ef7",
 		},
-		Name: "M+ LIGA DE CAMPEONES 1",
+		Name:             "M+ LIGA DE CAMPEONES 1",
 		ShowListChannels: true,
 	},
 	"M+ LIGA DE CAMPEONES 2": {
-		Logo:  "mligacampeones2.png",
+		Logo: "mligacampeones2.png",
 		Links: []string{
 			"38f7b2044e549df2039ff26cefa6f9a60c854d5e",
 			// "e7d8cae7f693fe46e89bbf74820caac9ffb32a30",
@@ -372,7 +372,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "74ab4e4ec7e2da001f473ca40893b7307b8029c5",
 			// "4fc6d0331830ad8743abab2fe2473b63bdfbc49f",
 		},
-		Name: "M+ LIGA DE CAMPEONES 2",
+		Name:             "M+ LIGA DE CAMPEONES 2",
 		ShowListChannels: true,
 	},
 	"M+ LIGA DE CAMPEONES 3": {
@@ -382,15 +382,15 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "17b8bc4bf8e29547b0071c742e3d7da3bcbc484d",
 			// "4416843c96b7f7a1bc55c476091a60fff0922bc7",
 		},
-		Name: "M+ LIGA DE CAMPEONES 3",
+		Name:             "M+ LIGA DE CAMPEONES 3",
 		ShowListChannels: true,
 	},
 	"M+ LIGA DE CAMPEONES 4": {
-		Logo:  "mligacampeones4.png",
+		Logo: "mligacampeones4.png",
 		Links: []string{
 			"77998f8161373611ff6b348e7eda5b4e97d3ec29",
 		},
-		Name: "M+ LIGA DE CAMPEONES 4",
+		Name:             "M+ LIGA DE CAMPEONES 4",
 		ShowListChannels: true,
 	},
 	"M+ DEPORTES": {
@@ -403,7 +403,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "ebca4a63ce3bfda7b272964a1acc5227218184a4",
 			// "2f3cfd199a49819cbd129689a840dc3d23ab93aa",
 		},
-		Name: "M+ DEPORTES 1",
+		Name:             "M+ DEPORTES 1",
 		ShowListChannels: true,
 	},
 	"M+ DEPORTES 2": {
@@ -415,7 +415,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "edd06f11e1cef292a1d795e15207ef2f580e298c",
 			// "bfa01c11c5c6b7a616a516de4f2c769a89d26b25",
 		},
-		Name: "M+ DEPORTES 2",
+		Name:             "M+ DEPORTES 2",
 		ShowListChannels: true,
 	},
 	"M+ DEPORTES 3": {
@@ -425,7 +425,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "d5271a967767f761c8812c4b6195dd40f20126f7",
 			// "753d4b1f7c4ef43238b5cf23b05572b550a44eee",
 		},
-		Name: "M+ DEPORTES 3",
+		Name:             "M+ DEPORTES 3",
 		ShowListChannels: true,
 	},
 	"M+ DEPORTES 4": {
@@ -435,7 +435,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "ebf3f251c1e119aefc6a1efc95c9b5d1909249e2",
 			// "58a4c880ab18486d914751db32a12760e74b75a4",
 		},
-		Name: "M+ DEPORTES 4",
+		Name:             "M+ DEPORTES 4",
 		ShowListChannels: true,
 	},
 	"M+ DEPORTES 5": {
@@ -445,7 +445,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "9b84af74b2fa3690c519199326fc2f181b025cdd",
 			// "0b708083541a46dc15216c8003d7bcf39c458b2a",
 		},
-		Name: "M+ DEPORTES 5",
+		Name:             "M+ DEPORTES 5",
 		ShowListChannels: true,
 	},
 	"M+ DEPORTES 6": {
@@ -453,12 +453,12 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			// "190a81938c2ddc6fe97758271f8c48f4db31c28a",
 		},
-		Name: "M+ DEPORTES 6",
+		Name:             "M+ DEPORTES 6",
 		ShowListChannels: true,
 	},
 
 	"M+ VAMOS": {
-		Logo:  "mvamos.png",
+		Logo: "mvamos.png",
 		Links: []string{
 			"0e5d8c9724fa9163f49096b70484e315251eb785",
 			// "4e99e755aa32c4bc043a4bb1cd1de35f9bd94dde",
@@ -467,7 +467,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "3b2a8b41e7097c16b0468b42d7de0320886fa933",
 			// "2940120bf034db79a7f5849846ccea0255172eae",
 		},
-		Name: "M+ VAMOS",
+		Name:             "M+ VAMOS",
 		ShowListChannels: true,
 	},
 
@@ -486,19 +486,19 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	// 	},
 	// },
 	"Primera Federacion": {
-		Logo:  "primerafederacion.png",
+		Logo: "primerafederacion.png",
 		Links: []string{
 			"b40212c43e96e97542ea00f2129212a054853a57",
 		},
-		Name: "Primera federacion",
+		Name:             "Primera federacion",
 		ShowListChannels: true,
 	},
 	"Ten TV": {
-		Logo:  "ten.png",
+		Logo: "ten.png",
 		Links: []string{
 			"19cab799c86251ae8ae5f4b4faace9b78d784abc",
 		},
-		Name: "TEN TV",
+		Name:             "TEN TV",
 		ShowListChannels: true,
 	},
 	"M+": {
@@ -510,7 +510,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "5e24a1b9187fccb91553f7c7da4b36341386f74a",
 			// "1ab443f5b4beb6d586f19e8b25b9f9646cf2ab78",
 		},
-		Name: "M+",
+		Name:             "M+",
 		ShowListChannels: false,
 	},
 	"Movistar Plus+": {
@@ -521,13 +521,13 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "5d9a26e0a5f3e5f2ae027bd05635ab9a4fd4b51a",
 			// "5e24a1b9187fccb91553f7c7da4b36341386f74a",
 		},
-		Name: "Movistar Plus+ 1",
+		Name:             "Movistar Plus+ 1",
 		ShowListChannels: true,
 	},
 	"Movistar Plus+ 2": {
-		Logo:  "m2.png",
-		Links: []string{},
-		Name: "Movistar Plus+ 2",
+		Logo:             "m2.png",
+		Links:            []string{},
+		Name:             "Movistar Plus+ 2",
 		ShowListChannels: true,
 	},
 	"Movistar Plus": {
@@ -538,7 +538,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "5d9a26e0a5f3e5f2ae027bd05635ab9a4fd4b51a",
 			// "5e24a1b9187fccb91553f7c7da4b36341386f74a",
 		},
-		Name: "Movistar Plus+ 1",
+		Name:             "Movistar Plus+ 1",
 		ShowListChannels: false,
 	},
 	"LALIGA TV HYPERMOTION": {
@@ -550,23 +550,23 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "ff38b875b60074d60edb64cf10d09b32370a7135",
 			// "778d2f60bb7207addedcca0b9aed98f41529724e",
 		},
-		Name: "LALIGA TV HYPERMOTION",
+		Name:             "LALIGA TV HYPERMOTION",
 		ShowListChannels: true,
 	},
 	"LALIGA TV HYPERMOTION 2": {
-		Logo:  "mlaligahyper.png",
+		Logo: "mlaligahyper.png",
 		Links: []string{
 			"8a05571c0c8fe53f160fb7d116cdf97243679e86",
 		},
-		Name: "LALIGA TV HYPERMOTION 2",
+		Name:             "LALIGA TV HYPERMOTION 2",
 		ShowListChannels: true,
 	},
 	"LALIGA TV HYPERMOTION 3": {
-		Logo:  "mlaligahyper.png",
+		Logo: "mlaligahyper.png",
 		Links: []string{
 			"1ba18731a8e18bb4b3a5dfa5bb7b0f05762849a6",
 		},
-		Name: "LALIGA TV HYPERMOTION 3",
+		Name:             "LALIGA TV HYPERMOTION 3",
 		ShowListChannels: true,
 	},
 	// "LALIGA TV HYPERMOTION": {
@@ -588,9 +588,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"b2d560741c006fc5e4a42412bb52dbd25a6a4a3a",
 			// "472d1f3a658a51bcab0ffa9138e1e28a05fba30b",
 		},
-		Name: "GOL",
+		Name:             "GOL",
 		ShowListChannels: true,
-		
 	},
 	"GOL TV": {
 		Logo: "goltv.png",
@@ -599,7 +598,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "b2d560741c006fc5e4a42412bb52dbd25a6a4a3a",
 			// "472d1f3a658a51bcab0ffa9138e1e28a05fba30b",
 		},
-		Name: "GOL TV",
+		Name:             "GOL TV",
 		ShowListChannels: true,
 	},
 	"GOLTV PLAY": {
@@ -609,7 +608,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "472d1f3a658a51bcab0ffa9138e1e28a05fba30b",
 			// "b2d560741c006fc5e4a42412bb52dbd25a6a4a3a",
 		},
-		Name: "GOLTV PLAY",
+		Name:             "GOLTV PLAY",
 		ShowListChannels: true,
 	},
 	"EUROSPORT 1": {
@@ -619,7 +618,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "bae98f69fbf867550b4f73b4eb176dae84d7f909",
 			// "714e14e6d6e27660fd25a75b57b0ac5580fe705d",
 		},
-		Name: "EUROSPORT 1",
+		Name:             "EUROSPORT 1",
 		ShowListChannels: true,
 	},
 	"EUROSPORT 2": {
@@ -630,7 +629,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "0585e09bb8ac9720e4c11934f1b184e309291551",
 			// "5c910d614894635153a7d42de98cc2e4a958a53f",
 		},
-		Name: "EUROSPORT 2",
+		Name:             "EUROSPORT 2",
 		ShowListChannels: true,
 	},
 	"M+ ELLAS VAMOS": {
@@ -638,7 +637,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			// "9b84af74b2fa3690c519199326fc2f181b025cdd",
 		},
-		Name: "M+ ELLAS VAMOS",
+		Name:             "M+ ELLAS VAMOS",
 		ShowListChannels: true,
 	},
 	// "LALIGA TV BAR": {
@@ -649,13 +648,13 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	// 	Name: "LALIGA TV BAR 1",
 	// 	ShowListChannels: true,
 	// },
-	
+
 	"TUDN": {
 		Logo: "tudn.png",
 		Links: []string{
 			"http://181.78.106.127:9000/play/ca036/index.m3u8", //
 		},
-		Name: "TUDN 1",
+		Name:             "TUDN 1",
 		ShowListChannels: true,
 	},
 
@@ -665,7 +664,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"http://181.78.106.127:9000/play/ca031/index.m3u8", //
 			"http://200.115.120.1:8000/play/ca041/index.m3u8",  //
 		},
-		Name: "FOX SPORTS 1",
+		Name:             "FOX SPORTS 1",
 		ShowListChannels: true,
 	},
 	"FOX SPORTS 2": {
@@ -673,7 +672,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"http://181.78.106.127:9000/play/ca032/index.m3u8", //
 		},
-		Name: "FOX SPORTS 2",
+		Name:             "FOX SPORTS 2",
 		ShowListChannels: true,
 	},
 
@@ -682,11 +681,9 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"a0464d3642e054f6122e7c309017d1e8d23f4da9", //
 		},
-		Name: "FOX SPORTS MX",
+		Name:             "FOX SPORTS MX",
 		ShowListChannels: true,
 	},
-
-	
 
 	"SKY SPORTS MX": {
 		Logo: "skysports.png",
@@ -694,7 +691,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"http://181.78.106.127:9000/play/ca028/index.m3u8", //
 			"http://181.78.106.127:9000/play/ca030/index.m3u8", //
 		},
-		Name: "SKY SPORTS MX",
+		Name:             "SKY SPORTS MX",
 		ShowListChannels: true,
 	},
 
@@ -705,7 +702,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"7c12288663069a12aff58f3f62e8ea47ab78c65d",
 			"fc9f1f580da8f641a5991d44b399982a3a069f69",
 		},
-		Name: "SKY SPORTS BUNDESLIGA",
+		Name:             "SKY SPORTS BUNDESLIGA",
 		ShowListChannels: true,
 	},
 
@@ -714,7 +711,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"http://190.92.10.66:4000/play/a001/index.m3u8", //
 		},
-		Name: "SKY SPORTS LA LIGA",
+		Name:             "SKY SPORTS LA LIGA",
 		ShowListChannels: true,
 	},
 	"SKY SPORTS PREMIER LEAGUE": {
@@ -722,7 +719,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"https://d15.epicquesthero.com:1686/hls/skysprem.m3u8?md5=Otw5SigwrXNTvRvU_0kgKg&expires=1758149711", //
 		},
-		Name: "SKY SPORTS PREMIER LEAGUE",
+		Name:             "SKY SPORTS PREMIER LEAGUE",
 		ShowListChannels: true,
 	},
 	"CANAL + SPORTS": {
@@ -730,7 +727,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"http://116.202.237.33:8080/CNLS3/tracks-v1a1a2a3l1l2/mono.m3u8?token=ef1c6f27da4b04de8c97b52b9255617b", //
 		},
-		Name: "CANAL + SPORTS",
+		Name:             "CANAL + SPORTS",
 		ShowListChannels: true,
 	},
 
@@ -739,7 +736,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"http://116.202.237.33:8080/CNLS2/tracks-v1a1a2a3l1l2/mono.m3u8?token=ef1c6f27da4b04de8c97b52b9255617b", //
 		},
-		Name: "CANAL + SPORTS 2",
+		Name:             "CANAL + SPORTS 2",
 		ShowListChannels: true,
 	},
 
@@ -748,7 +745,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"https://rmtv.akamaized.net/hls/live/2043153/rmtv-es-web/bitrate_3.m3u8", //
 		},
-		Name: "REAL MADRID TV",
+		Name:             "REAL MADRID TV",
 		ShowListChannels: true,
 	},
 
@@ -757,7 +754,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"https://d35j504z0x2vu2.cloudfront.net/v1/master/0bc8e8376bd8417a1b6761138aa41c26c7309312/bein-sports-xtra-en-espanol/playlist.m3u8", //
 		},
-		Name: "BEIN SPORTS Ñ",
+		Name:             "BEIN SPORTS Ñ",
 		ShowListChannels: true,
 	},
 
@@ -767,37 +764,36 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"b0f64a40f333ef5cc02c2b6d4a8c3f4b73dd8073",
 			"e72d03fb9694164317260f684470be9ab781ed95",
 		},
-		Name: "NBA TV",
+		Name:             "NBA TV",
 		ShowListChannels: true,
 	},
-	
 
 	"ESPORTS 3": {
 		Logo: "esports3.png",
 		Links: []string{
 			"ca20f93ea5d9c15744e48a21b52598b9fce87425",
 		},
-		Name: "ESPORTS 3",
+		Name:             "ESPORTS 3",
 		ShowListChannels: true,
 	},
-	
-	"Sport TV 2" : {
+
+	"Sport TV 2": {
 		Logo: "sporttv2.png",
 		Links: []string{
 			"89122d5e60866e9127a5f3849170031b16402adc",
 			"https://maldivesn.net/hilaytv/sporttv2",
 		},
-		Name: "Sport TV 2",
+		Name:             "Sport TV 2",
 		ShowListChannels: true,
 	},
 
-	"Sport TV 3" : {
+	"Sport TV 3": {
 		Logo: "sporttv3.png",
 		Links: []string{
 			"cf72f0fa0cee438cca43f2ea8299d04d1bf4c9d5",
 			"https://maldivesn.net/hilaytv/sporttv3",
 		},
-		Name: "Sport TV 3",
+		Name:             "Sport TV 3",
 		ShowListChannels: true,
 	},
 	// // https://hilay.tv/play.m3u
@@ -817,7 +813,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	// 	},
 	// 	Name: "PRESSING CATCH LEYENDAS",
 	// 	ShowListChannels: true,
-		
+
 	// },
 	// "FIFA+" : {
 	// 	Logo: "fifa.png",
@@ -827,31 +823,27 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	// 	Name: "PRESSING CATCH",
 	// 	ShowListChannels: true,
 	// },
-	
-	"REDBULL TV" : {
+
+	"REDBULL TV": {
 		Logo: "redbulltv.png",
 		Links: []string{
 			"62daab1c54565d0c5ba4e3c660f3a4a5c93adc8a",
 			// "https://jmp2.uk/stvp-GBBD2300003IK",
 		},
-		Name: "REDBULL TV",
+		Name:             "REDBULL TV",
 		ShowListChannels: true,
 	},
 
-	"UFC" : {
+	"UFC": {
 		Logo: "ufc.png",
 		Links: []string{
 			"ade70f2c51cca519a4d8de1bb181af6e8532e1e1",
 			// "https://jmp2.uk/stvp-CA2900012S9",
 			// "https://jmp2.uk/stvp-US2900017P2",
 		},
-		Name: "UFC",
+		Name:             "UFC",
 		ShowListChannels: true,
 	},
-	
-	
-
-
 }
 
 var allCompetitions = AllCompetitions{
@@ -874,7 +866,7 @@ var allCompetitions = AllCompetitions{
 		"LaLiga Hypermotion": {Titulo: "LaLiga 2", Top: true, Icon: "liga2.png"},
 		"Liga Endesa":        {Titulo: "Liga Endesa", Top: true, Icon: "endesa.png"},
 		"Primera FEB":        {Titulo: "Primera FEB", Top: false, Icon: "primerafeb.png"},
-		"Primera Federación":            {Titulo: "Primera Federación", Top: true, Icon: "primerafede.png"},
+		"Primera Federación": {Titulo: "Primera Federación", Top: true, Icon: "primerafede.png"},
 		// "Segunda Federación":            {Titulo: "Segunda Federación", Top: false, Icon: "segundafede.png"},
 		"Copa del Rey":              {Titulo: "Copa del Rey", Top: true, Icon: "uefa.png"},
 		"Supercopa de España":       {Titulo: "Supercopa de España", Top: true, Icon: "uefa.png"},
@@ -929,7 +921,7 @@ var allCompetitions = AllCompetitions{
 		"Serie B Femminile":      {Titulo: "Serie B Femminile", Top: false, Icon: "uefa.png"},
 	},
 	"Francia": CountryCompetitions{
-		"Ligue 1":                  {Titulo: "Ligue 1", Top: true, Icon: "ligue1.png"},
+		"Francia Ligue 1":          {Titulo: "Ligue 1", Top: true, Icon: "ligue1.png"},
 		"Ligue 2":                  {Titulo: "Ligue 2", Top: false, Icon: "uefa.png"},
 		"National 1":               {Titulo: "National 1", Top: false, Icon: "uefa.png"},
 		"National 2":               {Titulo: "National 2", Top: false, Icon: "uefa.png"},
