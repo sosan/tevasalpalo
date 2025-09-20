@@ -1,8 +1,8 @@
 package main
 
 var broadcasterGatewayMap = map[string][]string{
-	// `Primera Federacion "RFEF" (FHD)`:    {"Primera Federacion \"RFEF\""},
-	"DAZN 1 (FHD)":                       {"DAZN 1", "DAZN"},
+	`Primera Federacion "RFEF" (FHD)`:    {"Primera Federacion \"RFEF\""},
+	"DAZN 1 (FHD)":                       {"DAZN 1"},
 	"DAZN 2 (FHD)":                       {"DAZN 2"},
 	"DAZN 3 (FHD)":                       {"DAZN 3"},
 	"DAZN 4 (FHD)":                       {"DAZN 4"},
@@ -39,7 +39,7 @@ var broadcasterGatewayMap = map[string][]string{
 	"Deporte2":                           {"M+ DEPORTES 2"},
 	"Campeones2":                         {"M+ LIGA DE CAMPEONES 2"},
 	"MovistarPlus":                       {"Movistar Plus", "Movistar Plus+", "M+"},
-	"Dazn1":                              {"DAZN 1", "DAZN"},
+	"Dazn1":                              {"DAZN 1"},
 	"Deporte":                            {"M+ DEPORTES"},
 	"Deporte3":                           {"M+ DEPORTES 3"},
 	"Deporte4":                           {"M+ DEPORTES 4"},

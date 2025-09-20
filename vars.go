@@ -19,19 +19,19 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Name:             "DAZN 1",
 		ShowListChannels: true,
 	},
-	"DAZN": {
-		Logo:  "dazn1.png",
-		Links: []string{
-			// "b03f9310155cf3b4eafc1dfba763781abc3ff025",
-			// "36394be1db2e20b5997d987c32fd38c7f0f194b7",
-			// "50a8a13c474848d1efbd5586efdb5b6cdd173fa9",
-			// "688e785893b50acc1d00cb37f15bfc42e72f5ae3",
-			// "4141892f5df7d6474bf0279895ce02b7336c9928",
-			// "0560234787945a17522e284c4c22bb4df29f33b0",
-		},
-		ShowListChannels: false,
-		Name:             "DAZN 1",
-	},
+	// "DAZN": {
+	// 	Logo:  "dazn1.png",
+	// 	Links: []string{
+	// 		// "b03f9310155cf3b4eafc1dfba763781abc3ff025",
+	// 		// "36394be1db2e20b5997d987c32fd38c7f0f194b7",
+	// 		// "50a8a13c474848d1efbd5586efdb5b6cdd173fa9",
+	// 		// "688e785893b50acc1d00cb37f15bfc42e72f5ae3",
+	// 		// "4141892f5df7d6474bf0279895ce02b7336c9928",
+	// 		// "0560234787945a17522e284c4c22bb4df29f33b0",
+	// 	},
+	// 	ShowListChannels: false,
+	// 	Name:             "DAZN 1",
+	// },
 	"DAZN 2": {
 		Logo:  "dazn2.png",
 		Links: []string{
@@ -135,7 +135,9 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"ESPN": {
 		Logo: "espn.webp",
 		Links: []string{
+			"http://181.188.216.5:18000/play/a0dk/index.m3u8",
 			"http://181.78.106.127:9000/play/ca033/index.m3u8",
+			
 			// "http://45.71.254.1:8000/play/a0e6/index.m3u8",
 			// "http://200.60.124.19:29000/play/a015",
 			// "http://181.78.106.127:9000/play/ca034/index.m3u8",
@@ -698,7 +700,9 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SKY SPORTS BUNDESLIGA": {
 		Logo: "skysports.png",
 		Links: []string{
-			"http://181.78.106.127:9000/play/ca028/index.m3u8", //
+			// "http://181.78.106.127:9000/play/ca028/index.m3u8", //
+			"http://181.205.130.194:4000/play/a07s",
+			"http://200.60.124.19:29000/play/a01e",
 			"7c12288663069a12aff58f3f62e8ea47ab78c65d",
 			"fc9f1f580da8f641a5991d44b399982a3a069f69",
 		},
