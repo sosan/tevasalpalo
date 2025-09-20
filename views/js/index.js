@@ -1,4 +1,5 @@
-const updateBoton = document.getElementById("updateboton");
+// const updateBoton = document.getElementById("updateboton");
+const updateContentButton = document.getElementById("updatecontent");
 const dialogUpdating = document.getElementById('dialog-updating');
 const contentUpdating = document.getElementById('content-updating');
 const messageWarn = document.getElementById('message-warn');
@@ -6,116 +7,129 @@ const oneHour = 60 * 60 * 1000;
 let updating = false;
 let updatingcheck = false;
 
-updateBoton.addEventListener("click", async function (event) {
-    if (updateBoton) {
-        event.preventDefault();
-        if (updating) return;
-        try {
-            updateBoton.ariaDisabled = "true";
-            updateBoton.disabled = true;
-            updating = true;
-            const request = await fetch('/update', { method: 'GET' });
-            dialogUpdating.showModal();
-            if (request.ok) {
-                contentUpdating.innerText = "Actualización iniciada. Por favor, espere...";
-                console.log("Actualización iniciada.");
-            } else {
-                updateBoton.ariaDisabled = "false";
-                updateBoton.disabled = false;
-                updating = false;
-                console.error("Error al iniciar la actualización:", request.statusText);
-                contentUpdating.innerText = `Error al iniciar la actualización`;
-                setTimeout(() => {
-                    dialogUpdating.close();
-                }, 5000);
-                return;
-            }
 
-            const data = await request.json(); // dummy value
-            const intervalHealthz = setInterval(async () => {
-                try {
-                    const request = await fetch('/healthz', { method: 'GET' });
-                    if (request.ok) {
-                        const data = await request.json();
-                        if (data.ok) {
-                            updating = false;
-                            updateBoton.ariaDisabled = "false";
-                            updateBoton.disabled = false;
-                            contentUpdating.innerText = "Actualización terminada";
-                        }
-                        clearInterval(intervalHealthz);
-                        setTimeout(() => {
-                            dialogUpdating.close();
-                        }, 5000);
-                        return;
-                    }
-                } catch (error) {
-                    updating = false;
-                    updateBoton.ariaDisabled = "false";
-                    updateBoton.disabled = false;
-                    clearInterval(intervalHealthz);
-                    // console.error("Error al verificar el estado de salud:", error);
-                    // contentUpdating.innerText = `Error en la actualización`;
-                    setTimeout(() => {
-                        dialogUpdating.close();
-                    }, 5000);
-                }
-            }, 10_000);
-        } catch (error) {
+
+
+async function updateApp() {
+    if (updating) return;
+    try {
+        // updateBoton.ariaDisabled = "true";
+        // updateBoton.disabled = true;
+        updating = true;
+        const request = await fetch('/update', { method: 'GET' });
+        dialogUpdating.showModal();
+        if (request.ok) {
+            contentUpdating.innerText = "Actualización iniciada. Por favor, espere...";
+            console.log("Actualización iniciada.");
+        } else {
+            // updateBoton.ariaDisabled = "false";
+            // updateBoton.disabled = false;
             updating = false;
-            updateBoton.ariaDisabled = "false";
-            updateBoton.disabled = false;
-            console.error("Error al enviar la solicitud de actualización:", error);
+            console.error("Error al iniciar la actualización:", request.statusText);
             contentUpdating.innerText = `Error al iniciar la actualización`;
             setTimeout(() => {
                 dialogUpdating.close();
             }, 5000);
+            return;
         }
-    }
-});
 
-async function startUpdateCheck() {
+        const data = await request.json(); // dummy value
+        const intervalHealthz = setInterval(async () => {
+            try {
+                const request = await fetch('/healthz', { method: 'GET' });
+                if (request.ok) {
+                    const data = await request.json();
+                    if (data.ok) {
+                        updating = false;
+                        // updateBoton.ariaDisabled = "false";
+                        // updateBoton.disabled = false;
+                        contentUpdating.innerText = "Actualización terminada";
+                    }
+                    clearInterval(intervalHealthz);
+                    setTimeout(() => {
+                        dialogUpdating.close();
+                        messageWarn.innerText = "";
+                        messageWarn.classList.remove("display-block");
+                        messageWarn.classList.add("display-none");
+
+                    }, 5000);
+                    return;
+                }
+            } catch (error) {
+                updating = false;
+                // updateBoton.ariaDisabled = "false";
+                // updateBoton.disabled = false;
+                clearInterval(intervalHealthz);
+                // console.error("Error al verificar el estado de salud:", error);
+                // contentUpdating.innerText = `Error en la actualización`;
+                setTimeout(() => {
+                    dialogUpdating.close();
+                }, 5000);
+            }
+        }, 20_000);
+    } catch (error) {
+        updating = false;
+        // updateBoton.ariaDisabled = "false";
+        // updateBoton.disabled = false;
+        console.error("Error al enviar la solicitud de actualización:", error);
+        contentUpdating.innerText = `Error al iniciar la actualización`;
+        setTimeout(() => {
+            dialogUpdating.close();
+        }, 5000);
+    }
+}
+
+
+
+async function startCheckAppUpdate() {
     try {
         console.log("Verificando actualizaciones...");
         updatingcheck = true;
         const request = await fetch('/updateavailable', { method: 'GET' });
-        if (request.ok) {
-            const data = await request.json();
-
-            if (data.needUpdate) {
-                updatingcheck = false;
-                messageWarn.innerText = "¡Nueva versión disponible! Haz clic aquí para actualizar.";
-                messageWarn.classList.remove("display-none");
-                messageWarn.classList.add("display-block");
-
-                const messageWarnBoton = document.getElementById("message-warn");
-                if (messageWarnBoton) {
-                    messageWarnBoton.addEventListener("click", (event) => {
-                        event.preventDefault();
-                        updateBoton.click();
-                    }, { once: true }); // ⚡ solo 1 vez
-                }
-
-            } else {
-                updatingcheck = false;
-                messageWarn.innerText = "";
-                messageWarn.classList.remove("display-block");
-                messageWarn.classList.add("display-none");
-            }
+        if (!request.ok) {
+            updatingcheck = false;
+            console.error("Error verificando actualizaciones:", request.statusText);
+            return;
         }
+        const data = await request.json();
+
+        if (data.needUpdate) {
+            updatingcheck = false;
+            messageWarn.innerText = "¡Nueva versión disponible! Haz clic aquí para actualizar.";
+            messageWarn.classList.remove("display-none");
+            messageWarn.classList.add("display-block");
+
+            const messageWarnBoton = document.getElementById("message-warn");
+            if (messageWarnBoton) {
+                messageWarnBoton.addEventListener("click", (event) => {
+                    event.preventDefault();
+                    updateApp();
+
+                }, { once: true });
+            }
+
+        } else {
+            updatingcheck = false;
+            messageWarn.innerText = "";
+            messageWarn.classList.remove("display-block");
+            messageWarn.classList.add("display-none");
+        }
+
     } catch (error) {
         updatingcheck = false;
         console.error("Error verificando actualizaciones:", error);
     }
-    
+
 }
 
 document.addEventListener("DOMContentLoaded", function () {
     console.log("Datos de días cargados:", days);
     console.log("Top Competitions para filtrar:", topCompetitions);
+
+    updateContentButton.addEventListener("click", updateContent);
     // solapamiento startUpdateCheck y setinterval
-    startUpdateCheck();
-    setInterval(startUpdateCheck, oneHour);
+    startCheckAppUpdate();
+    setInterval(startCheckAppUpdate, oneHour);
     renderFullSchedule(days);
 });
 
@@ -225,18 +239,19 @@ function renderFullSchedule(daysData) {
  */
 function formatBroadcasters(broadcasters) {
     if (!broadcasters || broadcasters.length === 0) {
-        return '<span>Sin links disponibles</span>';
+        return; //'<span>Sin links disponibles</span>';
     }
 
     return broadcasters.map((broadcaster, broadcasterIndex) => {
-        let html = '';
-        if (broadcasterIndex > 0) {
-            html += '<br />';
+        const links = broadcaster.link || broadcaster.Links;
+        if (links === undefined) {
+            return;
         }
+
+        let html = '';
+
         html += `<span class="broadcaster-links">`;
         html += `<span class="broadcaster-name">${broadcaster.name || broadcaster.Name || 'Canal'}:</span>`;
-
-        const links = broadcaster.link || broadcaster.Links; // Manejar ambos casos
 
         if (links && Array.isArray(links) && links.length > 0) {
             // Si hay links, crear los enlaces
@@ -255,43 +270,37 @@ function formatBroadcasters(broadcasters) {
             html += linksHtml;
         } else {
             // Si no hay propiedad `link`/`Links` o está vacía
-            if (broadcaster.name && (broadcaster.name.includes("APLAZADO") || broadcaster.name.includes("POS"))) {
-                html += `<span>${broadcaster.name}</span>`;
-            } else {
-                html += '<span>Sin links disponibles</span>';
-            }
+            // if (broadcaster.name && (broadcaster.name.includes("APLAZADO") || broadcaster.name.includes("POS"))) {
+            //     html += `<span>${broadcaster.name}</span>`;
+            // } 
+            // else {
+            //     html += '<span>Sin links disponibles</span>';
+            // }
         }
         html += '</span>';
         return html;
     }).join('');
 }
 
-
-// function loadActivityModal() {
-//     const dialog = document.getElementById('config-menu');
-//     const openBtn = document.getElementById('openConfigMenuBtn');
-//     const closeBtn = document.querySelector('.close-dialog-config-menu');
-
-//     openBtn.addEventListener('click', () => {
-//         dialog.showModal();
-//     });
-
-//     closeBtn.addEventListener('click', () => {
-//         dialog.close();
-//     });
-
-//     // Opcional: Cerrar haciendo clic fuera del contenido del diálogo (solo showModal)
-//     dialog.addEventListener('click', (event) => {
-//         // dialog.close() se puede llamar aquí también, pero hay que tener cuidado
-//         // con cerrarlo al hacer clic dentro. Una forma más robusta es comprobar el target.
-//         if (event.target === dialog) {
-//             dialog.close();
-//         }
-//     });
-// }
-
-
-// window.TVASApp = {
-//     // filterByCompetition: filterByCompetition,
-//     renderFullSchedule: renderFullSchedule // Por si se necesita re-renderizar
-// };
+async function updateContent(event) {
+    event.preventDefault();
+    dialogUpdating.showModal();
+    contentUpdating.innerText = "Actualización iniciada. Por favor, espere...";
+    const request = await fetch('/refresh-data', { method: 'GET' });
+    if (!request.ok) {
+        contentUpdating.innerText = `Error al iniciar la actualización`;
+        console.error("Error cannot update content:", request.statusText);
+        return;
+    }
+    const data = await request.json();
+    if (!data.success) {
+        contentUpdating.innerText = `Error al iniciar la actualización`;
+        console.error("Error cannot update content:", request.statusText);
+        return;
+    }
+    contentUpdating.innerText = "Actualización terminada. Recargando la página...";
+    setTimeout(() => {
+        // reload
+        window.location.reload();
+    }, 5000);
+}
