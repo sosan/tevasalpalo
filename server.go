@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"sync"
 
 	"log"
 	"main/update"
@@ -24,8 +25,64 @@ import (
 //go:embed views/*.html
 var viewsFS embed.FS
 
+var (
+	cachedData     CachedData
+	dataMutex      sync.RWMutex
+	lastDataUpdate time.Time
+)
+
+type CachedData struct {
+	Days                []DayView
+	DaysJSON            template.JS
+	TopCompetitionsJSON template.JS
+	AllCompetitions     AllCompetitions
+	TopCompetitions     map[string]CompetitionDetail
+	Broadcasters        map[string]BroadcasterInfo
+}
+
+// Pre-cargar datos al iniciar
+func preloadData() error {
+	days, daysJSON, topCompetitionsJSON, err := fetchEvents()
+	if err != nil {
+		return fmt.Errorf("error preloading data: %v", err)
+	}
+
+	dataMutex.Lock()
+	cachedData = CachedData{
+		Days:                days,
+		DaysJSON:            *daysJSON,
+		TopCompetitionsJSON: *topCompetitionsJSON,
+		AllCompetitions:     allCompetitions,
+		TopCompetitions:     topCompetitions,
+		Broadcasters:        broadcasterToAcestream,
+	}
+	lastDataUpdate = time.Now()
+	dataMutex.Unlock()
+
+	log.Println("✅ Datos pre-cargados en memoria")
+	return nil
+}
+
+// Refrescar datos periódicamente
+func startDataRefresh() {
+	ticker := time.NewTicker(6 * time.Hour)
+	go func() {
+		for range ticker.C {
+			if err := preloadData(); err != nil {
+				log.Printf("⚠️  Error refrescando datos: %v", err)
+			}
+		}
+	}()
+}
+
 func StartWebServer() (*fiber.App, error) {
 	topCompetitions = transformCompetitionsToTop(allCompetitions)
+
+	if err := preloadData(); err != nil {
+		log.Printf("⚠️  Advertencia: No se pudieron pre-cargar datos: %v", err)
+	}
+
+	startDataRefresh()
 
 	engine := html.NewFileSystem(http.FS(viewsFS), ".html")
 
@@ -64,31 +121,65 @@ func StartWebServer() (*fiber.App, error) {
 	}))
 
 	app.Get("/", func(c *fiber.Ctx) error {
-		days, daysJSON, topCompetitionsJSON, err := fetchEvents()
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).SendString("Error al obtener la programación")
-		}
+		// days, daysJSON, topCompetitionsJSON, err := fetchEvents()
+		// if err != nil {
+		// 	return c.Status(fiber.StatusInternalServerError).SendString("Error al obtener la programación")
+		// }
+		// return c.Render("index", fiber.Map{
+		// 	"Days":                days,
+		// 	"allCompetitions":     allCompetitions,
+		// 	"topCompetitions":     topCompetitions,
+		// 	"DaysJSON":            daysJSON,
+		// 	"topCompetitionsJSON": topCompetitionsJSON,
+		// })
+		dataMutex.RLock()
+		data := cachedData
+		dataMutex.RUnlock()
 		return c.Render("index", fiber.Map{
-			"Days":                days,
-			"allCompetitions":     allCompetitions,
-			"topCompetitions":     topCompetitions,
-			"DaysJSON":            daysJSON,
-			"topCompetitionsJSON": topCompetitionsJSON,
+			"Days":                data.Days,
+			"allCompetitions":     data.AllCompetitions,
+			"topCompetitions":     data.TopCompetitions,
+			"DaysJSON":            data.DaysJSON,
+			"topCompetitionsJSON": data.TopCompetitionsJSON,
 		})
 	})
 
 	app.Get("/broadcasters", func(c *fiber.Ctx) error {
-		days, daysJSON, topCompetitionsJSON, err := fetchEvents()
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).SendString("Error al obtener la programación")
-		}
+		// days, daysJSON, topCompetitionsJSON, err := fetchEvents()
+		// if err != nil {
+		// 	return c.Status(fiber.StatusInternalServerError).SendString("Error al obtener la programación")
+		// }
+		// return c.Render("views/broadcasters", fiber.Map{
+		// 	"Broadcasters":        broadcasterToAcestream,
+		// 	"DaysJSON":            daysJSON,
+		// 	"Days":                days,
+		// 	"allCompetitions":     allCompetitions,
+		// 	"topCompetitions":     topCompetitions,
+		// 	"topCompetitionsJSON": topCompetitionsJSON,
+		// })
+		dataMutex.RLock()
+		data := cachedData
+		dataMutex.RUnlock()
+
 		return c.Render("views/broadcasters", fiber.Map{
-			"Broadcasters":        broadcasterToAcestream,
-			"DaysJSON":            daysJSON,
-			"Days":                days,
-			"allCompetitions":     allCompetitions,
-			"topCompetitions":     topCompetitions,
-			"topCompetitionsJSON": topCompetitionsJSON,
+			"Broadcasters":        data.Broadcasters,
+			"DaysJSON":            data.DaysJSON,
+			"Days":                data.Days,
+			"allCompetitions":     data.AllCompetitions,
+			"topCompetitions":     data.TopCompetitions,
+			"topCompetitionsJSON": data.TopCompetitionsJSON,
+		})
+	})
+
+	app.Get("/refresh-data", func(c *fiber.Ctx) error {
+		if err := preloadData(); err != nil {
+			return c.Status(500).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		}
+		return c.JSON(fiber.Map{
+			"success": true,
+			"message": "Datos actualizados correctamente",
 		})
 	})
 
