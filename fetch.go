@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
 // FetchWebData se encarga únicamente de obtener los datos en bruto de la URL especificada.
 // Devuelve el cuerpo de la respuesta como un slice de bytes o un error si ocurre.
 func FetchWebData(url string) ([]byte, error) {
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+	}
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
