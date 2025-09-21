@@ -118,7 +118,7 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 	// 	return nil, err
 	// }
 
-	eventsFromLigaToMx, err := getCompetition("https://www.futbolenvivomexico.com/competicion/la-liga")
+	// eventsFromLigaToMx, err := getCompetition("https://www.futbolenvivomexico.com/competicion/la-liga")
 	// if err != nil {
 	// 	return nil, err
 	// }
@@ -132,21 +132,23 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 	// }
 
 	// https://www.justwatch.com/mx/futbol/bundesliga
-	eventsFromBundesligaToMx, err := getCompetition("https://www.futbolenvivomexico.com/competicion/bundesliga")
+	// eventsFromBundesligaToMx, err := getCompetition("https://www.futbolenvivomexico.com/competicion/bundesliga")
 	// if err != nil {
 	// 	return nil, err
 	// }
 
 	// https://www.futbolenvivomexico.com/competicion/calcio-serie-a ESPN
 	// eventsFromCalcio, err := getCompetition("https://www.futebolnatv.pt/campeonato/calcio-serie-a")
-	eventsFromCalcio, err := getCompetition("https://www.futbolenvivomexico.com/competicion/calcio-serie-a")
-	if err != nil {
-		return nil, err
-	}
+	// eventsFromCalcio, err := getCompetition("https://www.futbolenvivomexico.com/competicion/calcio-serie-a")
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	generalEvents = mixCompetitions(generalEvents, eventsFromLigaToMx,
+	generalEvents = mixCompetitions(generalEvents, 
+		// eventsFromLigaToMx,
 		// eventsFromPremierToSpain,
-		eventsFromCalcio, eventsFromBundesligaToMx)
+		// eventsFromCalcio, eventsFromBundesligaToMx
+	)
 	return generalEvents, err
 }
 
@@ -414,19 +416,32 @@ func FormatDateDMYToSpanish(dateStr string) (string, error) {
 	return fmt.Sprintf("%s, %d de %s de %d", weekday, day, month, year), nil
 }
 
-func mixCompetitions(general, liga,
-	// premier,
-	calcio, bundesliga []DayView) []DayView {
-	bundesliga = changeBroadcasterName(bundesliga, "sky sports", "SKY SPORTS BUNDESLIGA", "Bundesliga")
-	liga = changeBroadcasterName(liga, "sky sports", "SKY SPORTS LA LIGA", "LaLiga")
-	calcio = changeCompetitionName(calcio, "Liga italiana", "Serie A Italiana")
-	for i := range general {
-		general[i] = addCompetition(general[i], liga)
-		// general[i] = addCompetition(general[i], premier)
-		general[i] = addCompetition(general[i], calcio)
-		general[i] = addCompetition(general[i], bundesliga)
-	}
+func mixCompetitions(general []DayView) []DayView {
+	general = changeBroadcasterName(general, "dazn", "SKY SPORTS BUNDESLIGA", "Bundesliga")
+	// liga := changeBroadcasterName(general, "dazn", "SKY SPORTS LA LIGA", "LaLiga")
+	general = changeBroadcasterName(general, "dazn", "ESPN", "Serie A Italiana")
+	general = addNewBroadcaster(general, "SKY SPORTS", "LaLiga" )
+	// for i := range general {
+
+	// 	// general[i] = addCompetition(general[i], calcio)
+	// 	// general[i] = addCompetition(general[i], bundesliga)
+	// }
 	return general
+}
+
+func addNewBroadcaster(days []DayView, broadcasterNameDestination, competitionName string) ([]DayView) {
+	for i := range days {
+		for o := range days[i].Competitions {
+			if o != competitionName {
+				continue
+			}
+			for l := range days[i].Competitions[o] {
+				newBroadcaster := broadcasterToAcestream[broadcasterNameDestination]
+				days[i].Competitions[o][l].Broadcasters = append(days[i].Competitions[o][l].Broadcasters, newBroadcaster )
+			}
+		}
+	}
+	return days
 }
 
 func addCompetition(generalCompetition DayView, newCompetition []DayView) DayView {
@@ -458,8 +473,11 @@ func changeBroadcasterName(days []DayView, broadcasterNameOrigin, broadcasterNam
 			}
 			for l := range days[i].Competitions[o] {
 				for m := range days[i].Competitions[o][l].Broadcasters {
-					if strings.ToLower(days[i].Competitions[o][l].Broadcasters[m].Name) == strings.ToLower(broadcasterNameOrigin) {
-						days[i].Competitions[o][l].Broadcasters[m].Name = broadcasterNameDestination // "sky sports" "SKY SPORTS BUNDESLIGA"
+					if strings.EqualFold(days[i].Competitions[o][l].Broadcasters[m].Name, broadcasterNameOrigin) {
+						// days[i].Competitions[o][l].Broadcasters[m].Name = broadcasterNameDestination // "sky sports" "SKY SPORTS BUNDESLIGA"
+						currentBroadcaster := broadcasterToAcestream[broadcasterNameDestination]
+						days[i].Competitions[o][l].Broadcasters[m] = currentBroadcaster 
+
 					}
 				}
 			}
