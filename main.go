@@ -34,12 +34,12 @@ func main() {
 		log.Printf("Error al obtener la programación")
 	}
 
-	log.Println("🌐 Servidor web iniciando en http://localhost:3000")
 	webServer, err := StartWebServer()
 	if err != nil {
 		log.Printf("❌ Error en servidor web: %v", err)
 	}
-
+	
+	log.Println("🌐 Servidor web iniciando en http://localhost:3000")
 	time.Sleep(1 * time.Second)
 	var cmdAcestream *exec.Cmd
 
