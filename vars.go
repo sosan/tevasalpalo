@@ -162,7 +162,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"http://45.71.254.1:8000/play/a0c5/index.m3u8",
 		},
-		Name:             "ESPN 3",
+		Name:             "ESPN 4",
 		ShowListChannels: true,
 	},
 
@@ -700,9 +700,10 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SKY SPORTS BUNDESLIGA": {
 		Logo: "skysports.png",
 		Links: []string{
+			"http://181.78.106.127:9000/play/ca028/32260689.m3u8",
 			// "http://181.78.106.127:9000/play/ca028/index.m3u8", //
-			"http://181.205.130.194:4000/play/a07s",
-			"http://200.60.124.19:29000/play/a01e",
+			// "http://181.205.130.194:4000/play/a07s",
+			// "http://200.60.124.19:29000/play/a01e",
 			"7c12288663069a12aff58f3f62e8ea47ab78c65d",
 			"fc9f1f580da8f641a5991d44b399982a3a069f69",
 		},
@@ -842,6 +843,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo: "ufc.png",
 		Links: []string{
 			"ade70f2c51cca519a4d8de1bb181af6e8532e1e1",
+			"https://unifi-live07.secureswiftcontent.com/UnifiHD/live11.mpd",
 			// "https://jmp2.uk/stvp-CA2900012S9",
 			// "https://jmp2.uk/stvp-US2900017P2",
 		},
