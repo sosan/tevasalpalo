@@ -1,14 +1,15 @@
-FROM golang:1.24-alpine AS builder
-RUN apk add --no-cache git ca-certificates gcc musl-dev
+FROM golang:alpine AS builder
+# FROM bitnami/golang:latest AS builder
+RUN apk add git ca-certificates gcc musl-dev
 WORKDIR /app
 COPY go.mod go.sum ./
-RUN go mod download
-
 COPY *.* ./
+COPY update ./update/
 COPY assets/ ./assets/
 COPY certs/ ./certs/
 # COPY runtime/ ./runtime/
 COPY views/ ./views/
+RUN go mod download
 ARG ENV=dev
 ENV ENV=${ENV}
 RUN CGO_ENABLED=1 GOOS=linux go build -o main .
