@@ -34,14 +34,18 @@
 
     function loadVideo() {
         let acestreamId = "{{ .AcestreamId }}";
+        
         if (acestreamId == "") {
             return;
         }
         let hlsUrl = `http://127.0.0.1:6878/ace/manifest.m3u8?id=${acestreamId}`;
         if (acestreamId.includes(";") === true) {
             const splitted = acestreamId.split(";")[1];
-            const decoded = fromBase64Url(splitted);
+            let decoded = fromBase64Url(splitted);
             hlsUrl = decoded;
+            if (decoded.includes("p;")) {
+                hlsUrl = `/api/iptv/${acestreamId}`;
+            }
         }
 
         const video = document.getElementById('videoPlayer');
@@ -50,22 +54,21 @@
         if (Hls.isSupported()) {
             // statusMessage.textContent = "Conectando al stream...";
             const hls = new Hls({
-
                 enableWorker: true,
                 lowLatencyMode: false,
                 backBufferLength: 90,
 
                 // Buffer
                 maxBufferLength: 60,
-                maxMaxBufferLength: 120,
-                maxBufferSize: 60 * 1000 * 1000,
+                maxMaxBufferLength: 220,
+                maxBufferSize: 500 * 1000 * 1000,
 
                 // Latencia
                 liveSyncDuration: 30,
                 liveMaxLatencyDuration: 60,
 
                 // Recuperación de errores
-                fragLoadingRetryDelay: 2000,
+                fragLoadingRetryDelay: 5000,
                 manifestLoadingRetryDelay: 5000,
                 levelLoadingRetryDelay: 5000,
 
@@ -73,6 +76,82 @@
                 capLevelToPlayerSize: true,
                 startLevel: -1
             });
+           
+            //  const hls = new Hls({
+            //     maxBufferLength: 30,
+            //      maxMaxBufferLength: 60,
+            //      enableWorker: true,
+            //      lowLatencyMode: false,
+            //      backBufferLength: 60,
+            //      // Increase buffer size for smoother playback
+            //      maxBufferSize: 30 * 1000 * 1000, // 30MB
+            //      // Increase retry attempts
+            //      maxLoadingRetry: 8,
+            //      // Increase timeouts
+            //      manifestLoadingTimeOut: 20000,
+            //      manifestLoadingMaxRetry: 6,
+            //      levelLoadingTimeOut: 20000,
+            //      fragLoadingTimeOut: 120000,
+            //     // maxBufferSize: 750 * 1000 * 1000, // 750,000,000 bytes = 750 MB
+
+            //     // Objetivo de longitud del buffer en segundos.
+            //     // maxBufferLength: 60, // 1 minuto objetivo
+
+            //     // Longitud máxima absoluta del buffer. Permite acumular más si hay ancho de banda.
+            //     // maxMaxBufferLength: 120, // 2 minutos máximo
+
+            //     // --- Configuraciones para Streams en Vivo ---
+            //     // Usar *Count para mayor robustez con duraciones de segmentos variables
+            //     liveSyncDurationCount: 3, // Sincronizar 3 segmentos desde el final
+            //     liveMaxLatencyDurationCount: 6, // Permitir hasta 6 segmentos de latencia
+
+            //     // --- Políticas de Carga (Reemplazan configuraciones obsoletas) ---
+            //     fragLoadPolicy: {
+            //         default: {
+            //             maxTimeToFirstByteMs: 30000, // 30 segundos
+            //             maxLoadTimeMs: 60000,       // 60 segundos
+            //             timeoutRetry: {
+            //                 maxNumRetry: 4,
+            //                 retryDelayMs: 1000, // 1 segundo inicial
+            //                 maxRetryDelayMs: 64000 // Hasta 64 segundos entre reintentos
+            //             },
+            //             errorRetry: {
+            //                 maxNumRetry: 6, // Un poco más de reintentos para errores
+            //                 retryDelayMs: 2000,
+            //                 maxRetryDelayMs: 120000 // Hasta 2 minutos
+            //             }
+            //         }
+            //     },
+            //     manifestLoadPolicy: {
+            //         default: {
+            //             maxTimeToFirstByteMs: 30000,
+            //             maxLoadTimeMs: 60000,
+            //             timeoutRetry: { maxNumRetry: 4, retryDelayMs: 1000, maxRetryDelayMs: 64000 },
+            //             errorRetry: { maxNumRetry: 6, retryDelayMs: 2000, maxRetryDelayMs: 120000 }
+            //         }
+            //     },
+            //     playlistLoadPolicy: { // Reemplaza levelLoading* (como advertía el log)
+            //         default: {
+            //             maxTimeToFirstByteMs: 30000,
+            //             maxLoadTimeMs: 60000,
+            //             timeoutRetry: { maxNumRetry: 4, retryDelayMs: 1000, maxRetryDelayMs: 64000 },
+            //             errorRetry: { maxNumRetry: 6, retryDelayMs: 2000, maxRetryDelayMs: 120000 }
+            //         }
+            //     },
+
+            //     // --- Otras Configuraciones ---
+            //     // enableWorker: true, // Mantener para mejor rendimiento
+            //     // lowLatencyMode: false, // Mantener desactivado para streams normales
+            //     // backBufferLength: 90, // Longitud del buffer hacia atrás, está bien
+
+            //     // Calidad - Puede ayudar a reducir la carga inicial
+            //     capLevelToPlayerSize: true, // Limita la calidad al tamaño del reproductor
+            //     // startLevel: -1, // Comenzar con calidad automática. Comenta o elige una.
+            //     startLevel: 0, // O descomenta esta para forzar la calidad más baja al inicio
+
+            //     // --- Debugging ---
+            //     // debug: true, // Mantener activo para seguir monitoreando
+            // });
 
             hls.on(Hls.Events.MEDIA_ATTACHED, function () {
                 console.log("HLS.js: Media attached");
