@@ -395,6 +395,38 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Name:             "M+ LIGA DE CAMPEONES 4",
 		ShowListChannels: true,
 	},
+	"M+ LIGA DE CAMPEONES 5": {
+		Logo: "mligacampeones5.png",
+		Links: []string{
+			"5620c0ce3dcbf14a6375cb2c2d681207f45eb97d",
+		},
+		Name:             "M+ LIGA DE CAMPEONES 5",
+		ShowListChannels: true,
+	},
+	"M+ LIGA DE CAMPEONES 6": {
+		Logo: "mligacampeones6.png",
+		Links: []string{
+			
+		},
+		Name:             "M+ LIGA DE CAMPEONES 6",
+		ShowListChannels: true,
+	},
+	"M+ LIGA DE CAMPEONES 7": {
+		Logo: "mligacampeones7.png",
+		Links: []string{
+			
+		},
+		Name:             "M+ LIGA DE CAMPEONES 7",
+		ShowListChannels: true,
+	},
+	"M+ LIGA DE CAMPEONES 8": {
+		Logo: "mligacampeones8.png",
+		Links: []string{
+			
+		},
+		Name:             "M+ LIGA DE CAMPEONES 8",
+		ShowListChannels: true,
+	},
 	"M+ DEPORTES": {
 		Logo:  "mdeportes.png",
 		Links: []string{
@@ -714,7 +746,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SKY SPORTS": {
 		Logo: "skysports.png",
 		Links: []string{
-			"http://190.92.10.66:4000/play/a001/index.m3u8", //
+			"http://190.92.10.66:4000/play/a001/index.m3u8",
+			"p;https://maldivesn.net/hilaytv/skysportslaliga",
 		},
 		Name:             "SKY SPORTS LA LIGA",
 		ShowListChannels: true,
@@ -879,6 +912,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"p;https://jmp2.uk/stvp-CA2900012S9",
 			"p;https://jmp2.uk/stvp-US2900017P2",
 			"p;https://jmp2.uk/plu-677d9adfa9a51b0008497fa0.m3u8",
+			// "http://nfzcdn.royalflushdns.top/live/Sndnndd/Dmndndd/731.m3u8?sjwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTg1ODU1OTksImlhdCI6MTc1ODQ5OTIwMCwibmJmIjoxNzU4NDk5MjAwLCJ1c2VyIjoiODQxODY2NjU3IiwidXNlckFnZW50IjoiTW96aWxsYS81LjAgKGlQaG9uZTsgQ1BVIGlQaG9uZSBPUyAxNl83XzExIGxpa2UgTWFjIE9TIFgpIEFwcGxlV2ViS2l0LzYwNS4xLjE1IChLSFRNTCwgbGlrZSBHZWNrbykgVmVyc2lvbi8xNi42LjEgTW9iaWxlLzE1RTE0OCBTYWZhcmkvNjA0LjEiLCJ1c2VySXAiOiIxODUuMjM2LjE4My4xMDc6NTU2MjgifQ.mv1pzDQn2-VkoOq3koYh9R7FIIQTc3P99h6ZHvVmrxU&id=731&p=m3u8&aid=1758566817",
 		},
 		Name:             "UFC",
 		ShowListChannels: true,
