@@ -144,11 +144,12 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 	// 	return nil, err
 	// }
 
-	generalEvents = mixCompetitions(generalEvents, 
-		// eventsFromLigaToMx,
-		// eventsFromPremierToSpain,
-		// eventsFromCalcio, eventsFromBundesligaToMx
-	)
+	eventsFromLigue1ToPt, err := getCompetition("https://www.futebolnatv.pt/campeonato/ligue-1")
+	if err != nil {
+		return nil, err
+	}
+
+	generalEvents = mixCompetitions(generalEvents, eventsFromLigue1ToPt)
 	return generalEvents, err
 }
 
@@ -416,16 +417,13 @@ func FormatDateDMYToSpanish(dateStr string) (string, error) {
 	return fmt.Sprintf("%s, %d de %s de %d", weekday, day, month, year), nil
 }
 
-func mixCompetitions(general []DayView) []DayView {
+func mixCompetitions(general, ligue1 []DayView) []DayView {
 	general = changeBroadcasterName(general, "dazn", "SKY SPORTS BUNDESLIGA", "Bundesliga")
-	// liga := changeBroadcasterName(general, "dazn", "SKY SPORTS LA LIGA", "LaLiga")
 	general = changeBroadcasterName(general, "dazn", "ESPN", "Serie A Italiana")
 	general = addNewBroadcaster(general, "SKY SPORTS", "LaLiga" )
-	// for i := range general {
-
-	// 	// general[i] = addCompetition(general[i], calcio)
-	// 	// general[i] = addCompetition(general[i], bundesliga)
-	// }
+	for i := range general {
+		general[i] = addCompetition(general[i], ligue1)
+	}
 	return general
 }
 
@@ -451,13 +449,14 @@ func addCompetition(generalCompetition DayView, newCompetition []DayView) DayVie
 				if generalCompetition.Competitions[compKey] != nil {
 					for _, match := range matches {
 						for o := range generalCompetition.Competitions[compKey] {
-
 							// if generalCompetition.Competitions[compKey][o].Match.Event == match.Event {
 							if strings.Contains(generalCompetition.Competitions[compKey][o].Match.Event, match.Event) {
 								generalCompetition.Competitions[compKey][o].Broadcasters = append(generalCompetition.Competitions[compKey][o].Broadcasters, match.Broadcasters...)
 							}
 						}
 					}
+				} else {
+					generalCompetition.Competitions[compKey] = matches
 				}
 			}
 		}
