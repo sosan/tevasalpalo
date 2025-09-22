@@ -137,7 +137,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"http://181.188.216.5:18000/play/a0dk/index.m3u8",
 			"http://181.78.106.127:9000/play/ca033/index.m3u8",
-			
+
 			// "http://45.71.254.1:8000/play/a0e6/index.m3u8",
 			// "http://200.60.124.19:29000/play/a015",
 			// "http://181.78.106.127:9000/play/ca034/index.m3u8",
@@ -782,11 +782,21 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: true,
 	},
 
+	"Sport TV 1": {
+		Logo: "sporttv1.png",
+		Links: []string{
+			"p;https://maldivesn.net/hilaytv/sporttv1",
+			// "http://nfzcdn.royalflushdns.top/live/508373667/k717x9942z/111998.m3u8?sjwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTg0OTkxOTksImlhdCI6MTc1ODQxMjgwMCwibmJmIjoxNzU4NDEyODAwLCJ1c2VyIjoiNTA4MzczNjY3IiwidXNlckFnZW50IjoiVkxDLzMuMC4yMSBMaWJWTEMvMy4wLjIxIiwidXNlcklwIjoiMTg1LjIzNi4xODMuMTA3OjU1ODE4In0.j_PDPmv372HwM94IkxMuvxCbyzMgBAvgM9MTgJqHOKI&id=111998&p=m3u8&aid=1758491345",
+		},
+		Name:             "Sport TV 1",
+		ShowListChannels: true,
+	},
 	"Sport TV 2": {
 		Logo: "sporttv2.png",
 		Links: []string{
-			"89122d5e60866e9127a5f3849170031b16402adc",
-			"https://maldivesn.net/hilaytv/sporttv2",
+			// "89122d5e60866e9127a5f3849170031b16402adc",
+			"p;https://maldivesn.net/hilaytv/sporttv2",
+			// "http://nfzcdn.royalflushdns.top/live/508373667/k717x9942z/111998.m3u8?sjwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTg0OTkxOTksImlhdCI6MTc1ODQxMjgwMCwibmJmIjoxNzU4NDEyODAwLCJ1c2VyIjoiNTA4MzczNjY3IiwidXNlckFnZW50IjoiVkxDLzMuMC4yMSBMaWJWTEMvMy4wLjIxIiwidXNlcklwIjoiMTg1LjIzNi4xODMuMTA3OjU1ODE4In0.j_PDPmv372HwM94IkxMuvxCbyzMgBAvgM9MTgJqHOKI&id=111998&p=m3u8&aid=1758491345",
 		},
 		Name:             "Sport TV 2",
 		ShowListChannels: true,
@@ -795,45 +805,69 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"Sport TV 3": {
 		Logo: "sporttv3.png",
 		Links: []string{
-			"cf72f0fa0cee438cca43f2ea8299d04d1bf4c9d5",
-			"https://maldivesn.net/hilaytv/sporttv3",
+			// "cf72f0fa0cee438cca43f2ea8299d04d1bf4c9d5",
+			"p;https://maldivesn.net/hilaytv/sporttv3",
 		},
 		Name:             "Sport TV 3",
 		ShowListChannels: true,
 	},
-	// // https://hilay.tv/play.m3u
-	// "WWE NETWORK" : {
-	// 	Logo: "wwe.png",
-	// 	Links: []string{
-	// 		"http://localhost:3000/wwe/index.m3u8",
-	// 		// "http://fl7.moveonjoy.com/WWE/index.m3u8",
-	// 	},
-	// 	Name: "PRESSING CATCH",
-	// 	ShowListChannels: true,
-	// },
-	// "WWE Superstar Central": {
-	// 	Logo: "wwe.png",
-	// 	Links: []string{
-	// 		"https://jmp2.uk/stvp-US700005ID",
-	// 	},
-	// 	Name: "PRESSING CATCH LEYENDAS",
-	// 	ShowListChannels: true,
+	"Sport TV 4": {
+		Logo: "sporttv4.png",
+		Links: []string{
+			"p;https://maldivesn.net/hilaytv/sporttv4",
+		},
+		Name:             "Sport TV 4",
+		ShowListChannels: true,
+	},
+	"Sport TV 5": {
+		Logo: "sporttv4.png",
+		Links: []string{
+			"p;https://maldivesn.net/hilaytv/sporttv5",
+		},
+		Name:             "Sport TV 5",
+		ShowListChannels: true,
+	},
+	"Sport TV 6": {
+		Logo: "sporttv4.png",
+		Links: []string{
+			"p;https://maldivesn.net/hilaytv/sporttv6",
+		},
+		Name:             "Sport TV 6",
+		ShowListChannels: true,
+	},
 
-	// },
-	// "FIFA+" : {
-	// 	Logo: "fifa.png",
-	// 	Links: []string{
-	// 		"https://jmp2.uk/stvp-ESBC2700009B4",
-	// 	},
-	// 	Name: "PRESSING CATCH",
-	// 	ShowListChannels: true,
-	// },
+	// // https://hilay.tv/play.m3u
+	"WWE NETWORK": {
+		Logo: "wwe.png",
+		Links: []string{
+			// "http://localhost:3000/wwe/index.m3u8",
+			"p;http://fl7.moveonjoy.com/WWE/index.m3u8",
+		},
+		Name:             "WWE",
+		ShowListChannels: true,
+	},
+	"WWE Superstar Central": {
+		Logo: "wwesuper.png",
+		Links: []string{
+			"p;https://jmp2.uk/stvp-US700005ID",
+		},
+		Name:             "WWE LEYENDAS",
+		ShowListChannels: true,
+	},
+	"FIFA+": {
+		Logo: "fifa.png",
+		Links: []string{
+			"p;https://jmp2.uk/stvp-ESBC2700009B4",
+		},
+		Name:             "FIFA+",
+		ShowListChannels: true,
+	},
 
 	"REDBULL TV": {
 		Logo: "redbulltv.png",
 		Links: []string{
 			"62daab1c54565d0c5ba4e3c660f3a4a5c93adc8a",
-			// "https://jmp2.uk/stvp-GBBD2300003IK",
+			"p;https://jmp2.uk/stvp-GBBD2300003IK",
 		},
 		Name:             "REDBULL TV",
 		ShowListChannels: true,
@@ -842,10 +876,9 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"UFC": {
 		Logo: "ufc.png",
 		Links: []string{
-			"ade70f2c51cca519a4d8de1bb181af6e8532e1e1",
-			"https://unifi-live07.secureswiftcontent.com/UnifiHD/live11.mpd",
-			// "https://jmp2.uk/stvp-CA2900012S9",
-			// "https://jmp2.uk/stvp-US2900017P2",
+			"p;https://jmp2.uk/stvp-CA2900012S9",
+			"p;https://jmp2.uk/stvp-US2900017P2",
+			"p;https://jmp2.uk/plu-677d9adfa9a51b0008497fa0.m3u8",
 		},
 		Name:             "UFC",
 		ShowListChannels: true,
@@ -912,6 +945,7 @@ var allCompetitions = AllCompetitions{
 		"DFL Supercup":  {Titulo: "DFL Supercup", Top: false, Icon: "uefa.png"},
 	},
 	"Italia": CountryCompetitions{
+		"Coppa Italia":           {Titulo: "Coppa Italia", Top: true, Icon: "seriea.png"},
 		"Serie A Italiana":       {Titulo: "Serie A", Top: true, Icon: "seriea.png"},
 		"Serie B":                {Titulo: "Serie B", Top: false, Icon: "uefa.png"},
 		"Campionato Primavera 1": {Titulo: "Campionato Primavera 1", Top: false, Icon: "uefa.png"},
@@ -927,7 +961,7 @@ var allCompetitions = AllCompetitions{
 		"Serie B Femminile":      {Titulo: "Serie B Femminile", Top: false, Icon: "uefa.png"},
 	},
 	"Francia": CountryCompetitions{
-		"Francia Ligue 1":          {Titulo: "Ligue 1", Top: true, Icon: "ligue1.png"},
+		"Ligue 1":                  {Titulo: "Ligue 1", Top: true, Icon: "ligue1.png"},
 		"Ligue 2":                  {Titulo: "Ligue 2", Top: false, Icon: "uefa.png"},
 		"National 1":               {Titulo: "National 1", Top: false, Icon: "uefa.png"},
 		"National 2":               {Titulo: "National 2", Top: false, Icon: "uefa.png"},
