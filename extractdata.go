@@ -261,7 +261,7 @@ func resolveFinalManifestURL(initialURL string) (finalURL string, finalHeaders h
 			}
 			// Actualizar la URL actual para la próxima iteración
 			currentURL = location
-			fmt.Printf("Redirect #%d: %s -> %s\n", redirectCount, req.URL.String(), location)
+			// fmt.Printf("Redirect #%d: %s -> %s\n", redirectCount, req.URL.String(), location)
 			// Continuar con el bucle para seguir la próxima redirección
 			continue
 		}
