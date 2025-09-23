@@ -727,7 +727,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SKY SPORTS BUNDESLIGA": {
 		Logo: "skysports.png",
 		Links: []string{
-			"http://181.78.106.127:9000/play/ca028/32260689.m3u8",
+			// "http://181.78.106.127:9000/play/ca028/32260689.m3u8",
+			// "dfbb321c7ee0d3309a03770fea07c67434182acc",
 			// "http://181.78.106.127:9000/play/ca028/index.m3u8", //
 			// "http://181.205.130.194:4000/play/a07s",
 			// "http://200.60.124.19:29000/play/a01e",
@@ -896,6 +897,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"62daab1c54565d0c5ba4e3c660f3a4a5c93adc8a",
 			"p;https://jmp2.uk/stvp-GBBD2300003IK",
+			"acbf39f533469f3aca35c597dc898d093921291e",
+			"acea92d83ba261aa3a72a3c0a662981fa92e0ce9",
 		},
 		Name:             "REDBULL TV",
 		ShowListChannels: true,
