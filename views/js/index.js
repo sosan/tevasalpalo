@@ -123,6 +123,10 @@ async function startCheckAppUpdate() {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
+    if (!days || !topCompetitions) {
+        console.error("No se encontraron datos de días.");
+        return;
+    }
     console.log("Datos de días cargados:", days);
     console.log("Top Competitions para filtrar:", topCompetitions);
 
