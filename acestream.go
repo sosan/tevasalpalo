@@ -76,8 +76,8 @@ func RunAceStream() (*exec.Cmd, error) {
 
 	log.Println("🚀 Actualizando Lista Canales TV...")
 	args := []string{
-		"--live-buffer", "30",
-		"--vod-buffer", "30",
+		"--live-buffer", "60", // 30
+		"--vod-buffer", "10",  // 30
 		"--client-console",
 	}
 	cmd := exec.Command(enginePath, args...)
