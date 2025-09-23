@@ -154,7 +154,8 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 		return nil, err
 	}
 
-	generalEvents = mixCompetitions(generalEvents, eventsFromLigue1ToPt, eventsFromCalcioToPt)
+	eventsmma, err := getCompetition("https://www.futbolenlatv.es/deporte/mma")
+	generalEvents = mixCompetitions(generalEvents, eventsFromLigue1ToPt, eventsFromCalcioToPt, eventsmma)
 	return generalEvents, err
 }
 
@@ -422,14 +423,16 @@ func FormatDateDMYToSpanish(dateStr string) (string, error) {
 	return fmt.Sprintf("%s, %d de %s de %d", weekday, day, month, year), nil
 }
 
-func mixCompetitions(general, ligue1, calcio []DayView) []DayView {
+func mixCompetitions(general, ligue1, calcio, eventsmma []DayView) []DayView {
 	general = changeBroadcasterName(general, "dazn", "SKY SPORTS BUNDESLIGA", "Bundesliga")
 	general = changeBroadcasterName(general, "dazn", "ESPN", "Serie A Italiana")
+	eventsmma = changeBroadcasterName(eventsmma, "HBO MAX", "UFC", "UFC")
 	general = addNewBroadcaster(general, "SKY SPORTS", "LaLiga" )
 	calcio = changeCompetitionName(calcio, "Liga italiana", "Serie A Italiana")
 	for i := range general {
 		general[i] = addCompetition(general[i], ligue1)
 		general[i] = addCompetition(general[i], calcio)
+		general[i] = addCompetition(general[i], eventsmma)
 	}
 	return general
 }
