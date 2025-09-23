@@ -12,29 +12,18 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN 1": {
 		Logo:  "dazn1.png",
 		Links: []string{
-			// "b03f9310155cf3b4eafc1dfba763781abc3ff025",
+			"6538b79ce0da657d8455d1da6a5f342398899a0e",
+			"50a8a13c474848d1efbd5586efdb5b6cdd173fa9",
+			"4141892f5df7d6474bf0279895ce02b7336c9928",
 			// "36394be1db2e20b5997d987c32fd38c7f0f194b7",
-			// "50a8a13c474848d1efbd5586efdb5b6cdd173fa9",
 		},
 		Name:             "DAZN 1",
 		ShowListChannels: true,
 	},
-	// "DAZN": {
-	// 	Logo:  "dazn1.png",
-	// 	Links: []string{
-	// 		// "b03f9310155cf3b4eafc1dfba763781abc3ff025",
-	// 		// "36394be1db2e20b5997d987c32fd38c7f0f194b7",
-	// 		// "50a8a13c474848d1efbd5586efdb5b6cdd173fa9",
-	// 		// "688e785893b50acc1d00cb37f15bfc42e72f5ae3",
-	// 		// "4141892f5df7d6474bf0279895ce02b7336c9928",
-	// 		// "0560234787945a17522e284c4c22bb4df29f33b0",
-	// 	},
-	// 	ShowListChannels: false,
-	// 	Name:             "DAZN 1",
-	// },
 	"DAZN 2": {
 		Logo:  "dazn2.png",
 		Links: []string{
+			"8b081c8afbd9beafc8c5fbf0115eb36eadb07a35",
 			// "43004e955731cd3afcc34d24e5178d4b427bff37",
 			// "b0eabe0fdd02fdd165896236765a9b753a2ff516",
 		},
@@ -43,7 +32,9 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	},
 	"DAZN 3": {
 		Logo:             "dazn3.png",
-		Links:            []string{},
+		Links:            []string{
+			"d1d9ec2361a6ac8edc0b2841866383768cc28df9",
+		},
 		Name:             "DAZN 3",
 		ShowListChannels: true,
 	},
@@ -354,6 +345,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"M+ LIGA DE CAMPEONES": {
 		Logo:  "mligacampeones.png",
 		Links: []string{
+			"c16b4fab1f724c94cad92081cbb7fc7c6fe8a2cc",
 			// "0f7842f8b6c26571e5a974407b61623e56e6a052",
 			// "f3eea003e23f94dc2d527306de9dd386e3ebf4ba",
 			// "680187938f9305cce3ae240298f10e8695bf77c2",
@@ -369,6 +361,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo: "mligacampeones2.png",
 		Links: []string{
 			"38f7b2044e549df2039ff26cefa6f9a60c854d5e",
+			"c6a3673f6a37b1bd3cf31fdd6404dd33d48cfccb",
+			"4fc6d0331830ad8743abab2fe2473b63bdfbc49f",
 			// "e7d8cae7f693fe46e89bbf74820caac9ffb32a30",
 			// "33c009a025508cb2186b9ce36279640bb2507bdf",
 			// "74ab4e4ec7e2da001f473ca40893b7307b8029c5",
@@ -380,6 +374,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"M+ LIGA DE CAMPEONES 3": {
 		Logo:  "mligacampeones3.png",
 		Links: []string{
+			"17b8bc4bf8e29547b0071c742e3d7da3bcbc484d",
 			// "2b5129adc57d43790634d796fe3468b9fd061259",
 			// "17b8bc4bf8e29547b0071c742e3d7da3bcbc484d",
 			// "4416843c96b7f7a1bc55c476091a60fff0922bc7",
