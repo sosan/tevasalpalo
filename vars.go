@@ -12,9 +12,9 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN 1": {
 		Logo:  "dazn1.png",
 		Links: []string{
-			"6538b79ce0da657d8455d1da6a5f342398899a0e",
-			"50a8a13c474848d1efbd5586efdb5b6cdd173fa9",
-			"4141892f5df7d6474bf0279895ce02b7336c9928",
+			// "6538b79ce0da657d8455d1da6a5f342398899a0e",
+			// "50a8a13c474848d1efbd5586efdb5b6cdd173fa9",
+			// "4141892f5df7d6474bf0279895ce02b7336c9928",
 			// "36394be1db2e20b5997d987c32fd38c7f0f194b7",
 		},
 		Name:             "DAZN 1",
@@ -41,6 +41,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN 4": {
 		Logo:  "dazn4.png",
 		Links: []string{
+			"eb884f77ce8815cf1028c4d85e8b092c27ea1693",
 			// "4e401fdceebffdf1f09aef954844d09f6c62f460",
 			// "eb884f77ce8815cf1028c4d85e8b092c27ea1693",
 			// "6a11eb510edc5b3581c5c97883c44563eb894b1b",
@@ -53,6 +54,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN LALIGA": {
 		Logo:  "daznlaliga.png",
 		Links: []string{
+			"1bb5bf76fb2018d6db9aaa29b1467ecdfabe2884",
+			"74defb8f4ed3a917fd07c21b34f43c17107ec618",
 			// "0e50439e68aa2435b38f0563bb2f2e98f32ff4b1",
 			// "1bb5bf76fb2018d6db9aaa29b1467ecdfabe2884",
 			// "f8d5e39a49b9da0215bbd3d9efb8fb3d06b76892",
@@ -63,8 +66,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN LALIGA 2": {
 		Logo:  "daznlaliga.png",
 		Links: []string{
-			// "5091ea94b75ba4b50b078b4102a3d0e158ef59c3",
-			// "c976c7b37964322752db562b4ad65515509c8d36",
+			"5091ea94b75ba4b50b078b4102a3d0e158ef59c3",
+			"c976c7b37964322752db562b4ad65515509c8d36",
 		},
 		Name:             "DAZN LALIGA 2",
 		ShowListChannels: true,
@@ -258,6 +261,9 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN F1": {
 		Logo:  "daznf1.png",
 		Links: []string{
+			"1a63d886860e2b770590dcd64a4dd472eabb841d",
+			"38e9ae1ee0c96d7c6187c9c4cc60ffccb565bdf7",
+			"3f5b7e2f883fe4b4b973e198d147a513d5c7c32a",
 			// "38e9ae1ee0c96d7c6187c9c4cc60ffccb565bdf7",
 			// "3f5b7e2f883fe4b4b973e198d147a513d5c7c32a",
 			// "ba6e1bdc8e03da60ff572557645eb04370af0cd0",
@@ -274,6 +280,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN LALIGA TV": {
 		Logo:  "daznlaliga.png",
 		Links: []string{
+			"1bb5bf76fb2018d6db9aaa29b1467ecdfabe2884",
+			"74defb8f4ed3a917fd07c21b34f43c17107ec618",
 			// "0e50439e68aa2435b38f0563bb2f2e98f32ff4b1",
 			// "1bb5bf76fb2018d6db9aaa29b1467ecdfabe2884",
 			// "f8d5e39a49b9da0215bbd3d9efb8fb3d06b76892",
@@ -285,6 +293,9 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"M+ LALIGA": {
 		Logo:  "mlaliga.png",
 		Links: []string{
+			"d2ddf9802ccfdc456f872eea4d24596880a638a0",
+			"c9321006921967d6258df6945f1d598a5c0cbf1e",
+			"107c3ce5a5d2527c9f06e4eab87477201791f231",
 			// "107c3ce5a5d2527c9f06e4eab87477201791f231",
 			// "d2ddf9802ccfdc456f872eea4d24596880a638a0",
 			// "14b6cd8769cd485f2cffdca64be9698d9bfeac58",
@@ -298,6 +309,9 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"M+ LALIGA TV": {
 		Logo:  "mlaligatv.png",
 		Links: []string{
+			"d2ddf9802ccfdc456f872eea4d24596880a638a0",
+			"c9321006921967d6258df6945f1d598a5c0cbf1e",
+			"107c3ce5a5d2527c9f06e4eab87477201791f231",
 			// "14b6cd8769cd485f2cffdca64be9698d9bfeac58",
 			// "07f2b92762cfff99bba785c2f5260c7934ca6034",
 			// "4b528d10eaad747ddf52251206177573ee3e9f74",
@@ -309,9 +323,10 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"M+ LALIGA 2": {
 		Logo:  "mlaliga2.png",
 		Links: []string{
-			// "911ad127726234b97658498a8b790fdd7516541d",
+			"911ad127726234b97658498a8b790fdd7516541d",
 			// "51b363b1c4d42724e05240ad068ad219df8042ec",
-			// "ad42faa399df66dcd62a1cbc9d1c99ed4512d3b8",
+			// "911ad127726234b97658498a8b790fdd7516541d",
+			"ad42faa399df66dcd62a1cbc9d1c99ed4512d3b8",
 		},
 		Name:             "M+ LALIGA 2",
 		ShowListChannels: true,
@@ -319,6 +334,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"M+ LALIGA 2 TV": {
 		Logo:  "mlaliga2.png",
 		Links: []string{
+			"911ad127726234b97658498a8b790fdd7516541d",
+			"51b363b1c4d42724e05240ad068ad219df8042ec",
 			// "911ad127726234b97658498a8b790fdd7516541d",
 			// "51b363b1c4d42724e05240ad068ad219df8042ec",
 			// "ad42faa399df66dcd62a1cbc9d1c99ed4512d3b8",
@@ -329,6 +346,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"M+ LALIGA 3": {
 		Logo:  "mlaliga3.png",
 		Links: []string{
+			"7ad14386deef2f45ffe17d30a631dbf79b6a1a87",
 			// "382b14499e3d76e557d449d2e5bbc4e4bd63bd39",
 		},
 		Name:             "M+ LALIGA 3",
@@ -337,6 +355,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"M+ LALIGA 3 TV": {
 		Logo:  "mlaliga3.png",
 		Links: []string{
+			"7ad14386deef2f45ffe17d30a631dbf79b6a1a87",
 			// "382b14499e3d76e557d449d2e5bbc4e4bd63bd39",
 		},
 		Name:             "M+ LALIGA 3",
@@ -555,7 +574,9 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	},
 	"Movistar Plus+ 2": {
 		Logo:             "m2.png",
-		Links:            []string{},
+		Links:            []string{
+			"e19c1fc5e3ada56c60d45257f7f4ed0d14bf7003",
+		},
 		Name:             "Movistar Plus+ 2",
 		ShowListChannels: true,
 	},
@@ -806,6 +827,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo: "esports3.png",
 		Links: []string{
 			"ca20f93ea5d9c15744e48a21b52598b9fce87425",
+			
 		},
 		Name:             "ESPORTS 3",
 		ShowListChannels: true,

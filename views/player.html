@@ -20,10 +20,79 @@
             <video id="videoPlayer" autoplay muted controls></video>
             <!-- <div id="statusMessage">Cargando reproductor...</div> -->
         </div>
+        <div class="playback-settings">
+            <h3><i class="fas fa-sliders-h"></i> Configuración de Reproducción</h3>
+            <div class="settings-row">
+                <div>
+                    <label for="buffer-size">Tamaño del Búfer:</label>
+                    <select id="buffer-size">
+                        <option value="30">Bajo (30s)</option>
+                        <option value="60" selected>Medio (60s)</option>
+                        <option value="90">Alto (90s)</option>
+                        <option value="120">Muy Alto (120s)</option>
+                    </select>
+                </div>
+        
+                <div>
+                    <label for="latency-mode">Modo de Latencia:</label>
+                    <select id="latency-mode">
+                        <option value="low">Baja Latencia (Puede Bufferizar)</option>
+                        <option value="medium" selected>Latencia Media</option>
+                        <option value="high">Reproducción Suave (Alta Latencia)</option>
+                    </select>
+                </div>
+        
+                <div>
+                    <label for="prebuffer-time">Tiempo de Pre-búfer:</label>
+                    <select id="prebuffer-time">
+                        <option value="3">3 segundos</option>
+                        <option value="5" selected>5 segundos</option>
+                        <option value="10">10 segundos</option>
+                        <option value="15">15 segundos</option>
+                    </select>
+                </div>
+        
+                <button id="apply-settings" class="settings-btn"><i class="fas fa-check"></i> Aplicar Configuración</button>
+            </div>
+        </div>
     </div>
 
 </body>
 <script>
+    function getSettings() {
+            const bufferSize = parseInt(document.getElementById('buffer-size').value);
+            const latencyMode = document.getElementById('latency-mode').value;
+            const prebufferTime = parseInt(document.getElementById('prebuffer-time').value);
+
+            let maxBufferLength, maxMaxBufferLength, backBufferLength;
+
+            switch (latencyMode) {
+                case 'low':
+                    maxBufferLength = 15; // Bajo
+                    maxMaxBufferLength = 30;
+                    backBufferLength = 15;
+                    break;
+                case 'medium':
+                    maxBufferLength = bufferSize; // Medio, usa el valor del select
+                    maxMaxBufferLength = bufferSize * 2;
+                    backBufferLength = bufferSize - 15; // Ajuste relativo
+                    break;
+                case 'high':
+                default:
+                    maxBufferLength = bufferSize; // Alto, usa el valor del select
+                    maxMaxBufferLength = bufferSize * 2;
+                    backBufferLength = bufferSize - 30; // Ajuste relativo
+                    break;
+            }
+
+            return {
+                maxBufferLength: maxBufferLength,
+                maxMaxBufferLength: maxMaxBufferLength,
+                backBufferLength: backBufferLength,
+                prebufferTime: prebufferTime // No se usa directamente en HLS.js config, pero puedes usarlo para lógica adicional
+            };
+        }
+
     function fromBase64Url(str) {
         const padding = '='.repeat((4 - str.length % 4) % 4);
         const base64 = (str + padding)
@@ -50,32 +119,36 @@
 
         const video = document.getElementById('videoPlayer');
         // const statusMessage = document.getElementById('statusMessage');
+         if (window.hlsPlayer) {
+            window.hlsPlayer.detachMedia();
+            window.hlsPlayer.destroy();
+        }
 
         if (Hls.isSupported()) {
             // statusMessage.textContent = "Conectando al stream...";
-            const hls = new Hls({
-                enableWorker: true,
-                lowLatencyMode: false,
-                backBufferLength: 90,
+            // const hls = new Hls({
+            //     enableWorker: true,
+            //     lowLatencyMode: false,
+            //     backBufferLength: 90,
 
-                // Buffer
-                maxBufferLength: 60,
-                maxMaxBufferLength: 220,
-                maxBufferSize: 500 * 1000 * 1000,
+            //     // Buffer
+            //     maxBufferLength: 60,
+            //     maxMaxBufferLength: 220,
+            //     maxBufferSize: 500 * 1000 * 1000,
 
-                // Latencia
-                liveSyncDuration: 30,
-                liveMaxLatencyDuration: 60,
+            //     // Latencia
+            //     liveSyncDuration: 30,
+            //     liveMaxLatencyDuration: 60,
 
-                // Recuperación de errores
-                fragLoadingRetryDelay: 5000,
-                manifestLoadingRetryDelay: 5000,
-                levelLoadingRetryDelay: 5000,
+            //     // Recuperación de errores
+            //     fragLoadingRetryDelay: 5000,
+            //     manifestLoadingRetryDelay: 5000,
+            //     levelLoadingRetryDelay: 5000,
 
-                // Calidad
-                capLevelToPlayerSize: true,
-                startLevel: -1
-            });
+            //     // Calidad
+            //     capLevelToPlayerSize: true,
+            //     startLevel: -1
+            // });
            
             //  const hls = new Hls({
             //     maxBufferLength: 30,
@@ -152,6 +225,43 @@
             //     // --- Debugging ---
             //     // debug: true, // Mantener activo para seguir monitoreando
             // });
+            const settings = getSettings();
+
+            const hls = new Hls({
+                enableWorker: true,
+                lowLatencyMode: false,
+
+                // Buffer
+                // maxBufferLength: 30,   // 30s suele ser más estable
+                // maxMaxBufferLength: 60,
+                // backBufferLength: 90,
+                maxBufferLength: settings.maxBufferLength,
+                maxMaxBufferLength: settings.maxMaxBufferLength,
+                backBufferLength: settings.backBufferLength,
+
+                // Manejo de red (nuevo esquema)
+                fragLoadPolicy: {
+                    default: {
+                        maxTimeToFirstByteMs: 20000,
+                        maxLoadTimeMs: 60000,
+                        timeoutRetry: { maxNumRetry: 5, retryDelayMs: 2000, maxRetryDelayMs: 60000 },
+                        errorRetry: { maxNumRetry: 5, retryDelayMs: 2000, maxRetryDelayMs: 60000 }
+                    }
+                },
+                playlistLoadPolicy: {
+                    default: {
+                        maxTimeToFirstByteMs: 20000,
+                        maxLoadTimeMs: 60000,
+                        timeoutRetry: { maxNumRetry: 5, retryDelayMs: 2000, maxRetryDelayMs: 60000 },
+                        errorRetry: { maxNumRetry: 5, retryDelayMs: 2000, maxRetryDelayMs: 60000 }
+                    }
+                },
+
+                // Calidad
+                capLevelToPlayerSize: true,
+                startLevel: -1
+            });
+             window.hlsPlayer = hls;
 
             hls.on(Hls.Events.MEDIA_ATTACHED, function () {
                 console.log("HLS.js: Media attached");
@@ -160,16 +270,18 @@
             hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
                 console.log("HLS.js: Manifest parsed. Niveles de calidad: ", data.levels.length);
                 // statusMessage.textContent = "Stream cargado. Iniciando reproducción...";
-                // Intentar reproducir automáticamente
-                video.play().then(() => {
-                    console.log("Reproducción iniciada automáticamente.");
+                // Opcional: Esperar un poco antes de reproducir basado en prebufferTime
+                setTimeout(() => {
+                    video.play().then(() => {
                     // statusMessage.style.display = 'none';
+                    console.log("Reproducción iniciada automáticamente.");
                 }).catch(e => {
                     console.warn("Autoplay bloqueado o fallido:", e);
                     // statusMessage.textContent = "Haz clic en el video para iniciar la reproducción.";
-                    // Asegurarse de que el mensaje sea visible si autoplay falla
+                    // Puedes mostrar un overlay aquí si es necesario
                     // statusMessage.style.display = 'block';
                 });
+                }, settings.prebufferTime * 1000); // Convertir segundos a milisegundos
             });
 
             // Manejo de errores
@@ -193,6 +305,7 @@
                             // statusMessage.textContent = `❌ Error fatal: ${data.details}`;
                             console.error("HLS.js: Error fatal", data);
                             hls.destroy();
+                            window.hlsPlayer = null;
                             break;
                     }
                 } else {
@@ -235,7 +348,11 @@
         }
 
     }
-
+     document.getElementById('apply-settings').addEventListener('click', function () {
+            console.log("Botón 'Aplicar Configuración' presionado.");
+            // Vuelve a cargar el video con la nueva configuración
+            loadVideo();
+        });
     window.addEventListener("DOMContentLoaded", loadVideo);
 
 </script>
