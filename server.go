@@ -272,7 +272,7 @@ func fetchEvents() ([]DayView, *template.JS, *template.JS, error) {
 	// TODO: retry si da err 520, retry
 	var err error
 	var days []DayView
-	for i := 1; i < 10; i++ {
+	for i := 1; i < 3; i++ {
 		days, err = fetchScheduleMatchesFutbolEnCasa()
 		if err != nil {
 			// Loggear el error completo para depuración

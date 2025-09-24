@@ -27,7 +27,7 @@ func init() {
 }
 
 func main() {
-	log.Println("📡 Obteniendo lista de emisiones TV...")
+	log.Println("📡 Obteniendo programacion TV...")
 	// donwload updated lists
 	err := FetchUpdatedList()
 	if err != nil {

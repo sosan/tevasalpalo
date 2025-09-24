@@ -145,14 +145,14 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 	// }
 
 	eventsFromLigue1ToPt, err := getCompetition("https://www.futebolnatv.pt/campeonato/ligue-1")
-	if err != nil {
-		return nil, err
-	}
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	eventsFromCalcioToPt, err := getCompetition("https://www.futebolnatv.pt/campeonato/calcio-serie-a")
-	if err != nil {
-		return nil, err
-	}
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	eventsmma, err := getCompetition("https://www.futbolenlatv.es/deporte/mma")
 	generalEvents = mixCompetitions(generalEvents, eventsFromLigaToMx, eventsFromLigue1ToPt, eventsFromCalcioToPt, eventsmma)
@@ -427,8 +427,12 @@ func mixCompetitions(general, mxliga, ligue1, calcio, eventsmma []DayView) []Day
 	general = changeBroadcasterName(general, "dazn", "SKY SPORTS BUNDESLIGA", "Bundesliga")
 	general = changeBroadcasterName(general, "dazn", "ESPN", "Serie A Italiana")
 	eventsmma = changeBroadcasterName(eventsmma, "HBO MAX", "UFC", "UFC")
-	// general = addNewBroadcaster(general, "SKY SPORTS", "LaLiga" )
-	calcio = changeCompetitionName(calcio, "Liga italiana", "Serie A Italiana")
+	if mxliga == nil {
+		general = addNewBroadcaster(general, "SKY SPORTS", "LaLiga" )
+	}
+	if calcio != nil {
+		calcio = changeCompetitionName(calcio, "Liga italiana", "Serie A Italiana")
+	}
 	for i := range general {
 		general[i] = addCompetition(general[i], ligue1)
 		general[i] = addCompetition(general[i], calcio)

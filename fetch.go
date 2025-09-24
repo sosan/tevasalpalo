@@ -11,7 +11,7 @@ import (
 // Devuelve el cuerpo de la respuesta como un slice de bytes o un error si ocurre.
 func FetchWebData(url string) ([]byte, error) {
 	client := &http.Client{
-		Timeout: 15 * time.Second,
+		Timeout: 10 * time.Second,
 	}
 
 	req, err := http.NewRequest("GET", url, nil)
