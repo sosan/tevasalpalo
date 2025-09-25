@@ -174,6 +174,7 @@ func StartWebServer() (*fiber.App, error) {
 	app.Get("/player/index.html", func(c *fiber.Ctx) error {
 		link := c.Query("link")
 		content := c.Query("content")
+		pid := c.Query("pid")
 
 		if link == "" || content == "" {
 			return c.Status(400).SendString("Faltan parámetros")
@@ -192,6 +193,7 @@ func StartWebServer() (*fiber.App, error) {
 			"broadcastername": splitted[0],
 			"eventname":       splitted[1],
 			"competitionname": splitted[2],
+			"pid":             pid,
 			"error":           nil,
 		})
 	})

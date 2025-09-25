@@ -109,7 +109,7 @@
         if (linkID == "") {
             return;
         }
-        let hlsUrl = `http://127.0.0.1:6878/ace/manifest.m3u8?id=${linkID}`;
+        let hlsUrl = `http://127.0.0.1:6878/ace/manifest.m3u8?id=${linkID}&pid={{ .pid }}`;
         if (linkID.includes(";") === true) {
             const splitted = linkID.split(";")[1];
             let decoded = fromBase64Url(splitted);

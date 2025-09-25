@@ -6,7 +6,7 @@ const messageWarn = document.getElementById('message-warn');
 const oneHour = 60 * 60 * 1000;
 let updating = false;
 let updatingcheck = false;
-
+let countPID = 1;
 
 
 
@@ -184,8 +184,7 @@ function renderFullSchedule(daysData) {
             // Lista de partidos
             const matchList = document.createElement('ol');
 
-            // Iterar por cada partido en la competición
-            matches.forEach(matchData => {
+            matches.forEach((matchData, matchIndex) => {
                 const filterCompetition = topCompetitions[competitionName];
                 if (filterCompetition === undefined && matchData.Sport !== "Tenis" && matchData.Sport !== "Motociclismo") {
                     competitionSection.remove();
@@ -265,7 +264,8 @@ function formatBroadcasters(broadcasters, eventName, competitionName) {
             const linksHtml = links.map((link, linkIndex) => {
                 if (link && typeof link === 'string') {
                     const encriptedContent = setEncripttedContent(broadcaster.name, eventName, competitionName);
-                    return `<a href="/player/index.html?link=${link}&content=${encriptedContent}" target="_blank" class="broadcaster-link">Link ${linkIndex + 1}</a>`;
+                    countPID++;
+                    return `<a href="/player/index.html?link=${link}&content=${encriptedContent}&pid=${countPID}" target="_blank" class="broadcaster-link">Link ${linkIndex + 1}</a>`;
                 } else if (link === undefined || link === null || link === '') {
                     if (broadcaster.name && (broadcaster.name.includes("APLAZADO") || broadcaster.name.includes("POS"))) {
                         return `<span>${broadcaster.name}</span>`;
