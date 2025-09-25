@@ -31,7 +31,7 @@ const (
 ) 
 
 func FetchUpdatedList() error {
-	body, err := FetchWebData(shickatWeb)
+	body, err := FetchWebData(shickatWeb, false)
 	if err != nil {
 		return err
 	}
@@ -66,8 +66,6 @@ func FetchUpdatedList() error {
 
 	// transform uri links to base64 uri safe
 	broadcasterToAcestream = transformUriSafeBroadcasters(broadcasterToAcestream)
-
-
 	return err
 }
 
