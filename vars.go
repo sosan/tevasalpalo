@@ -17,7 +17,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "4141892f5df7d6474bf0279895ce02b7336c9928",
 			// "36394be1db2e20b5997d987c32fd38c7f0f194b7",
 		},
-		Name:             "DAZN 1",
+		Name:             "DAZN",
 		ShowListChannels: true,
 	},
 	"DAZN 2": {
@@ -78,7 +78,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"688e785893b50acc1d00cb37f15bfc42e72f5ae3",
 		},
-		Name:             "DAZN 1 BAR",
+		Name:             "DAZN BAR",
 		ShowListChannels: true,
 	},
 	"DAZN 2 Bar": {
@@ -379,7 +379,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"M+ LIGA DE CAMPEONES 2": {
 		Logo: "mligacampeones2.png",
 		Links: []string{
-			"38f7b2044e549df2039ff26cefa6f9a60c854d5e",
+			// "38f7b2044e549df2039ff26cefa6f9a60c854d5e",
 			"c6a3673f6a37b1bd3cf31fdd6404dd33d48cfccb",
 			"4fc6d0331830ad8743abab2fe2473b63bdfbc49f",
 			// "e7d8cae7f693fe46e89bbf74820caac9ffb32a30",
