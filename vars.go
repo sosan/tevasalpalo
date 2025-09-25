@@ -10,7 +10,7 @@ type AcestreamLink struct {
 // Mapeo de broadcasters a su información detallada (incluyendo múltiples links)
 var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN 1": {
-		Logo:  "dazn1.png",
+		Logo:  "dazn.png",
 		Links: []string{
 			// "6538b79ce0da657d8455d1da6a5f342398899a0e",
 			// "50a8a13c474848d1efbd5586efdb5b6cdd173fa9",
@@ -74,7 +74,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	},
 
 	"DAZN 1 Bar": {
-		Logo: "dazn1bar.png",
+		Logo: "daznbar.png",
 		Links: []string{
 			"688e785893b50acc1d00cb37f15bfc42e72f5ae3",
 		},
