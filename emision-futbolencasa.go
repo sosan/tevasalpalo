@@ -108,7 +108,7 @@ func getTeamName(cell *goquery.Selection) string {
 }
 
 func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
-	generalEvents, err := getCompetition("https://www.futbolenlatv.es/deporte")
+	generalEvents, err := getCompetition("https://www.futbolenlatv.es/deporte", false)
 	if err != nil {
 		return nil, err
 	}
@@ -117,8 +117,8 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 	// if err != nil {
 	// 	return nil, err
 	// }
-
-	eventsFromLigaToMx, err := getCompetition("https://www.futbolenvivomexico.com/competicion/la-liga")
+	log.Println("Obteniendo programacion de la liga")
+	eventsFromLigaToMx, err := getCompetition("https://www.futbolenvivomexico.com/competicion/la-liga", false)
 	// if err != nil {
 	// 	return nil, err
 	// }
@@ -143,24 +143,22 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 	// if err != nil {
 	// 	return nil, err
 	// }
+	log.Println("Obteniendo programacion de ligue 1")
+	eventsFromLigue1ToPt, err := getCompetition("https://www.futebolnatv.pt/campeonato/ligue-1", false)
 
-	eventsFromLigue1ToPt, err := getCompetition("https://www.futebolnatv.pt/campeonato/ligue-1")
+	log.Println("Obteniendo programacion de calcio")
+	eventsFromCalcioToPt, err := getCompetition("https://www.futebolnatv.pt/campeonato/calcio-serie-a", false)
 	// if err != nil {
 	// 	return nil, err
 	// }
-
-	eventsFromCalcioToPt, err := getCompetition("https://www.futebolnatv.pt/campeonato/calcio-serie-a")
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	eventsmma, err := getCompetition("https://www.futbolenlatv.es/deporte/mma")
+	log.Println("Obteniendo programacion de mma")
+	eventsmma, err := getCompetition("https://www.futbolenlatv.es/deporte/mma", false)
 	generalEvents = mixCompetitions(generalEvents, eventsFromLigaToMx, eventsFromLigue1ToPt, eventsFromCalcioToPt, eventsmma)
 	return generalEvents, err
 }
 
-func getCompetition(uri string) ([]DayView, error) {
-	body, err := FetchWebData(uri)
+func getCompetition(uri string, proxied bool) ([]DayView, error) {
+	body, err := FetchWebData(uri, proxied)
 	if err != nil {
 		return nil, err
 	}
@@ -525,7 +523,7 @@ func getPremierLeagueMatchesFromDAZNChannels(generalEvents []DayView) ([]DayView
 		parsedDate, _ := time.Parse("02-01-2006", generalEvents[i].DateKey)
 		usaParsedDate := parsedDate.Format("2006-01-02")
 		uri := fmt.Sprintf("https://tvepg.eu/es/spain/epg/sports/%s", usaParsedDate)
-		body, err := FetchWebData(uri)
+		body, err := FetchWebData(uri, false)
 		if err != nil {
 			return nil, err
 		}
