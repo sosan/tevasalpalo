@@ -2,7 +2,7 @@ body {
   font-family: "Segoe UI", Roboto, system-ui, sans-serif;
   background: #f3f4f6;
   width: 100vw;
-  /* height: 100vh; */
+  height: 100vh;
   overflow-x: hidden;
   margin: 0;
   padding: 0;
@@ -17,6 +17,15 @@ body {
   justify-content: center;
   width: 100%;
   height: 100%;
+}
+
+.player-title {
+  position: absolute;
+  top: 0px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: bold;
+  color: #333;
 }
 
 .video-container {
@@ -40,15 +49,11 @@ body {
   height: 100%;
 }
 
-/* #statusMessage {
-            text-align: center;
-            color: #fd7a7a;
-        } */
-
 .playback-settings {
+  display: none;
   margin-top: 20px;
   padding: 15px;
-  background-color: #f4f4f4; /* Puedes ajustar el color de fondo */
+  background-color: #f4f4f4;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -56,28 +61,28 @@ body {
 .playback-settings h3 {
   margin-top: 0;
   margin-bottom: 15px;
-  color: #333; /* Puedes ajustar el color del texto */
+  color: #333;
   display: flex;
   align-items: center;
-  gap: 10px; /* Espacio entre icono y texto */
+  gap: 10px;
 }
 
 .settings-row {
   display: flex;
-  flex-wrap: wrap; /* Permite que los elementos se envuelvan si no caben */
-  gap: 20px; /* Espacio entre las columnas de configuración */
-  align-items: end; /* Alinea los controles verticalmente al final */
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: end;
 }
 
 .settings-row > div {
   display: flex;
-  flex-direction: column; /* Apila label y select verticalmente */
-  gap: 5px; /* Espacio entre label y select */
+  flex-direction: column;
+  gap: 5px;
 }
 
 .settings-row label {
   font-weight: bold;
-  color: #555; /* Color del label */
+  color: #555;
 }
 
 .settings-row select,
@@ -89,20 +94,19 @@ body {
 }
 
 .settings-row button {
-  background-color: #007bff; /* Color de fondo del botón */
-  color: white; /* Color del texto del botón */
+  background-color: #007bff;
+  color: white;
   cursor: pointer;
-  margin-top: 2px; /* Pequeño margen superior para alinear con selects */
+  margin-top: 2px;
 }
 
 .settings-row button:hover {
-  background-color: #0056b3; /* Color de fondo del botón al pasar el mouse */
+  background-color: #0056b3;
 }
 
-/* Estilos responsivos básicos */
 @media (max-width: 768px) {
   .settings-row {
-    flex-direction: column; /* En pantallas pequeñas, apilar verticalmente */
+    flex-direction: column;
     gap: 15px;
   }
 }

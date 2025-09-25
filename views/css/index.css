@@ -202,6 +202,9 @@ main {
 .broadcaster-link:hover {
   background: #000000;
 }
+.broadcaster-link-visited {
+  background: #000000;
+}
 
 /* -------- Iconos -------- */
 [class*="icon-"] {
@@ -423,9 +426,12 @@ main {
   .dailyteams {
     grid-area: c;
     justify-self: flex-start;
+    width: 100%;
     height: 38px;
     align-content: flex-start;
+
   }
+
   .dailychannel {
     grid-area: d;
     justify-self: flex-end;

@@ -171,26 +171,28 @@ func StartWebServer() (*fiber.App, error) {
 		})
 	})
 
-	app.Get("/player/:id", func(c *fiber.Ctx) error {
-		acestreamId := c.Params("id")
-		if acestreamId == "" {
-			fmt.Printf("Error obteniendo content_id para stream_id %s\n", acestreamId)
-			return c.Status(500).SendString("No se pudo obtener el content ID")
+	app.Get("/player/index.html", func(c *fiber.Ctx) error {
+		link := c.Query("link")
+		content := c.Query("content")
+
+		if link == "" || content == "" {
+			return c.Status(400).SendString("Faltan parámetros")
 		}
-		// var err error
-		// var uri string
-		// if strings.Contains(acestreamId, ";") {
-		// 	channel := strings.Split(acestreamId, ";")[1]
-		// 	uri, err = fromBase64Url(channel)
-		// 	if strings.Contains(uri, "p;") {
-		// 		uri = strings.Split(uri, "p;")[1]
-		// 	}
-		// 	log.Print(uri)
-		// }
+
+		// Decodificar el contenido en base64
+		decodedContent, err := base64.StdEncoding.DecodeString(content)
+		if err != nil {
+			return c.Status(400).SendString("Error al decodificar el contenido")
+		}
+
+		splitted := strings.Split(string(decodedContent), ";")
 
 		return c.Render("views/player", fiber.Map{
-			"AcestreamId": acestreamId,
-			"Error":       nil,
+			"linkid":          link,
+			"broadcastername": splitted[0],
+			"eventname":       splitted[1],
+			"competitionname": splitted[2],
+			"error":           nil,
 		})
 	})
 

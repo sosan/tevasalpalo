@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reproductor</title>
+    <title>📺 {{ .eventname }} | 🎙️ {{ .broadcastername }}</title>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <link rel="stylesheet" href="./css/player.css">
     <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
@@ -16,6 +16,8 @@
 
 <body>
     <div class="player-container">
+        <span class="player-title">🏆 {{ .competitionname }} | 📺 {{ .eventname }} | 🎙️ {{ .broadcastername }}</span>
+        
         <div class="video-container">
             <video id="videoPlayer" autoplay muted controls></video>
             <!-- <div id="statusMessage">Cargando reproductor...</div> -->
@@ -102,18 +104,18 @@
     }
 
     function loadVideo() {
-        let acestreamId = "{{ .AcestreamId }}";
+        let linkID = "{{ .linkid }}";
         
-        if (acestreamId == "") {
+        if (linkID == "") {
             return;
         }
-        let hlsUrl = `http://127.0.0.1:6878/ace/manifest.m3u8?id=${acestreamId}`;
-        if (acestreamId.includes(";") === true) {
-            const splitted = acestreamId.split(";")[1];
+        let hlsUrl = `http://127.0.0.1:6878/ace/manifest.m3u8?id=${linkID}`;
+        if (linkID.includes(";") === true) {
+            const splitted = linkID.split(";")[1];
             let decoded = fromBase64Url(splitted);
             hlsUrl = decoded;
             if (decoded.includes("p;")) {
-                hlsUrl = `/api/iptv/${acestreamId}`;
+                hlsUrl = `/api/iptv/${linkID}`;
             }
         }
 

@@ -209,7 +209,11 @@ function renderFullSchedule(daysData) {
                     return;
                 }
 
-                const broadcastersWithLinks = formatBroadcasters(matchData.channels || matchData.Match?.Broadcasters || []);
+                const broadcastersWithLinks = formatBroadcasters(
+                    matchData.channels || [],
+                    matchData.event || "",
+                    matchData.competition || ""
+                );
 
                 matchItem.innerHTML = `
                     <div class="dailytime">
@@ -241,9 +245,9 @@ function renderFullSchedule(daysData) {
  * @param {Array} broadcasters - Array de objetos {name: "...", link: [...]}
  * @returns {string} HTML string para los canales.
  */
-function formatBroadcasters(broadcasters) {
+function formatBroadcasters(broadcasters, eventName, competitionName) {
     if (!broadcasters || broadcasters.length === 0) {
-        return; //'<span>Sin links disponibles</span>';
+        return; // sin links
     }
 
     return broadcasters.map((broadcaster, broadcasterIndex) => {
@@ -255,13 +259,13 @@ function formatBroadcasters(broadcasters) {
         let html = '';
 
         html += `<span class="broadcaster-links">`;
-        html += `<span class="broadcaster-name">${broadcaster.name || broadcaster.Name || 'Canal'}:</span>`;
+        html += `<span class="broadcaster-name">${broadcaster.name || 'Canal'}:</span>`;
 
         if (links && Array.isArray(links) && links.length > 0) {
-            // Si hay links, crear los enlaces
             const linksHtml = links.map((link, linkIndex) => {
                 if (link && typeof link === 'string') {
-                    return `<a href="/player/${link}" target="_blank" class="broadcaster-link">Link</a>`;
+                    const encriptedContent = setEncripttedContent(broadcaster.name, eventName, competitionName);
+                    return `<a href="/player/index.html?link=${link}&content=${encriptedContent}" target="_blank" class="broadcaster-link">Link ${linkIndex + 1}</a>`;
                 } else if (link === undefined || link === null || link === '') {
                     if (broadcaster.name && (broadcaster.name.includes("APLAZADO") || broadcaster.name.includes("POS"))) {
                         return `<span>${broadcaster.name}</span>`;
@@ -269,21 +273,18 @@ function formatBroadcasters(broadcasters) {
                         return '<span>Sin link</span>';
                     }
                 }
-                return '<span>Sin link</span>'; // Fallback
+                return '<span>Sin link</span>';
             }).join('');
             html += linksHtml;
-        } else {
-            // Si no hay propiedad `link`/`Links` o está vacía
-            // if (broadcaster.name && (broadcaster.name.includes("APLAZADO") || broadcaster.name.includes("POS"))) {
-            //     html += `<span>${broadcaster.name}</span>`;
-            // } 
-            // else {
-            //     html += '<span>Sin links disponibles</span>';
-            // }
         }
         html += '</span>';
         return html;
     }).join('');
+}
+
+function setEncripttedContent(broadcasterName, eventName, competitionName) {
+    const content = `${broadcasterName};${eventName};${competitionName}`;
+    return btoa(content);
 }
 
 async function updateContent(event) {
