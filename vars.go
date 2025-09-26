@@ -109,7 +109,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"http://181.78.106.127:9000/play/ca033/index.m3u8", //"",
 		},
 		Name:             "ESPN MX",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 	// "ESPN MX 2": {
 	// 	Logo: "espn.webp",
@@ -127,7 +127,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "http://181.205.130.194:4000/play/a07i",
 		},
 		Name:             "ESPN 2",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 	"ESPN": {
 		Logo: "espn.webp",
@@ -142,7 +142,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 
 		},
 		Name:             "ESPN 1",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 
 	"ESPN 3": {
@@ -152,7 +152,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"http://181.78.106.127:9000/play/ca035/index.m3u8", //
 		},
 		Name:             "ESPN 3",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 	"ESPN 4": {
 		Logo: "espn.webp",
@@ -160,7 +160,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"http://45.71.254.1:8000/play/a0c5/index.m3u8",
 		},
 		Name:             "ESPN 4",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 
 	"ESPN 5": {
@@ -170,7 +170,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "http://38.41.8.1:8000/play/a07b", //
 		},
 		Name:             "ESPN 5",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 
 	"ESPN 6": {
@@ -182,7 +182,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "http://38.41.8.1:8000/play/a082",       //
 		},
 		Name:             "ESPN 6",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 
 	"ESPN 7 MX": {
@@ -192,7 +192,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 
 		},
 		Name:             "ESPN 7 MX",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 	"ESPN DEPORTES": {
 		Logo: "espndeportes.png",
@@ -201,7 +201,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"4b048bcfaed7daec454e88f0e29b56756300447d",
 		},
 		Name:             "ESPN DEPORTES",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 	"ESPN PREMIUM": {
 		Logo: "espnpremium.webp",
@@ -210,7 +210,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"http://190.102.246.93:9005/play/a029", //
 		},
 		Name:             "ESPN PREMIUM",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 	"TNT": {
 		Logo: "tntsports.png",
@@ -691,7 +691,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "9b84af74b2fa3690c519199326fc2f181b025cdd",
 		},
 		Name:             "M+ ELLAS VAMOS",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 	// "LALIGA TV BAR": {
 	// 	Logo:  "laligatvbar.png",
@@ -718,7 +718,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"http://200.115.120.1:8000/play/ca041/index.m3u8",  //
 		},
 		Name:             "FOX SPORTS 1",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 	"FOX SPORTS 2": {
 		Logo: "foxsports1.png",
@@ -726,7 +726,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"http://181.78.106.127:9000/play/ca032/index.m3u8", //
 		},
 		Name:             "FOX SPORTS 2",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 
 	"FOX SPORTS MX": {
@@ -735,7 +735,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"a0464d3642e054f6122e7c309017d1e8d23f4da9", //
 		},
 		Name:             "FOX SPORTS MX",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 
 	"SKY SPORTS MX": {
@@ -959,7 +959,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"36cad67fed5a739757a9db844a551aa845a8d51b",
 		},
 		Name:             "DAZN 1 PT",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 	"DAZN 2 PT": {
 		Logo: "dazn2.png",
@@ -968,7 +968,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"d08013df6e437a1fdf1e0c34f573fdf6a40c7fce",
 		},
 		Name:             "DAZN 2 PT",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 	"DAZN 3 PT": {
 		Logo: "dazn3.png",
@@ -977,7 +977,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"dae7d1251f069516cc0a9c8f15f6639d2a17df1e",
 		},
 		Name:             "DAZN 3 PT",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 	"DAZN 4 PT": {
 		Logo: "dazn4.png",
@@ -986,7 +986,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"0f32c0131a2d9444996410801f4e18b04384db98",
 		},
 		Name:             "DAZN 4 PT",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 	"DAZN 5 PT": {
 		Logo: "dazn5.png",
@@ -994,7 +994,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"2c9a996c060d157ff63109c5b999d55bbc2ffd95",
 		},
 		Name:             "DAZN 5 PT",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 	
 }
