@@ -25,6 +25,24 @@ const (
 	assetName         = "acestream-runtime-windows.zip"
 )
 
+func findBroadcaster(name string, competitionName string) BroadcasterInfo {
+	// Coincidencia exacta
+	// quizas pasarlo a minisculas
+	nameUpper := strings.ToUpper(name)
+	if competitionName == "Bundesliga" && nameUpper == "SKY SPORTS" {
+		nameUpper = "SKY SPORTS BUNDESLIGA"
+	}
+	if competitionName == "LaLiga" && nameUpper == "SKY SPORTS" {
+		nameUpper = "SKY SPORTS LALIGA"
+	}
+	
+	if dataAce, exists := broadcasterToAcestream[nameUpper]; exists {
+		return dataAce
+	}
+	return BroadcasterInfo{}
+}
+
+
 // findLinkForBroadcaster busca un enlace para un nombre de broadcaster.
 // Prioriza la coincidencia exacta, luego parcial.
 func findLinkForBroadcaster(name string, competitionName string) []string {
