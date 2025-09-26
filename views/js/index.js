@@ -263,7 +263,7 @@ function formatBroadcasters(broadcasters, eventName, competitionName) {
         if (links && Array.isArray(links) && links.length > 0) {
             const linksHtml = links.map((link, linkIndex) => {
                 if (link && typeof link === 'string') {
-                    const encriptedContent = setEncripttedContent(broadcaster.name, eventName, competitionName);
+                    const encriptedContent = setEncriptedContent(broadcaster.name, eventName, competitionName);
                     countPID++;
                     return `<a href="/player/index.html?link=${link}&content=${encriptedContent}&pid=${countPID}" target="_blank" class="broadcaster-link">Link ${linkIndex + 1}</a>`;
                 } else if (link === undefined || link === null || link === '') {
@@ -282,10 +282,16 @@ function formatBroadcasters(broadcasters, eventName, competitionName) {
     }).join('');
 }
 
-function setEncripttedContent(broadcasterName, eventName, competitionName) {
+function setEncriptedContent(broadcasterName, eventName, competitionName) {
     const content = `${broadcasterName};${eventName};${competitionName}`;
-    return btoa(content);
+    const encoder = new TextEncoder();
+    const bytes = encoder.encode(content); // UTF-8
+    let binary = '';
+    bytes.forEach((b) => binary += String.fromCharCode(b));
+    return btoa(binary);
 }
+
+
 
 async function updateContent(event) {
     event.preventDefault();
