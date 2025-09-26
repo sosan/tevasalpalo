@@ -4,7 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📺 {{ .eventname }} | 🎙️ {{ .broadcastername }}</title>
+    <title>
+        {{ if .competitionname }}🏆 {{ .competitionname }} |{{ end }}
+        {{ if .eventname }}📺 {{ .eventname }} |{{ end }}
+        {{ if .broadcastername }}🎙️ {{ .broadcastername }} {{ end }}
+    </title>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <link rel="stylesheet" href="./css/player.css">
     <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
@@ -16,7 +20,11 @@
 
 <body>
     <div class="player-container">
-        <span class="player-title">🏆 {{ .competitionname }} | 📺 {{ .eventname }} | 🎙️ {{ .broadcastername }}</span>
+        <span class="player-title">
+            {{ if .competitionname }}🏆 {{ .competitionname }} |{{ end }}
+            {{ if .eventname }}📺 {{ .eventname }} |{{ end }}
+            {{ if .broadcastername }}🎙️ {{ .broadcastername }} {{ end }}
+        </span>
         
         <div class="video-container">
             <video id="videoPlayer" autoplay muted controls></video>
