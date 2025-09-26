@@ -42,6 +42,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo:  "dazn4.png",
 		Links: []string{
 			"eb884f77ce8815cf1028c4d85e8b092c27ea1693",
+			"e2b8a4aba2f4ea3dd68992fcdb65c9e62d910b05",
 			// "4e401fdceebffdf1f09aef954844d09f6c62f460",
 			// "eb884f77ce8815cf1028c4d85e8b092c27ea1693",
 			// "6a11eb510edc5b3581c5c97883c44563eb894b1b",
@@ -55,6 +56,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo:  "daznlaliga.png",
 		Links: []string{
 			"1bb5bf76fb2018d6db9aaa29b1467ecdfabe2884",
+			"74defb8f4ed3a917fd07c21b34f43c17107ec618",
+			"4e6d9cf7d177366045d33cd8311d8b1d7f4bed1f",
 			"74defb8f4ed3a917fd07c21b34f43c17107ec618",
 			// "0e50439e68aa2435b38f0563bb2f2e98f32ff4b1",
 			// "1bb5bf76fb2018d6db9aaa29b1467ecdfabe2884",
@@ -769,6 +772,15 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Name:             "SKY SPORTS LA LIGA",
 		ShowListChannels: true,
 	},
+	"SKY SPORTS LALIGA": {
+		Logo: "skysports.png",
+		Links: []string{
+			"http://190.92.10.66:4000/play/a001/index.m3u8",
+			"p;https://maldivesn.net/hilaytv/skysportslaliga",
+		},
+		Name:             "SKY SPORTS LA LIGA",
+		ShowListChannels: false,
+	},
 	"SKY SPORTS PREMIER LEAGUE": {
 		Logo: "skysportspremier.png",
 		Links: []string{
@@ -833,57 +845,59 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: true,
 	},
 
-	"Sport TV 1": {
+	"SPORT TV 1": {
 		Logo: "sporttv1.png",
 		Links: []string{
 			"p;https://maldivesn.net/hilaytv/sporttv1",
-			// "http://nfzcdn.royalflushdns.top/live/508373667/k717x9942z/111998.m3u8?sjwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTg0OTkxOTksImlhdCI6MTc1ODQxMjgwMCwibmJmIjoxNzU4NDEyODAwLCJ1c2VyIjoiNTA4MzczNjY3IiwidXNlckFnZW50IjoiVkxDLzMuMC4yMSBMaWJWTEMvMy4wLjIxIiwidXNlcklwIjoiMTg1LjIzNi4xODMuMTA3OjU1ODE4In0.j_PDPmv372HwM94IkxMuvxCbyzMgBAvgM9MTgJqHOKI&id=111998&p=m3u8&aid=1758491345",
+			"094365152cc1f4ca60f822bb7902411fdc2600d1",
 		},
-		Name:             "Sport TV 1",
+		Name:             "SPORT TV 1",
 		ShowListChannels: true,
 	},
-	"Sport TV 2": {
+	"SPORT TV 2": {
 		Logo: "sporttv2.png",
 		Links: []string{
-			// "89122d5e60866e9127a5f3849170031b16402adc",
 			"p;https://maldivesn.net/hilaytv/sporttv2",
-			// "http://nfzcdn.royalflushdns.top/live/508373667/k717x9942z/111998.m3u8?sjwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTg0OTkxOTksImlhdCI6MTc1ODQxMjgwMCwibmJmIjoxNzU4NDEyODAwLCJ1c2VyIjoiNTA4MzczNjY3IiwidXNlckFnZW50IjoiVkxDLzMuMC4yMSBMaWJWTEMvMy4wLjIxIiwidXNlcklwIjoiMTg1LjIzNi4xODMuMTA3OjU1ODE4In0.j_PDPmv372HwM94IkxMuvxCbyzMgBAvgM9MTgJqHOKI&id=111998&p=m3u8&aid=1758491345",
+			"fc3a8f2152ca01e1954a61ba2f8c01bc2f8d97cf",
 		},
-		Name:             "Sport TV 2",
+		Name:             "SPORT TV 2",
 		ShowListChannels: true,
 	},
 
-	"Sport TV 3": {
+	"SPORT TV 3": {
 		Logo: "sporttv3.png",
 		Links: []string{
-			// "cf72f0fa0cee438cca43f2ea8299d04d1bf4c9d5",
 			"p;https://maldivesn.net/hilaytv/sporttv3",
+			"fe74794f3fa7cf9138c2a0560d91e3eaed47df65",
 		},
-		Name:             "Sport TV 3",
+		Name:             "SPORT TV 3",
 		ShowListChannels: true,
 	},
-	"Sport TV 4": {
+	"SPORT TV 4": {
 		Logo: "sporttv4.png",
 		Links: []string{
 			"p;https://maldivesn.net/hilaytv/sporttv4",
+			"e119f0599b905ae4c9bd85a5fa14304ed56dcf97",
 		},
-		Name:             "Sport TV 4",
+		Name:             "SPORT TV 4",
 		ShowListChannels: true,
 	},
-	"Sport TV 5": {
+	"SPORT TV 5": {
 		Logo: "sporttv4.png",
 		Links: []string{
 			"p;https://maldivesn.net/hilaytv/sporttv5",
+			"7ce10d65789cfe74932c22399c7cb60474f1af9d",
 		},
-		Name:             "Sport TV 5",
+		Name:             "SPORT TV 5",
 		ShowListChannels: true,
 	},
-	"Sport TV 6": {
+	"SPORT TV 6": {
 		Logo: "sporttv4.png",
 		Links: []string{
 			"p;https://maldivesn.net/hilaytv/sporttv6",
+			"471f21a1eb3453e9b70e90228f016ad1142d581d",
 		},
-		Name:             "Sport TV 6",
+		Name:             "SPORT TV 6",
 		ShowListChannels: true,
 	},
 
@@ -937,6 +951,52 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Name:             "UFC",
 		ShowListChannels: true,
 	},
+
+	"DAZN 1 PT": {
+		Logo: "dazn1.png",
+		Links: []string{
+			"969e14989a98c62518a7640741dbf15d90212d1a",
+			"36cad67fed5a739757a9db844a551aa845a8d51b",
+		},
+		Name:             "DAZN 1 PT",
+		ShowListChannels: true,
+	},
+	"DAZN 2 PT": {
+		Logo: "dazn2.png",
+		Links: []string{
+			"27573fb01690fd55b25c07ae2180ee44b1ad8a7c",
+			"d08013df6e437a1fdf1e0c34f573fdf6a40c7fce",
+		},
+		Name:             "DAZN 2 PT",
+		ShowListChannels: true,
+	},
+	"DAZN 3 PT": {
+		Logo: "dazn3.png",
+		Links: []string{
+			"33246d7ad41db9ad7654f0d553b5e7500363d1b8",
+			"dae7d1251f069516cc0a9c8f15f6639d2a17df1e",
+		},
+		Name:             "DAZN 3 PT",
+		ShowListChannels: true,
+	},
+	"DAZN 4 PT": {
+		Logo: "dazn4.png",
+		Links: []string{
+			"3c0cfbeb4075be58baa32e41dabee3c75b8a80e6",
+			"0f32c0131a2d9444996410801f4e18b04384db98",
+		},
+		Name:             "DAZN 4 PT",
+		ShowListChannels: true,
+	},
+	"DAZN 5 PT": {
+		Logo: "dazn5.png",
+		Links: []string{
+			"2c9a996c060d157ff63109c5b999d55bbc2ffd95",
+		},
+		Name:             "DAZN 5 PT",
+		ShowListChannels: true,
+	},
+	
 }
 
 var allCompetitions = AllCompetitions{
