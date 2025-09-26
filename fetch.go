@@ -7,10 +7,18 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/net/proxy"
 )
+
+type CompetitionRequest struct {
+	URL     string
+	Proxied bool
+	Name    string
+}
+
 
 // FetchWebData se encarga únicamente de obtener los datos en bruto de la URL especificada.
 // Devuelve el cuerpo de la respuesta como un slice de bytes o un error si ocurre.
@@ -163,4 +171,31 @@ func testSOCKS5Proxy(proxyAddr string) bool {
 	case <-time.After(10 * time.Second):
 		return false
 	}
+}
+
+func FetchCompetitionsParallel(
+	requests []CompetitionRequest,
+	getFunc func(url string, proxied bool) ([]DayView, error),
+) map[string][]DayView {
+	results := make(map[string][]DayView)
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
+	for _, req := range requests {
+		wg.Add(1)
+		go func(req CompetitionRequest) {
+			defer wg.Done()
+			events, err := getFunc(req.URL, req.Proxied)
+			if err != nil {
+				log.Printf("❌ Error en %s: %v", req.Name, err)
+				return
+			}
+			mu.Lock()
+			results[req.Name] = events
+			mu.Unlock()
+		}(req)
+	}
+
+	wg.Wait()
+	return results
 }

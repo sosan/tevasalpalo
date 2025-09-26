@@ -108,53 +108,85 @@ func getTeamName(cell *goquery.Selection) string {
 }
 
 func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
-	generalEvents, err := getCompetition("https://www.futbolenlatv.es/deporte", false)
-	if err != nil {
-		return nil, err
+	// generalEvents, err := getCompetition("https://www.futbolenlatv.es/deporte", false)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// log.Println("Obteniendo programacion de la liga")
+	// eventsFromLigaToMx, err := getCompetition("https://www.futbolenvivomexico.com/competicion/la-liga", false)
+	// eventsFromBundesligaToPt, err := getCompetition("https://www.futebolnatv.pt/campeonato/bundesliga", true)
+	// if err != nil {
+	// 	eventsFromBundesligaToPt, err = getCompetition("https://www.futebolnatv.pt/campeonato/bundesliga", true)
+	// }
+
+	// // eventsFromBundesligaToPt = changeCompetitionName(eventsFromBundesligaToPt, "Bundesliga", "Bundesligass")
+	// eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN", "DAZN 1 PT", "Bundesliga")
+	// eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 1", "DAZN 1 PT", "Bundesliga")
+	// eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 2", "DAZN 2 PT", "Bundesliga")
+	// eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 3", "DAZN 3 PT", "Bundesliga")
+	// eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 4", "DAZN 4 PT", "Bundesliga")
+	// eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 5", "DAZN 5 PT", "Bundesliga")
+	// eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 6", "DAZN 6 PT", "Bundesliga")
+
+	// generalEvents = overrideCompetition(generalEvents, eventsFromBundesligaToPt)
+
+	// // https://www.futbolenvivomexico.com/competicion/calcio-serie-a ESPN
+	// // eventsFromCalcio, err := getCompetition("https://www.futebolnatv.pt/campeonato/calcio-serie-a")
+	// // eventsFromCalcio, err := getCompetition("https://www.futbolenvivomexico.com/competicion/calcio-serie-a")
+	// // if err != nil {
+	// // 	return nil, err
+	// // }
+	// log.Println("Obteniendo programacion de ligue 1")
+	// eventsFromLigue1ToPt, err := getCompetition("https://www.futebolnatv.pt/campeonato/ligue-1", false)
+
+	// log.Println("Obteniendo programacion de calcio")
+	// eventsFromCalcioToPt, err := getCompetition("https://www.futebolnatv.pt/campeonato/calcio-serie-a", false)
+	// // if err != nil {
+	// // 	return nil, err
+	// // }
+	// log.Println("Obteniendo programacion de mma")
+	// eventsmma, err := getCompetition("https://www.futbolenlatv.es/deporte/mma", false)
+	// generalEvents = mixCompetitions(generalEvents, eventsFromLigaToMx, eventsFromLigue1ToPt, eventsFromCalcioToPt, eventsmma, eventsFromBundesligaToPt)
+	// return generalEvents, err
+
+	// ---------------
+	log.Println("Obteniendo programación en paralelo...")
+
+	requests := []CompetitionRequest{
+		{"https://www.futbolenlatv.es/deporte", false, "general"},
+		{"https://www.futbolenvivomexico.com/competicion/la-liga", false, "laligaMX"},
+		{"https://www.futebolnatv.pt/campeonato/bundesliga", true, "bundesligaPT"},
+		{"https://www.futebolnatv.pt/campeonato/ligue-1", false, "ligue1PT"},
+		{"https://www.futebolnatv.pt/campeonato/calcio-serie-a", false, "calcioPT"},
+		{"https://www.futbolenlatv.es/deporte/mma", false, "mma"},
 	}
 
-	// generalEvents, err = getPremierLeagueMatchesFromDAZNChannels(generalEvents)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	log.Println("Obteniendo programacion de la liga")
-	eventsFromLigaToMx, err := getCompetition("https://www.futbolenvivomexico.com/competicion/la-liga", false)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	//
-	// https://www.futbolenvivomexico.com/competicion/premier-league
-	// https://www.futbolenlatv.es/competicion/premier-league
-	// https://www.ukfootballontv.co.uk/competition/premier-league
-	// eventsFromPremierToSpain, err := getCompetition("https://www.futbolenlatv.es/competicion/premier-league")
-	// if err != nil {
-	// 	return nil, err
-	// }
+	results := FetchCompetitionsParallel(requests, getCompetition)
 
-	// https://www.justwatch.com/mx/futbol/bundesliga
-	// eventsFromBundesligaToMx, err := getCompetition("https://www.futbolenvivomexico.com/competicion/bundesliga")
-	// if err != nil {
-	// 	return nil, err
-	// }
+	// Recoger los resultados
+	generalEvents := results["general"]
+	eventsFromLigaToMx := results["laligaMX"]
+	eventsFromBundesligaToPt := results["bundesligaPT"]
+	eventsFromLigue1ToPt := results["ligue1PT"]
+	eventsFromCalcioToPt := results["calcioPT"]
+	eventsmma := results["mma"]
 
-	// https://www.futbolenvivomexico.com/competicion/calcio-serie-a ESPN
-	// eventsFromCalcio, err := getCompetition("https://www.futebolnatv.pt/campeonato/calcio-serie-a")
-	// eventsFromCalcio, err := getCompetition("https://www.futbolenvivomexico.com/competicion/calcio-serie-a")
-	// if err != nil {
-	// 	return nil, err
-	// }
-	log.Println("Obteniendo programacion de ligue 1")
-	eventsFromLigue1ToPt, err := getCompetition("https://www.futebolnatv.pt/campeonato/ligue-1", false)
+	// Ajustes de nombres de canales de Bundesliga
+	eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN", "DAZN 1 PT", "Bundesliga")
+	eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 1", "DAZN 1 PT", "Bundesliga")
+	eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 2", "DAZN 2 PT", "Bundesliga")
+	eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 3", "DAZN 3 PT", "Bundesliga")
+	eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 4", "DAZN 4 PT", "Bundesliga")
+	eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 5", "DAZN 5 PT", "Bundesliga")
+	eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 6", "DAZN 6 PT", "Bundesliga")
 
-	log.Println("Obteniendo programacion de calcio")
-	eventsFromCalcioToPt, err := getCompetition("https://www.futebolnatv.pt/campeonato/calcio-serie-a", false)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	log.Println("Obteniendo programacion de mma")
-	eventsmma, err := getCompetition("https://www.futbolenlatv.es/deporte/mma", false)
-	generalEvents = mixCompetitions(generalEvents, eventsFromLigaToMx, eventsFromLigue1ToPt, eventsFromCalcioToPt, eventsmma)
-	return generalEvents, err
+	// Sobrescribir y mezclar resultados
+	generalEvents = overrideCompetition(generalEvents, eventsFromBundesligaToPt)
+	generalEvents = mixCompetitions(generalEvents, eventsFromLigaToMx, eventsFromLigue1ToPt, eventsFromCalcioToPt, eventsmma, eventsFromBundesligaToPt)
+
+	return generalEvents, nil
+
 }
 
 func getCompetition(uri string, proxied bool) ([]DayView, error) {
@@ -251,8 +283,9 @@ func prepareMatchDay(body []byte) ([]DayView, error) {
 			}
 
 			if channelName != "" {
-				links := findLinkForBroadcaster(channelName, competitionName)
-				broadcasters = append(broadcasters, BroadcasterInfo{Name: channelName, Links: links})
+				broadcaster := findBroadcaster(channelName, competitionName)
+				// links := findLinkForBroadcaster(channelName, competitionName)
+				broadcasters = append(broadcasters, broadcaster)
 			}
 		})
 
@@ -421,26 +454,29 @@ func FormatDateDMYToSpanish(dateStr string) (string, error) {
 	return fmt.Sprintf("%s, %d de %s de %d", weekday, day, month, year), nil
 }
 
-func mixCompetitions(general, mxliga, ligue1, calcio, eventsmma []DayView) []DayView {
-	general = changeBroadcasterName(general, "dazn", "SKY SPORTS BUNDESLIGA", "Bundesliga")
+func mixCompetitions(general, mxliga, ligue1, calcio, eventsmma, bundesligaPT []DayView) []DayView {
+	// general = changeBroadcasterName(general, "dazn", "SKY SPORTS BUNDESLIGA", "Bundesliga")
+	// bundesligaPT = changeCompetitionName(bundesligaPT, "Bundesligass", "Bundesliga")
 	general = changeBroadcasterName(general, "dazn", "ESPN", "Serie A Italiana")
 	eventsmma = changeBroadcasterName(eventsmma, "HBO MAX", "UFC", "UFC")
-	if mxliga == nil {
-		general = addNewBroadcaster(general, "SKY SPORTS", "LaLiga" )
+	if len(mxliga) == 0 {
+		general = addNewBroadcaster(general, "SKY SPORTS", "LaLiga")
 	}
-	if calcio != nil {
+
+	if len(calcio) > 0 {
 		calcio = changeCompetitionName(calcio, "Liga italiana", "Serie A Italiana")
 	}
 	for i := range general {
 		general[i] = addCompetition(general[i], ligue1)
 		general[i] = addCompetition(general[i], calcio)
 		general[i] = addCompetition(general[i], mxliga)
+		// general[i] = addCompetition(general[i], bundesligaPT)
 		general[i] = addCompetition(general[i], eventsmma)
 	}
 	return general
 }
 
-func addNewBroadcaster(days []DayView, broadcasterNameDestination, competitionName string) ([]DayView) {
+func addNewBroadcaster(days []DayView, broadcasterNameDestination, competitionName string) []DayView {
 	for i := range days {
 		for o := range days[i].Competitions {
 			if o != competitionName {
@@ -448,7 +484,7 @@ func addNewBroadcaster(days []DayView, broadcasterNameDestination, competitionNa
 			}
 			for l := range days[i].Competitions[o] {
 				newBroadcaster := broadcasterToAcestream[broadcasterNameDestination]
-				days[i].Competitions[o][l].Broadcasters = append(days[i].Competitions[o][l].Broadcasters, newBroadcaster )
+				days[i].Competitions[o][l].Broadcasters = append(days[i].Competitions[o][l].Broadcasters, newBroadcaster)
 			}
 		}
 	}
@@ -462,6 +498,7 @@ func addCompetition(generalCompetition DayView, newCompetition []DayView) DayVie
 				if generalCompetition.Competitions[compKey] != nil {
 					for _, match := range matches {
 						for o := range generalCompetition.Competitions[compKey] {
+
 							// if generalCompetition.Competitions[compKey][o].Match.Event == match.Event {
 							if strings.Contains(generalCompetition.Competitions[compKey][o].Match.Event, match.Event) {
 								generalCompetition.Competitions[compKey][o].Broadcasters = append(generalCompetition.Competitions[compKey][o].Broadcasters, match.Broadcasters...)
@@ -488,7 +525,7 @@ func changeBroadcasterName(days []DayView, broadcasterNameOrigin, broadcasterNam
 					if strings.EqualFold(days[i].Competitions[o][l].Broadcasters[m].Name, broadcasterNameOrigin) {
 						// days[i].Competitions[o][l].Broadcasters[m].Name = broadcasterNameDestination // "sky sports" "SKY SPORTS BUNDESLIGA"
 						currentBroadcaster := broadcasterToAcestream[broadcasterNameDestination]
-						days[i].Competitions[o][l].Broadcasters[m] = currentBroadcaster 
+						days[i].Competitions[o][l].Broadcasters[m] = currentBroadcaster
 
 					}
 				}
@@ -540,6 +577,10 @@ func getPremierLeagueMatchesFromDAZNChannels(generalEvents []DayView) ([]DayView
 	generalEvents = mixDaznChannelsforGeneralEvents(generalEvents, dayviews)
 
 	return generalEvents, nil
+}
+
+func mixDaznChannelsforGeneralEvents(generalEvents []DayView, dayviews []DayView) []DayView {
+	panic("unimplemented")
 }
 
 var channelNameMap = map[string]string{
@@ -643,7 +684,7 @@ func extractPremierLeagueMatchesFromDAZNChannels(body []byte, datekey, formatedD
 					Time:         timeStr,
 					Event:        eventStr,
 					Broadcasters: []BroadcasterInfo{broadcaster},
-					Country:      "",    // Asumido
+					Country:      "",       // Asumido
 					Sport:        "Fútbol", // Asumido
 				}
 
@@ -663,6 +704,15 @@ func extractPremierLeagueMatchesFromDAZNChannels(body []byte, datekey, formatedD
 	return dayView, nil
 }
 
-func mixDaznChannelsforGeneralEvents(generalEvents, dayviews []DayView) []DayView {
-	return nil
+func overrideCompetition(original, override []DayView) []DayView {
+	for i := range original {
+		for o := range override {
+			if original[i].DateKey != override[o].DateKey {
+				continue
+			}
+			original[i].Competitions["Bundesliga"] = override[o].Competitions["Bundesliga"]
+
+		}
+	}
+	return original
 }
