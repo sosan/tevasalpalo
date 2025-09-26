@@ -413,7 +413,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: true,
 	},
 	"M+ LIGA DE CAMPEONES 5": {
-		Logo: "mligacampeones5.png",
+		Logo:  "mligacampeones.png",
 		Links: []string{
 			"5620c0ce3dcbf14a6375cb2c2d681207f45eb97d",
 		},
@@ -421,28 +421,28 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: true,
 	},
 	"M+ LIGA DE CAMPEONES 6": {
-		Logo: "mligacampeones6.png",
+		Logo:  "mligacampeones.png",
 		Links: []string{
 			
 		},
 		Name:             "M+ LIGA DE CAMPEONES 6",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 	"M+ LIGA DE CAMPEONES 7": {
-		Logo: "mligacampeones7.png",
+		Logo:  "mligacampeones.png",
 		Links: []string{
 			
 		},
 		Name:             "M+ LIGA DE CAMPEONES 7",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 	"M+ LIGA DE CAMPEONES 8": {
-		Logo: "mligacampeones8.png",
+		Logo:  "mligacampeones.png",
 		Links: []string{
 			
 		},
 		Name:             "M+ LIGA DE CAMPEONES 8",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 	"M+ DEPORTES": {
 		Logo:  "mdeportes.png",
@@ -909,7 +909,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"p;http://fl7.moveonjoy.com/WWE/index.m3u8",
 		},
 		Name:             "WWE",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 	"WWE Superstar Central": {
 		Logo: "wwesuper.png",
@@ -917,7 +917,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"p;https://jmp2.uk/stvp-US700005ID",
 		},
 		Name:             "WWE LEYENDAS",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 	"FIFA+": {
 		Logo: "fifa.png",
