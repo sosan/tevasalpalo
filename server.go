@@ -91,7 +91,6 @@ func StartWebServer() (*fiber.App, error) {
 
 	engine := html.NewFileSystem(http.FS(viewsFS), ".html")
 	engine.AddFunc("b64", encodeContent)
-	engine.AddFunc("inc", inc)
 
 	app := fiber.New(fiber.Config{
 		Views: engine,
