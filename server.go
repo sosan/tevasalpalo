@@ -90,6 +90,8 @@ func StartWebServer() (*fiber.App, error) {
 	startDataRefresh()
 
 	engine := html.NewFileSystem(http.FS(viewsFS), ".html")
+	engine.AddFunc("b64", encodeContent)
+	engine.AddFunc("inc", inc)
 
 	app := fiber.New(fiber.Config{
 		Views: engine,
@@ -176,18 +178,25 @@ func StartWebServer() (*fiber.App, error) {
 		content := c.Query("content")
 		pid := c.Query("pid")
 
-		if link == "" || content == "" {
+		if link == "" {
 			return c.Status(400).SendString("Faltan parámetros")
 		}
+		if pid == "" {
+			pid = fmt.Sprintf("%d", time.Now().Unix())
+		}
 
-		// Decodificar el contenido en base64
+		if content == "" {
+			return c.Render("views/player", fiber.Map{
+				"linkid": link,
+				"error":  nil,
+			})
+		}
+
 		decodedContent, err := base64.StdEncoding.DecodeString(content)
 		if err != nil {
 			return c.Status(400).SendString("Error al decodificar el contenido")
 		}
-
 		splitted := strings.Split(string(decodedContent), ";")
-
 		return c.Render("views/player", fiber.Map{
 			"linkid":          link,
 			"broadcastername": splitted[0],
@@ -543,6 +552,10 @@ func modifySegmentURLs(manifestContent string, baseURL *url.URL) string {
 		}
 	}
 	return strings.Join(lines, "\n")
+}
+
+func encodeContent(input string) string {
+	return base64.StdEncoding.EncodeToString([]byte(input))
 }
 
 // var client = &http.Client{
