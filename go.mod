@@ -2,9 +2,12 @@ module main
 
 go 1.24
 
-toolchain go1.24.1
+toolchain go1.25.1
 
-require github.com/gofiber/fiber/v2 v2.52.9
+require (
+	github.com/gofiber/fiber/v2 v2.52.9
+	golang.org/x/net v0.43.0
+)
 
 require (
 	aead.dev/minisign v0.2.0 // indirect
@@ -18,7 +21,6 @@ require (
 	github.com/gofiber/template v1.8.3 // indirect
 	github.com/gofiber/utils v1.1.0 // indirect
 	golang.org/x/crypto v0.41.0 // indirect
-	golang.org/x/net v0.43.0 // indirect
 )
 
 require (
