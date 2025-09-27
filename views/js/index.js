@@ -252,7 +252,7 @@ function renderFullSchedule(daysData) {
  */
 function formatBroadcasters(broadcasters, eventName, competitionName) {
     if (!broadcasters || broadcasters.length === 0) {
-        return; // sin links
+        return;
     }
 
     return broadcasters.map((broadcaster, broadcasterIndex) => {
@@ -275,11 +275,9 @@ function formatBroadcasters(broadcasters, eventName, competitionName) {
                 } else if (link === undefined || link === null || link === '') {
                     if (broadcaster.name && (broadcaster.name.includes("APLAZADO") || broadcaster.name.includes("POS"))) {
                         return `<span>${broadcaster.name}</span>`;
-                    } else {
-                        return '<span>Sin link</span>';
                     }
                 }
-                return '<span>Sin link</span>';
+                return;
             }).join('');
             html += linksHtml;
         }

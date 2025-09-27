@@ -2,7 +2,7 @@ package main
 
 var broadcasterGatewayMap = map[string][]string{
 	`Primera Federacion "RFEF" (FHD)`:    {"Primera Federacion \"RFEF\""},
-	"DAZN 1 (FHD)":                       {"DAZN 1"},
+	"DAZN 1 (FHD)":                       {"DAZN 1", "DAZN"},
 	"DAZN 2 (FHD)":                       {"DAZN 2"},
 	"DAZN 3 (FHD)":                       {"DAZN 3"},
 	"DAZN 4 (FHD)":                       {"DAZN 4"},

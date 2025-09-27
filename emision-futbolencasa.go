@@ -151,7 +151,7 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 	// return generalEvents, err
 
 	// ---------------
-	log.Println("Obteniendo programación en paralelo...")
+	log.Println("Obteniendo programación...")
 
 	requests := []CompetitionRequest{
 		{"https://www.futbolenlatv.es/deporte", false, "general"},
@@ -180,6 +180,7 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 	eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 4", "DAZN 4 PT", "Bundesliga")
 	eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 5", "DAZN 5 PT", "Bundesliga")
 	eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 6", "DAZN 6 PT", "Bundesliga")
+	eventsmma = changeBroadcasterName(eventsmma, "", "UFC", "UFC")
 
 	// Sobrescribir y mezclar resultados
 	generalEvents = overrideCompetition(generalEvents, eventsFromBundesligaToPt)
@@ -461,9 +462,8 @@ func FormatDateDMYToSpanish(dateStr string) (string, error) {
 }
 
 func mixCompetitions(general, mxliga, ligue1, calcio, eventsmma, bundesligaPT []DayView) []DayView {
-	// general = changeBroadcasterName(general, "dazn", "SKY SPORTS BUNDESLIGA", "Bundesliga")
-	// bundesligaPT = changeCompetitionName(bundesligaPT, "Bundesligass", "Bundesliga")
 	general = changeBroadcasterName(general, "dazn", "ESPN", "Serie A Italiana")
+	general = changeBroadcasterName(general, "dazn", "", "LaLiga Hypermotion")
 	eventsmma = changeBroadcasterName(eventsmma, "HBO MAX", "UFC", "UFC")
 	if len(mxliga) == 0 {
 		general = addNewBroadcaster(general, "SKY SPORTS", "LaLiga")
@@ -476,7 +476,6 @@ func mixCompetitions(general, mxliga, ligue1, calcio, eventsmma, bundesligaPT []
 		general[i] = addCompetition(general[i], ligue1)
 		general[i] = addCompetition(general[i], calcio)
 		general[i] = addCompetition(general[i], mxliga)
-		// general[i] = addCompetition(general[i], bundesligaPT)
 		general[i] = addCompetition(general[i], eventsmma)
 	}
 	return general

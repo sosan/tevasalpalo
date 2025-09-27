@@ -9,7 +9,7 @@ type AcestreamLink struct {
 
 // Mapeo de broadcasters a su información detallada (incluyendo múltiples links)
 var broadcasterToAcestream = map[string]BroadcasterInfo{
-	"DAZN 1": {
+	"DAZN": {
 		Logo:  "dazn.png",
 		Links: []string{
 			// "6538b79ce0da657d8455d1da6a5f342398899a0e",
@@ -18,6 +18,17 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "36394be1db2e20b5997d987c32fd38c7f0f194b7",
 		},
 		Name:             "DAZN",
+		ShowListChannels: false,
+	},
+	"DAZN 1": {
+		Logo:  "dazn.png",
+		Links: []string{
+			// "6538b79ce0da657d8455d1da6a5f342398899a0e",
+			// "50a8a13c474848d1efbd5586efdb5b6cdd173fa9",
+			// "4141892f5df7d6474bf0279895ce02b7336c9928",
+			// "36394be1db2e20b5997d987c32fd38c7f0f194b7",
+		},
+		Name:             "DAZN 1",
 		ShowListChannels: true,
 	},
 	"DAZN 2": {
@@ -63,7 +74,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "1bb5bf76fb2018d6db9aaa29b1467ecdfabe2884",
 			// "f8d5e39a49b9da0215bbd3d9efb8fb3d06b76892",
 		},
-		Name:             "DAZN LALIGA 1",
+		Name:             "DAZN LALIGA",
 		ShowListChannels: true,
 	},
 	"DAZN LALIGA 2": {
@@ -76,7 +87,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: true,
 	},
 
-	"DAZN 1 Bar": {
+	"DAZN 1 BAR": {
 		Logo: "daznbar.png",
 		Links: []string{
 			"688e785893b50acc1d00cb37f15bfc42e72f5ae3",
@@ -84,7 +95,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Name:             "DAZN BAR",
 		ShowListChannels: true,
 	},
-	"DAZN 2 Bar": {
+	"DAZN 2 BAR": {
 		Logo: "dazn2bar.png",
 		Links: []string{
 			"2f9211669499f413dab1a490198afab2a9b4b57c",
@@ -562,9 +573,9 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "1ab443f5b4beb6d586f19e8b25b9f9646cf2ab78",
 		},
 		Name:             "M+",
-		ShowListChannels: false,
+		ShowListChannels: true,
 	},
-	"Movistar Plus+": {
+	"MOVISTAR PLUS+": {
 		Logo:  "m.png",
 		Links: []string{
 			// "199190e3f28c1de0be34bccf0d3568dc65209b99",
@@ -575,7 +586,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Name:             "Movistar Plus+ 1",
 		ShowListChannels: true,
 	},
-	"Movistar Plus+ 2": {
+	"MOVISTAR PLUS+ 2": {
 		Logo:             "m2.png",
 		Links:            []string{
 			"e19c1fc5e3ada56c60d45257f7f4ed0d14bf7003",
@@ -583,7 +594,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Name:             "Movistar Plus+ 2",
 		ShowListChannels: true,
 	},
-	"Movistar Plus": {
+	"MOVISTAR PLUS": {
 		Logo:  "m.png",
 		Links: []string{
 			// "199190e3f28c1de0be34bccf0d3568dc65209b99",
