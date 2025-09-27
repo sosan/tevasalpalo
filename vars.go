@@ -795,27 +795,27 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SKY SPORTS PREMIER LEAGUE": {
 		Logo: "skysportspremier.png",
 		Links: []string{
-			"https://d15.epicquesthero.com:1686/hls/skysprem.m3u8?md5=Otw5SigwrXNTvRvU_0kgKg&expires=1758149711", //
+			// "https://d15.epicquesthero.com:1686/hls/skysprem.m3u8?md5=Otw5SigwrXNTvRvU_0kgKg&expires=1758149711", //
 		},
 		Name:             "SKY SPORTS PREMIER LEAGUE",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 	"CANAL + SPORTS": {
 		Logo: "canalplusports.png",
 		Links: []string{
-			"http://116.202.237.33:8080/CNLS3/tracks-v1a1a2a3l1l2/mono.m3u8?token=ef1c6f27da4b04de8c97b52b9255617b", //
+			// "http://116.202.237.33:8080/CNLS3/tracks-v1a1a2a3l1l2/mono.m3u8?token=ef1c6f27da4b04de8c97b52b9255617b", //
 		},
 		Name:             "CANAL + SPORTS",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 
 	"CANAL + SPORTS 2": {
 		Logo: "canalplusports.png",
 		Links: []string{
-			"http://116.202.237.33:8080/CNLS2/tracks-v1a1a2a3l1l2/mono.m3u8?token=ef1c6f27da4b04de8c97b52b9255617b", //
+			// "http://116.202.237.33:8080/CNLS2/tracks-v1a1a2a3l1l2/mono.m3u8?token=ef1c6f27da4b04de8c97b52b9255617b", //
 		},
 		Name:             "CANAL + SPORTS 2",
-		ShowListChannels: true,
+		ShowListChannels: false,
 	},
 
 	"REAL MADRID TV": {
