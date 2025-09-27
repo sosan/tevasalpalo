@@ -48,9 +48,11 @@ async function updateApp() {
                     clearInterval(intervalHealthz);
                     setTimeout(() => {
                         dialogUpdating.close();
-                        messageWarn.innerText = "";
-                        messageWarn.classList.remove("display-block");
-                        messageWarn.classList.add("display-none");
+                        if (messageWarn) {
+                            messageWarn.innerText = "";
+                            messageWarn.classList.remove("display-block");
+                            messageWarn.classList.add("display-none");
+                        }
 
                     }, 5000);
                     return;
@@ -83,6 +85,9 @@ async function updateApp() {
 
 async function startCheckAppUpdate() {
     try {
+        if (!messageWarn) {
+            return;
+        }
         console.log("Verificando actualizaciones...");
         updatingcheck = true;
         const request = await fetch('/updateavailable', { method: 'GET' });
@@ -95,6 +100,7 @@ async function startCheckAppUpdate() {
 
         if (data.needUpdate) {
             updatingcheck = false;
+            
             messageWarn.innerText = "¡Nueva versión disponible! Haz clic aquí para actualizar.";
             messageWarn.classList.remove("display-none");
             messageWarn.classList.add("display-block");
