@@ -767,7 +767,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo: "skysports.png",
 		Links: []string{
 			"http://190.92.10.66:4000/play/a001/index.m3u8",
-			"p;https://maldivesn.net/hilaytv/skysportslaliga",
+			// "p;https://maldivesn.net/hilaytv/skysportslaliga",
 		},
 		Name:             "SKY SPORTS LA LIGA",
 		ShowListChannels: true,
@@ -776,7 +776,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo: "skysports.png",
 		Links: []string{
 			"http://190.92.10.66:4000/play/a001/index.m3u8",
-			"p;https://maldivesn.net/hilaytv/skysportslaliga",
+			// "p;https://maldivesn.net/hilaytv/skysportslaliga",
 		},
 		Name:             "SKY SPORTS LA LIGA",
 		ShowListChannels: false,
@@ -848,7 +848,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SPORT TV 1": {
 		Logo: "sporttv1.png",
 		Links: []string{
-			"p;https://maldivesn.net/hilaytv/sporttv1",
+			// "p;https://maldivesn.net/hilaytv/sporttv1",
+			"p;http://clarotv7.com/live/508373667/k717x9942z/111995.m3u8",
 			"094365152cc1f4ca60f822bb7902411fdc2600d1",
 		},
 		Name:             "SPORT TV 1",
@@ -857,7 +858,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SPORT TV 2": {
 		Logo: "sporttv2.png",
 		Links: []string{
-			"p;https://maldivesn.net/hilaytv/sporttv2",
+			// "p;https://maldivesn.net/hilaytv/sporttv2",
+			"p;http://clarotv7.com/live/508373667/k717x9942z/111998.m3u8",
 			"fc3a8f2152ca01e1954a61ba2f8c01bc2f8d97cf",
 		},
 		Name:             "SPORT TV 2",
@@ -867,7 +869,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SPORT TV 3": {
 		Logo: "sporttv3.png",
 		Links: []string{
-			"p;https://maldivesn.net/hilaytv/sporttv3",
+			// "p;https://maldivesn.net/hilaytv/sporttv3",
+			"p;http://clarotv7.com/live/508373667/k717x9942z/112000.m3u8",
 			"fe74794f3fa7cf9138c2a0560d91e3eaed47df65",
 		},
 		Name:             "SPORT TV 3",
@@ -876,7 +879,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SPORT TV 4": {
 		Logo: "sporttv4.png",
 		Links: []string{
-			"p;https://maldivesn.net/hilaytv/sporttv4",
+			// "p;https://maldivesn.net/hilaytv/sporttv4",
+			"p;http://clarotv7.com/live/508373667/k717x9942z/112002.m3u8",
 			"e119f0599b905ae4c9bd85a5fa14304ed56dcf97",
 		},
 		Name:             "SPORT TV 4",
@@ -885,7 +889,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SPORT TV 5": {
 		Logo: "sporttv4.png",
 		Links: []string{
-			"p;https://maldivesn.net/hilaytv/sporttv5",
+			// "p;https://maldivesn.net/hilaytv/sporttv5",
+			"p;http://clarotv7.com/live/508373667/k717x9942z/112004.m3u8",
 			"7ce10d65789cfe74932c22399c7cb60474f1af9d",
 		},
 		Name:             "SPORT TV 5",
@@ -894,7 +899,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SPORT TV 6": {
 		Logo: "sporttv4.png",
 		Links: []string{
-			"p;https://maldivesn.net/hilaytv/sporttv6",
+			// "p;https://maldivesn.net/hilaytv/sporttv6",
+			"p;http://clarotv7.com/live/508373667/k717x9942z/112006.m3u8",
 			"471f21a1eb3453e9b70e90228f016ad1142d581d",
 		},
 		Name:             "SPORT TV 6",
@@ -906,7 +912,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo: "wwe.png",
 		Links: []string{
 			// "http://localhost:3000/wwe/index.m3u8",
-			"p;http://fl7.moveonjoy.com/WWE/index.m3u8",
+			// "p;http://fl7.moveonjoy.com/WWE/index.m3u8",
 		},
 		Name:             "WWE",
 		ShowListChannels: false,
@@ -914,7 +920,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"WWE Superstar Central": {
 		Logo: "wwesuper.png",
 		Links: []string{
-			"p;https://jmp2.uk/stvp-US700005ID",
+			// "p;https://jmp2.uk/stvp-US700005ID",
 		},
 		Name:             "WWE LEYENDAS",
 		ShowListChannels: false,
@@ -946,7 +952,6 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"p;https://jmp2.uk/stvp-CA2900012S9",
 			"p;https://jmp2.uk/stvp-US2900017P2",
 			"p;https://jmp2.uk/plu-677d9adfa9a51b0008497fa0.m3u8",
-			// "http://nfzcdn.royalflushdns.top/live/Sndnndd/Dmndndd/731.m3u8?sjwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTg1ODU1OTksImlhdCI6MTc1ODQ5OTIwMCwibmJmIjoxNzU4NDk5MjAwLCJ1c2VyIjoiODQxODY2NjU3IiwidXNlckFnZW50IjoiTW96aWxsYS81LjAgKGlQaG9uZTsgQ1BVIGlQaG9uZSBPUyAxNl83XzExIGxpa2UgTWFjIE9TIFgpIEFwcGxlV2ViS2l0LzYwNS4xLjE1IChLSFRNTCwgbGlrZSBHZWNrbykgVmVyc2lvbi8xNi42LjEgTW9iaWxlLzE1RTE0OCBTYWZhcmkvNjA0LjEiLCJ1c2VySXAiOiIxODUuMjM2LjE4My4xMDc6NTU2MjgifQ.mv1pzDQn2-VkoOq3koYh9R7FIIQTc3P99h6ZHvVmrxU&id=731&p=m3u8&aid=1758566817",
 		},
 		Name:             "UFC",
 		ShowListChannels: true,

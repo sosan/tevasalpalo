@@ -19,19 +19,26 @@ type CompetitionRequest struct {
 	Name    string
 }
 
+const (
+	timeTimeout = 20 * time.Second
+)
+
 
 // FetchWebData se encarga únicamente de obtener los datos en bruto de la URL especificada.
 // Devuelve el cuerpo de la respuesta como un slice de bytes o un error si ocurre.
 func FetchWebData(url string, proxied bool) ([]byte, error) {
 	var err error
 	client := &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout: timeTimeout,
 	}
 
 	if proxied {
 		client, err = createSOCKS5Client()
 		if err != nil {
-			log.Printf("error al crear el cliente SOCKS5: %v", err)
+			client, err = createSOCKS5Client()
+			if err != nil {
+				return nil, fmt.Errorf("error al crear el cliente SOCKS5: %w", err)
+			}
 		}
 	}
 
@@ -78,15 +85,18 @@ func createSOCKS5Client() (*http.Client, error) {
 		}
 
 		sockURL, err := url.Parse("socks5://" + currentAddr)
+		if err != nil {
+			continue
+		}
 		dialer, err := proxy.FromURL(sockURL, proxy.Direct)
 		if err != nil {
-			return nil, err
+			continue
 		}
 		return &http.Client{
 			Transport: &http.Transport{
 				Dial: dialer.Dial,
 			},
-			Timeout: 10 * time.Second,
+			Timeout: timeTimeout,
 		}, nil
 	}
 	return nil, fmt.Errorf("no se pudo crear un cliente SOCKS5 válido")
@@ -95,22 +105,8 @@ func createSOCKS5Client() (*http.Client, error) {
 func getSockList() ([]string, error) {
 	proxyListURL := "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/socks5/data.txt"
 	body, err := FetchWebData(proxyListURL, false)
-	// resp, err := http.Get(proxyListURL)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("error al obtener la lista de proxies: %w", err)
-	// }
-	// defer resp.Body.Close()
-
-	// Leer los proxiesNotChecked
-	// var proxiesNotChecked []string
 	strBody := strings.ReplaceAll(string(body), "socks5://", "")
 	proxiesNotChecked := strings.Split(strBody, "\n")
-	// for string(body) != "" {
-	// 	line := strings.TrimSpace(scanner.Text())
-	// 	if line != "" {
-	// 		proxies = append(proxies, line)
-	// 	}
-	// }
 
 	if len(proxiesNotChecked) == 0 {
 		fmt.Println("No se encontraron proxies en la lista.")
@@ -148,29 +144,44 @@ func getSockList() ([]string, error) {
 // }
 
 func testSOCKS5Proxy(proxyAddr string) bool {
-	dialer, err := proxy.SOCKS5("tcp", proxyAddr, nil, proxy.Direct)
-	if err != nil {
-		return false
-	}
+    dialer, err := proxy.SOCKS5("tcp", proxyAddr, nil, proxy.Direct)
+    if err != nil {
+        return false
+    }
 
-	result := make(chan bool, 1)
-	// var conn net.Conn
-	go func() {
-		conn, err := dialer.Dial("tcp", "httpbin.org:80")
-		if err != nil {
-			result <- false
-			return
-		}
-		defer conn.Close()
-		result <- true
-	}()
+    result := make(chan bool, 1)
+    go func() {
+        conn, err := dialer.Dial("tcp", "httpbin.org:80")
+        if err != nil {
+            result <- false
+            return
+        }
+        defer conn.Close()
 
-	select {
-	case success := <-result:
-		return success
-	case <-time.After(10 * time.Second):
-		return false
-	}
+        request := "GET / HTTP/1.0\r\nHost: httpbin.org\r\n\r\n"
+        _, err = conn.Write([]byte(request))
+        if err != nil {
+            result <- false
+            return
+        }
+
+        response := make([]byte, 100) // Leer solo los primeros 100 bytes
+        _, err = conn.Read(response)
+        if err != nil {
+            result <- false
+            return
+        }
+        // fmt.Printf("Proxy %s responded with: %s\n", proxyAddr, string(response[:n])) // Opcional: para depuración
+
+        result <- true
+    }()
+
+    select {
+    case success := <-result:
+        return success
+    case <-time.After(timeTimeout): // Usar el timeout aquí también
+        return false
+    }
 }
 
 func FetchCompetitionsParallel(

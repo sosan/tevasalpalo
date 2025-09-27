@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/grafov/m3u8"
@@ -208,31 +207,25 @@ func extractDataFromM3U8(body []byte, filterList []string) (map[string][]string,
 
 func resolveFinalManifestURL(initialURL string) (finalURL string, finalHeaders http.Header, manifestBody []byte, err error) {
 	client := &http.Client{
-		// No seguir redirecciones automáticamente con el cliente principal
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			// Detenerse en 10 redirecciones para evitar bucles infinitos
 			if len(via) >= 10 {
 				return fmt.Errorf("stopped after 10 redirects")
 			}
-			// Indicar que no siga la redirección automáticamente
+			
 			return http.ErrUseLastResponse
 		},
-		Timeout: 30 * time.Second, // Timeout razonable para la resolución inicial
+		Timeout: timeTimeout,
 	}
 
-	// Empezamos con la URL inicial
 	currentURL := initialURL
 	redirectCount := 0
 
-	// Bucle para seguir redirecciones manualmente
 	for {
-		// Crear una nueva solicitud
 		req, err := http.NewRequest("GET", currentURL, nil)
 		if err != nil {
 			return "", nil, nil, fmt.Errorf("failed to create request for %s: %w", currentURL, err)
 		}
 
-		// Agregar headers típicos para solicitudes de manifiesto
 		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
 		req.Header.Set("Accept", "*/*")
 		req.Header.Set("Connection", "keep-alive")
@@ -243,11 +236,8 @@ func resolveFinalManifestURL(initialURL string) (finalURL string, finalHeaders h
 			return "", nil, nil, fmt.Errorf("failed to fetch %s: %w", currentURL, err)
 		}
 
-		// Es crucial cerrar el cuerpo, incluso si luego lo leemos.
-		// Usamos defer para asegurarnos de que se cierre siempre al salir de la función o el bucle.
 		defer resp.Body.Close() 
 
-		// Verificar si es una redirección
 		if resp.StatusCode >= 300 && resp.StatusCode < 400 {
 			redirectCount++
 			if redirectCount > 10 {
@@ -258,24 +248,15 @@ func resolveFinalManifestURL(initialURL string) (finalURL string, finalHeaders h
 			if location == "" {
 				return "", nil, nil, fmt.Errorf("redirect status %d received but no Location header found for URL %s", resp.StatusCode, currentURL)
 			}
-			// Actualizar la URL actual para la próxima iteración
 			currentURL = location
-			// fmt.Printf("Redirect #%d: %s -> %s\n", redirectCount, req.URL.String(), location)
-			// Continuar con el bucle para seguir la próxima redirección
 			continue
 		}
 
-		// Si llegamos aquí, no es una redirección (o es un error 4xx/5xx, que manejamos como final)
-		// Leer el cuerpo del manifiesto
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return "", nil, nil, fmt.Errorf("failed to read manifest body from %s: %w", currentURL, err)
 		}
 
-		// Devolver la URL final, los headers y el cuerpo
-		// Nota: resp.Request.URL contiene la URL de la solicitud *real* que se hizo
-		// (la última antes de obtener una respuesta no-redirect).
-		// Esta es la URL final resuelta.
 		return resp.Request.URL.String(), resp.Header, body, nil
 	}
 }
@@ -307,60 +288,45 @@ func checkActiveLinks(broadcasters map[string]BroadcasterInfo) map[string]Broadc
 
 func checkActiveLink(initialURL string) (bool, error) {
 	client := &http.Client{
-		// No seguir redirecciones automáticamente con el cliente principal
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			// Detenerse en 10 redirecciones para evitar bucles infinitos
 			if len(via) >= 10 {
 				return fmt.Errorf("stopped after 10 redirects")
 			}
-			// Indicar que no siga la redirección automáticamente
 			return http.ErrUseLastResponse
 		},
-		Timeout: 10 * time.Second, // Timeout razonable para la resolución inicial
+		Timeout: timeTimeout,
 	}
 
-	// Empezamos con la URL inicial
 	currentURL := initialURL
 	redirectCount := 0
 
-	// Bucle para seguir redirecciones manualmente
 	for {
-		// Crear una nueva solicitud
 		req, err := http.NewRequest("GET", currentURL, nil)
 		if err != nil {
-			return false, err //"", nil, nil, fmt.Errorf("failed to create request for %s: %w", currentURL, err)
+			return false, err
 		}
 
-		// Agregar headers típicos para solicitudes de manifiesto
 		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
 		req.Header.Set("Accept", "*/*")
 		req.Header.Set("Connection", "keep-alive")
 
-		// Hacer la solicitud
 		resp, err := client.Do(req)
 		if err != nil {
-			return false, err //"", nil, nil, fmt.Errorf("failed to fetch %s: %w", currentURL, err)
+			return false, err
 		}
-
-		// Es crucial cerrar el cuerpo, incluso si luego lo leemos.
-		// Usamos defer para asegurarnos de que se cierre siempre al salir de la función o el bucle.
 		defer resp.Body.Close() 
 
-		// Verificar si es una redirección
 		if resp.StatusCode >= 300 && resp.StatusCode < 400 {
 			redirectCount++
 			if redirectCount > 10 {
-				return false, err //"", nil, nil, fmt.Errorf("too many redirects (>10)")
+				return false, err
 			}
 
 			location := resp.Header.Get("Location")
 			if location == "" {
-				return false, err //"", nil, nil, fmt.Errorf("redirect status %d received but no Location header found for URL %s", resp.StatusCode, currentURL)
+				return false, err
 			}
-			// Actualizar la URL actual para la próxima iteración
 			currentURL = location
-			// fmt.Printf("Redirect #%d: %s -> %s\n", redirectCount, req.URL.String(), location)
-			// Continuar con el bucle para seguir la próxima redirección
 			continue
 		}
 
@@ -368,17 +334,11 @@ func checkActiveLink(initialURL string) (bool, error) {
 			return false, nil
 		}
 
-		// Si llegamos aquí, no es una redirección (o es un error 4xx/5xx, que manejamos como final)
-		// Leer el cuerpo del manifiesto
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return false, err // "", nil, nil, fmt.Errorf("failed to read manifest body from %s: %w", currentURL, err)
+			return false, err
 		}
 		log.Printf("Manifest body: %s", string(body))
-		// Devolver la URL final, los headers y el cuerpo
-		// Nota: resp.Request.URL contiene la URL de la solicitud *real* que se hizo
-		// (la última antes de obtener una respuesta no-redirect).
-		// Esta es la URL final resuelta.
 		return true, err
 	}
 

@@ -155,10 +155,10 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 
 	requests := []CompetitionRequest{
 		{"https://www.futbolenlatv.es/deporte", false, "general"},
-		{"https://www.futbolenvivomexico.com/competicion/la-liga", false, "laligaMX"},
+		{"https://www.futbolenvivomexico.com/competicion/la-liga", true, "laligaMX"},
 		{"https://www.futebolnatv.pt/campeonato/bundesliga", true, "bundesligaPT"},
-		{"https://www.futebolnatv.pt/campeonato/ligue-1", false, "ligue1PT"},
-		{"https://www.futebolnatv.pt/campeonato/calcio-serie-a", false, "calcioPT"},
+		{"https://www.futebolnatv.pt/campeonato/ligue-1", true, "ligue1PT"},
+		{"https://www.futebolnatv.pt/campeonato/calcio-serie-a", true, "calcioPT"},
 		{"https://www.futbolenlatv.es/deporte/mma", false, "mma"},
 	}
 
@@ -190,9 +190,15 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 }
 
 func getCompetition(uri string, proxied bool) ([]DayView, error) {
-	body, err := FetchWebData(uri, proxied)
-	if err != nil {
-		return nil, err
+	var body []byte
+	var err error
+	for i:= range 10 {
+		log.Printf("Intento %d: Obteniendo datos de %s (proxied=%v)", i+1, uri, proxied)
+		body, err = FetchWebData(uri, proxied)
+		if err == nil {
+			break
+		}
+		log.Printf("Intento FALLIDO %d: Obteniendo datos de %s (proxied=%v) error=%v", i+1, uri, proxied, err)
 	}
 
 	dayviews, err := prepareMatchDay(body)
