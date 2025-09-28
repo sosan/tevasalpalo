@@ -11,7 +11,7 @@ concurrency: release
 jobs:
   build-test-image:
     name: Build Image for Testing
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       packages: write
     steps:
@@ -38,7 +38,7 @@ jobs:
   test-unit:
     name: Unit tests in Docker
     needs: [build-test-image]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       packages: read
     steps:
@@ -59,7 +59,7 @@ jobs:
   test-integration:
     name: Integration tests in Compose
     needs: [build-test-image]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       packages: read
     steps:
@@ -83,7 +83,7 @@ jobs:
   scan-image:
     name: Scan Image with Trivy
     needs: [build-test-image]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     permissions:
       contents: read # for actions/checkout to fetch code
@@ -113,7 +113,7 @@ jobs:
   upload-artifact:
     name: Upload ${{ matrix.arch }} artifacts
     # needs: [scan-image]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     strategy:
