@@ -280,7 +280,8 @@
             hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
                 console.log("HLS.js: Manifest parsed. Niveles de calidad: ", data.levels.length);
                 // statusMessage.textContent = "Stream cargado. Iniciando reproducción...";
-                // Opcional: Esperar un poco antes de reproducir basado en prebufferTime
+                console.log('Pistas de audio:', hls.audioTracks);
+                hls.audioTrack = 0;
                 setTimeout(() => {
                     video.play().then(() => {
                     // statusMessage.style.display = 'none';
@@ -307,8 +308,12 @@
                             break;
                         case Hls.ErrorTypes.MEDIA_ERROR:
                             // statusMessage.textContent = `❌ Error de medios: ${data.details}.`;
+                            const mimeType = 'video/mp4; codecs="hvc1.1.6.L120.B0"';
+                            if (!MediaSource.isTypeSupported(mimeType)) {
+                                console.warn('HEVC no soportado en este navegador');
+                                return;
+                            }
                             console.error("HLS.js: Error de medios fatal", data);
-                            // Opcional: intentar recuperarse
                             hls.recoverMediaError();
                             break;
                         default:
