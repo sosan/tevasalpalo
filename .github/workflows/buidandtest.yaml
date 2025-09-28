@@ -124,7 +124,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Cache and Install apt (.deb) Packages
-        uses: eth-pkg/apt-deb-cache@v0.2.6
+        uses: eth-pkg/apt-deb-cache@v0.2.7
         with:
           packages: 'megatools'
 
