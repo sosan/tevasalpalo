@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"time"
 )
 
@@ -28,15 +27,15 @@ func RunTor() (*exec.Cmd, error) {
 	}
 
 	var zipTorFile string
-	zipTorFile = "assets/" + torAssetNameWin
-	if runtime.GOOS == "linux" {
-		zipTorFile = "assets/" + torAssetNameLinux
+	zipTorFile = "assets/" + torAssetNameLinux
+	if os.Getenv("GOOS") == "windows" {
+		zipTorFile = "assets/" + torAssetNameWin
 	}
 
 	extractedTorDir := filepath.Join(execDir, torDirName)
 
 	torExecutablePath := filepath.Join(extractedTorDir, "tor", "tor")
-	if runtime.GOOS == "windows" {
+	if os.Getenv("GOOS") == "windows" {
 		torExecutablePath += ".exe"
 	}
 
