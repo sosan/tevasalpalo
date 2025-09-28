@@ -27,9 +27,15 @@ func init() {
 }
 
 func main() {
+	log.Println("📡 Iniciando Tor...")
+	cmdTor, err := RunTor()
+	if err != nil {
+		log.Fatal("❌ Error al iniciar TOR: ", err)
+	}
+
 	log.Println("📡 Obteniendo programacion TV...")
 	// donwload updated lists
-	err := FetchUpdatedList()
+	err = FetchUpdatedList()
 	if err != nil {
 		log.Printf("Error al obtener la programación")
 	}
@@ -38,7 +44,15 @@ func main() {
 	if err != nil {
 		log.Printf("❌ Error en servidor web: %v", err)
 	}
-	
+
+	if cmdTor != nil && cmdTor.Process != nil {
+		if err := cmdTor.Process.Kill(); err != nil {
+			log.Printf("❌ Error al cerrar: %v", err)
+		} else {
+			log.Println("✅ Cerrado TOR correctamente")
+		}
+	}
+
 	log.Println("🌐 Servidor web iniciando en http://localhost:3000")
 	time.Sleep(1 * time.Second)
 	var cmdAcestream *exec.Cmd
@@ -62,21 +76,21 @@ func main() {
 	case <-shutdownChan:
 		log.Println("⏳ Señal de autoupdate recibida, cerrando limpio...")
 	}
-	
+
 	log.Println("🛑 Cerrando...")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := webServer.ShutdownWithContext(ctx); err != nil {
 		log.Printf("❌ Error al cerrar servidor: %v", err)
 	} else {
-		log.Println("✅ Cerrado 1 correctamente")
+		log.Println("✅ Cerrado webserver correctamente")
 	}
 
 	if cmdAcestream != nil && cmdAcestream.Process != nil {
 		if err := cmdAcestream.Process.Kill(); err != nil {
 			log.Printf("❌ Error al cerrar: %v", err)
 		} else {
-			log.Println("✅ Cerrado 2 correctamente")
+			log.Println("✅ Cerrado ace correctamente")
 		}
 	}
 

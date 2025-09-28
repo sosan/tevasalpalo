@@ -206,59 +206,7 @@ func extractDataFromM3U8(body []byte, filterList []string) (map[string][]string,
 }
 
 func resolveFinalManifestURL(initialURL string) (finalURL string, finalHeaders http.Header, manifestBody []byte, err error) {
-	client := &http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if len(via) >= 10 {
-				return fmt.Errorf("stopped after 10 redirects")
-			}
-			
-			return http.ErrUseLastResponse
-		},
-		Timeout: timeTimeout,
-	}
-
-	currentURL := initialURL
-	redirectCount := 0
-
-	for {
-		req, err := http.NewRequest("GET", currentURL, nil)
-		if err != nil {
-			return "", nil, nil, fmt.Errorf("failed to create request for %s: %w", currentURL, err)
-		}
-
-		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-		req.Header.Set("Accept", "*/*")
-		req.Header.Set("Connection", "keep-alive")
-
-		// Hacer la solicitud
-		resp, err := client.Do(req)
-		if err != nil {
-			return "", nil, nil, fmt.Errorf("failed to fetch %s: %w", currentURL, err)
-		}
-
-		defer resp.Body.Close() 
-
-		if resp.StatusCode >= 300 && resp.StatusCode < 400 {
-			redirectCount++
-			if redirectCount > 10 {
-				return "", nil, nil, fmt.Errorf("too many redirects (>10)")
-			}
-
-			location := resp.Header.Get("Location")
-			if location == "" {
-				return "", nil, nil, fmt.Errorf("redirect status %d received but no Location header found for URL %s", resp.StatusCode, currentURL)
-			}
-			currentURL = location
-			continue
-		}
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return "", nil, nil, fmt.Errorf("failed to read manifest body from %s: %w", currentURL, err)
-		}
-
-		return resp.Request.URL.String(), resp.Header, body, nil
-	}
+	return fetchWithRedirects(initialURL, true)
 }
 
 func checkActiveLinks(broadcasters map[string]BroadcasterInfo) map[string]BroadcasterInfo {

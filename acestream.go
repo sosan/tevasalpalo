@@ -16,13 +16,15 @@ import (
 )
 
 //go:embed assets/acestream-runtime-windows.zip
+//go:embed assets/tor-expert-bundle-windows-x86_64.zip
+//go:embed assets/tor-expert-bundle-linux-x86_64.zip
 var runtimeZip embed.FS
 
 const (
-	runtimeDirName    = "runtime" // Carpeta junto al .exe
+	runtimeDirName    = "runtime"
 	httpPort          = 6878
 	httpWebServerPort = 3000
-	assetName         = "acestream-runtime-windows.zip"
+	aceAssetNameWin      = "acestream-runtime-windows.zip"
 )
 
 func findBroadcaster(name string, competitionName string) BroadcasterInfo {
@@ -35,13 +37,12 @@ func findBroadcaster(name string, competitionName string) BroadcasterInfo {
 	if competitionName == "LaLiga" && nameUpper == "SKY SPORTS" {
 		nameUpper = "SKY SPORTS LALIGA"
 	}
-	
+
 	if dataAce, exists := broadcasterToAcestream[nameUpper]; exists {
 		return dataAce
 	}
 	return BroadcasterInfo{}
 }
-
 
 // findLinkForBroadcaster busca un enlace para un nombre de broadcaster.
 // Prioriza la coincidencia exacta, luego parcial.
@@ -79,12 +80,14 @@ func RunAceStream() (*exec.Cmd, error) {
 		log.Fatal("No se pudo obtener la ruta del ejecutable: ", err)
 	}
 	execDir := filepath.Dir(exePath)
-	runtimePath := filepath.Join(execDir, runtimeDirName)
-	enginePath := filepath.Join(runtimePath, "engine", "ace_console.exe")
 
-	if !fileExists(enginePath) {
+	runtimePath := filepath.Join(execDir, runtimeDirName)
+	engineAcePath := filepath.Join(runtimePath, "engine", "ace_console.exe")
+	zipAceFile := "assets/" + aceAssetNameWin
+
+	if !fileExists(engineAcePath) {
 		log.Println("📦 No se encontró Lista Canales TV. Extrayendo por primera vez...")
-		if err := extractRuntime(runtimePath); err != nil {
+		if err := extractRuntime(runtimePath, zipAceFile); err != nil {
 			log.Fatal("Error al extraer Lista Canales: ", err)
 		}
 		log.Println("✅ Lista Canales TV extraído exitosamente.")
@@ -95,10 +98,10 @@ func RunAceStream() (*exec.Cmd, error) {
 	log.Println("🚀 Actualizando Lista Canales TV...")
 	args := []string{
 		"--live-buffer", "60", // 30
-		"--vod-buffer", "10",  // 30
+		"--vod-buffer", "10", // 30
 		"--client-console",
 	}
-	cmd := exec.Command(enginePath, args...)
+	cmd := exec.Command(engineAcePath, args...)
 	cmd.Dir = filepath.Join(runtimePath, "engine")
 
 	if err := cmd.Start(); err != nil {
@@ -119,9 +122,9 @@ func RunAceStream() (*exec.Cmd, error) {
 }
 
 // extractRuntime extrae el ZIP embebido en el directorio runtime
-func extractRuntime(targetDir string) error {
+func extractRuntime(targetDir, pathFile string) error {
 	// Abrir el ZIP embebido
-	zipFile, err := runtimeZip.Open("assets/acestream-runtime-windows.zip")
+	zipFile, err := runtimeZip.Open(pathFile)
 	if err != nil {
 		return fmt.Errorf("no se pudo abrir el ZIP embebido: %w", err)
 	}
