@@ -132,6 +132,7 @@ jobs:
         run: |
           megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_ACE_ZIPPED }}
           megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_TOR_WINDOWS_ZIPPED }}
+          megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_TOR_LINUX_ZIPPED }}
           export VERSION_BUILD=$(date -u "+%Y-%m-%dT%H:%M:%SZ")
           echo ${VERSION_BUILD} > date_build_${{ matrix.artifact_name }}.txt
           # CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=amd64 go build -ldflags="-X 'main/update.VersionBuild=${VERSION_BUILD}'" -o ${{ matrix.artifact_name }}
