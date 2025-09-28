@@ -194,7 +194,6 @@ func getCompetition(uri string, proxied bool) ([]DayView, error) {
 	var body []byte
 	var err error
 	for i:= range 10 {
-		log.Printf("Intento %d: Obteniendo datos de %s (proxied=%v)", i+1, uri, proxied)
 		body, err = FetchWebData(uri, proxied)
 		if err == nil {
 			break
