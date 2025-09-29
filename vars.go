@@ -41,8 +41,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo:  "dazn2.png",
 		Links: []string{
 			"8b081c8afbd9beafc8c5fbf0115eb36eadb07a35",
-			// "43004e955731cd3afcc34d24e5178d4b427bff37",
-			// "b0eabe0fdd02fdd165896236765a9b753a2ff516",
+			"b0eabe0fdd02fdd165896236765a9b753a2ff516",
+			"43004e955731cd3afcc34d24e5178d4b427bff37",
 		},
 		Name:             "DAZN 2",
 		ShowListChannels: true,
@@ -64,8 +64,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"eb884f77ce8815cf1028c4d85e8b092c27ea1693",
 			"e2b8a4aba2f4ea3dd68992fcdb65c9e62d910b05",
 			"7e27e46c25d4308d16098d9dc67fcd8736e8c1f0",
+			"4e401fdceebffdf1f09aef954844d09f6c62f460",
 			
-			// "4e401fdceebffdf1f09aef954844d09f6c62f460",
 			
 			// "6a11eb510edc5b3581c5c97883c44563eb894b1b",
 			// "7e90956539f4e1318a63f3960e4f75c7c7c5a3b8",
@@ -78,10 +78,10 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN LALIGA": {
 		Logo:  "daznlaliga.png",
 		Links: []string{
-			"0e50439e68aa2435b38f0563bb2f2e98f32ff4b1",
-			"1bb5bf76fb2018d6db9aaa29b1467ecdfabe2884",
 			"e2b8a4aba2f4ea3dd68992fcdb65c9e62d910b05",
 			"74defb8f4ed3a917fd07c21b34f43c17107ec618",
+			"0e50439e68aa2435b38f0563bb2f2e98f32ff4b1",
+			"1bb5bf76fb2018d6db9aaa29b1467ecdfabe2884",
 			"4e6d9cf7d177366045d33cd8311d8b1d7f4bed1f",
 			
 			// "f8d5e39a49b9da0215bbd3d9efb8fb3d06b76892",
@@ -141,14 +141,13 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"bcf9dc38f92e90a71b87bd54b3bac91b76d09a69",
 			"fd53cfa7055fe458d4f5c0ff59a06cd43723be55",
 			"38e9ae1ee0c96d7c6187c9c4cc60ffccb565bdf7",
+			"3f5b7e2f883fe4b4b973e198d147a513d5c7c32a",
 			
-			
-			// "3f5b7e2f883fe4b4b973e198d147a513d5c7c32a",
 			// "ba6e1bdc8e03da60ff572557645eb04370af0cd0",
 			// "8c1155cdfae76eb582290c04904c98da066657c9",
 			// "b08e158ea3f5c72084f5ff8e3c30ca2e4d1ff6d1",
 			// "bcf9dc38f92e90a71b87bd54b3bac91b76d09a69",
-			// "fd53cfa7055fe458d4f5c0ff59a06cd43723be55",
+			
 			// "ed6188dcbb491efeb2092c1a6199226c27f61727",
 			// "6422e8bc34282871634c81947be093c04ad1bb29",
 		},
@@ -332,7 +331,9 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"1ab443f5b4beb6d586f19e8b25b9f9646cf2ab78",
 			"199190e3f28c1de0be34bccf0d3568dc65209b99",
-			"5866e83279307bf919068ae7a0d250e4e424e464",
+			// "5866e83279307bf919068ae7a0d250e4e424e464",
+			"b6ffbbc72a5b6b579faf79ebac229af7a25b933b",
+			"8c67cdb5ba81976662c3a67984a9545d9cfb0f70",
 			// "5d9a26e0a5f3e5f2ae027bd05635ab9a4fd4b51a",
 			// "5e24a1b9187fccb91553f7c7da4b36341386f74a",
 			
@@ -346,8 +347,9 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"1ab443f5b4beb6d586f19e8b25b9f9646cf2ab78",
 			"199190e3f28c1de0be34bccf0d3568dc65209b99",
-			
-			"5866e83279307bf919068ae7a0d250e4e424e464",
+			// "5866e83279307bf919068ae7a0d250e4e424e464",
+			"b6ffbbc72a5b6b579faf79ebac229af7a25b933b",
+			"8c67cdb5ba81976662c3a67984a9545d9cfb0f70",
 			// "5d9a26e0a5f3e5f2ae027bd05635ab9a4fd4b51a",
 			// "5e24a1b9187fccb91553f7c7da4b36341386f74a",
 		},
@@ -425,9 +427,11 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"d2ddf9802ccfdc456f872eea4d24596880a638a0",
 			"c9321006921967d6258df6945f1d598a5c0cbf1e",
+			"4b528d10eaad747ddf52251206177573ee3e9f74",
 			"107c3ce5a5d2527c9f06e4eab87477201791f231",
 			"00c9bc9c5d7d87680a5a6bed349edfa775a89947",
 			"14b6cd8769cd485f2cffdca64be9698d9bfeac58",
+			"d4ff041287a43e3114d411d671c4b4e92e21f31e",
 			// "107c3ce5a5d2527c9f06e4eab87477201791f231",
 			// "d2ddf9802ccfdc456f872eea4d24596880a638a0",
 			// "14b6cd8769cd485f2cffdca64be9698d9bfeac58",
@@ -447,6 +451,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"107c3ce5a5d2527c9f06e4eab87477201791f231",
 			"00c9bc9c5d7d87680a5a6bed349edfa775a89947",
 			"14b6cd8769cd485f2cffdca64be9698d9bfeac58",
+			"cc9b7f5fe416069a2110da0909b0f915043c468b",
 			// "14b6cd8769cd485f2cffdca64be9698d9bfeac58",
 			// "07f2b92762cfff99bba785c2f5260c7934ca6034",
 			// "4b528d10eaad747ddf52251206177573ee3e9f74",
@@ -504,12 +509,13 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo:  "mligacampeones.png",
 		Links: []string{
 			"c16b4fab1f724c94cad92081cbb7fc7c6fe8a2cc",
-			// "0f7842f8b6c26571e5a974407b61623e56e6a052",
-			// "f3eea003e23f94dc2d527306de9dd386e3ebf4ba",
+			"afbf2a479c5a5072698139f0f556ef3e77a99bd0",
+			"0f7842f8b6c26571e5a974407b61623e56e6a052",
+			"f3eea003e23f94dc2d527306de9dd386e3ebf4ba",
+			"bb5a8bf7752e978460ee1710e5e8950a5c9e1f99",
 			// "680187938f9305cce3ae240298f10e8695bf77c2",
 			// "e572a5178ff72eed7d1d751a18b4b3419699f370",
 			// "c16b4fab1f724c94cad92081cbb7fc7c6fe8a2cc",
-			// "afbf2a479c5a5072698139f0f556ef3e77a99bd0",
 			// "dfa66881b9613a77bd5479f6eedc5542504c3ef7",
 		},
 		Name:             "M+ LIGA DE CAMPEONES 1",
@@ -519,13 +525,13 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"M+ LIGA DE CAMPEONES 2": {
 		Logo: "mligacampeones2.png",
 		Links: []string{
-			// "38f7b2044e549df2039ff26cefa6f9a60c854d5e",
 			"c6a3673f6a37b1bd3cf31fdd6404dd33d48cfccb",
+			"e7d8cae7f693fe46e89bbf74820caac9ffb32a30",
+			"74ab4e4ec7e2da001f473ca40893b7307b8029c5",
 			"4fc6d0331830ad8743abab2fe2473b63bdfbc49f",
-			// "e7d8cae7f693fe46e89bbf74820caac9ffb32a30",
+			// "38f7b2044e549df2039ff26cefa6f9a60c854d5e",
 			// "33c009a025508cb2186b9ce36279640bb2507bdf",
-			// "74ab4e4ec7e2da001f473ca40893b7307b8029c5",
-			// "4fc6d0331830ad8743abab2fe2473b63bdfbc49f",
+			
 		},
 		Name:             "M+ LIGA DE CAMPEONES 2",
 		ShowListChannels: true,
@@ -535,9 +541,9 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo:  "mligacampeones3.png",
 		Links: []string{
 			"17b8bc4bf8e29547b0071c742e3d7da3bcbc484d",
-			// "2b5129adc57d43790634d796fe3468b9fd061259",
+			"4416843c96b7f7a1bc55c476091a60fff0922bc7",
+			"2b5129adc57d43790634d796fe3468b9fd061259",
 			// "17b8bc4bf8e29547b0071c742e3d7da3bcbc484d",
-			// "4416843c96b7f7a1bc55c476091a60fff0922bc7",
 		},
 		Name:             "M+ LIGA DE CAMPEONES 3",
 		ShowListChannels: true,
@@ -547,6 +553,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo: "mligacampeones4.png",
 		Links: []string{
 			"77998f8161373611ff6b348e7eda5b4e97d3ec29",
+			"e9f4493d2d851f4636720f639113e05b4a21a74c",
 		},
 		Name:             "M+ LIGA DE CAMPEONES 4",
 		ShowListChannels: true,
@@ -662,9 +669,9 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo: "mvamos.png",
 		Links: []string{
 			"0e5d8c9724fa9163f49096b70484e315251eb785",
-			// "4e99e755aa32c4bc043a4bb1cd1de35f9bd94dde",
+			"4e99e755aa32c4bc043a4bb1cd1de35f9bd94dde",
 			// "1444a976d2cf6e7fdcee833ed36ee5e55632253f",
-			// "c7c81acdd1a03ecc418c94c2f28e2adb0556c40b",
+			"c7c81acdd1a03ecc418c94c2f28e2adb0556c40b",
 			// "3b2a8b41e7097c16b0468b42d7de0320886fa933",
 			// "2940120bf034db79a7f5849846ccea0255172eae",
 		},
@@ -691,6 +698,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo: "primerafederacion.png",
 		Links: []string{
 			"b40212c43e96e97542ea00f2129212a054853a57",
+			"a2ed6f2ca3f804481131c41ce64d4286a5820476",
 		},
 		Name:             "Primera federacion",
 		ShowListChannels: true,
@@ -1067,6 +1075,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"36cad67fed5a739757a9db844a551aa845a8d51b",
 			"29df34d41d25647e1963e95a1cd9ed5bf59702c8",
+			
 			// "29df34d41d25647e1963e95a1cd9ed5bf59702c8",
 			// "969e14989a98c62518a7640741dbf15d90212d1a",
 			
@@ -1080,10 +1089,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"d08013df6e437a1fdf1e0c34f573fdf6a40c7fce",
 			"9c726c4917a60bea3a2ebfde25a60355ec5368362",
-
 			// "9c726c4917a60bea3a2ebfde25a60355ec536836",
 			// "27573fb01690fd55b25c07ae2180ee44b1ad8a7c",
-			// "d08013df6e437a1fdf1e0c34f573fdf6a40c7fce",
 		},
 		Name:             "DAZN 2 PT",
 		ShowListChannels: true,
