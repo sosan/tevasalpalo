@@ -27,6 +27,7 @@ type BroadcasterInfo struct {
 	Logo             string   `json:"logo"`
 	Links            []string `json:"link,omitempty"`
 	ShowListChannels bool     `json:"showListChannels,omitempty"`
+	Order            int      `json:"order,omitempty"`
 }
 
 type MatchView struct {
@@ -193,7 +194,7 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 func getCompetition(uri string, proxied bool) ([]DayView, error) {
 	var body []byte
 	var err error
-	for i:= range 10 {
+	for i := range 10 {
 		body, err = FetchWebData(uri, proxied)
 		if err == nil {
 			break

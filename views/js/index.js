@@ -100,7 +100,7 @@ async function startCheckAppUpdate() {
 
         if (data.needUpdate) {
             updatingcheck = false;
-            
+
             messageWarn.innerText = "¡Nueva versión disponible! Haz clic aquí para actualizar.";
             messageWarn.classList.remove("display-none");
             messageWarn.classList.add("display-block");
@@ -203,6 +203,10 @@ function renderFullSchedule(daysData) {
 
                 let atleastLink = false;
                 for (let j = 0; j < matchData.channels.length; j++) {
+                    if (matchData.channels[j].name === "APLAZADO") {
+                        atleastLink = true;
+                        continue;
+                    }
                     if (!matchData.channels[j].link || matchData.channels[j].link.length === 0) {
                         continue;
                     }
@@ -257,14 +261,14 @@ function formatBroadcasters(broadcasters, eventName, competitionName) {
 
     return broadcasters.map((broadcaster, broadcasterIndex) => {
         const links = broadcaster.link || broadcaster.Links;
-        if (links === undefined) {
+        if (links === undefined && broadcaster.name !== "APLAZADO") {
             return;
         }
 
         let html = '';
 
         html += `<span class="broadcaster-links">`;
-        html += `<span class="broadcaster-name">${broadcaster.name || 'Canal'}:</span>`;
+        html += `<span class="broadcaster-name">${broadcaster.name} </span>`;
 
         if (links && Array.isArray(links) && links.length > 0) {
             const linksHtml = links.map((link, linkIndex) => {

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"sort"
 
 	"strings"
 	"sync"
@@ -43,29 +44,50 @@ type CachedData struct {
 	AllCompetitions     AllCompetitions
 	TopCompetitions     map[string]CompetitionDetail
 	Broadcasters        map[string]BroadcasterInfo
+	BroadcastersOrdered []BroadcasterInfo  
 }
 
-// Pre-cargar datos al iniciar
 func preloadData() error {
-	days, daysJSON, topCompetitionsJSON, err := fetchEvents()
-	if err != nil {
-		return fmt.Errorf("error preloading data: %v", err)
-	}
+    days, daysJSON, topCompetitionsJSON, err := fetchEvents()
+    if err != nil {
+        return fmt.Errorf("error preloading data: %v", err)
+    }
 
-	dataMutex.Lock()
-	cachedData = CachedData{
-		Days:                days,
-		DaysJSON:            *daysJSON,
-		TopCompetitionsJSON: *topCompetitionsJSON,
-		AllCompetitions:     allCompetitions,
-		TopCompetitions:     topCompetitions,
-		Broadcasters:        broadcasterToAcestream,
-	}
-	lastDataUpdate = time.Now()
-	dataMutex.Unlock()
+    broadcastersMap := broadcasterToAcestream // Tu mapa original
+    broadcastersSlice := make([]BroadcasterInfo, 0, len(broadcastersMap))
 
-	log.Println("✅ Datos pre-cargados en memoria")
-	return nil
+    for _, info := range broadcastersMap {
+        if info.ShowListChannels {
+            broadcastersSlice = append(broadcastersSlice, info)
+        }
+    }
+
+    // based in order value
+    sort.Slice(broadcastersSlice, func(i, j int) bool {
+        if broadcastersSlice[i].Order == 0 && broadcastersSlice[j].Order != 0 {
+            return false
+        }
+        if broadcastersSlice[j].Order == 0 && broadcastersSlice[i].Order != 0 {
+            return true
+        }
+        return broadcastersSlice[i].Order < broadcastersSlice[j].Order
+    })
+
+    dataMutex.Lock()
+    cachedData = CachedData{
+        Days:                days,
+        DaysJSON:            *daysJSON,
+        TopCompetitionsJSON: *topCompetitionsJSON,
+        AllCompetitions:     allCompetitions,
+        TopCompetitions:     topCompetitions,
+        Broadcasters:        broadcasterToAcestream,
+        BroadcastersOrdered: broadcastersSlice,
+    }
+    lastDataUpdate = time.Now()
+    dataMutex.Unlock()
+
+    log.Println("✅ Datos pre-cargados en memoria")
+    return nil
 }
 
 // Refrescar datos periódicamente
@@ -146,19 +168,20 @@ func StartWebServer() (*fiber.App, error) {
 	})
 
 	app.Get("/broadcasters", func(c *fiber.Ctx) error {
-		dataMutex.RLock()
-		data := cachedData
-		dataMutex.RUnlock()
+    dataMutex.RLock()
+    data := cachedData
+    dataMutex.RUnlock()
 
-		return c.Render("views/broadcasters", fiber.Map{
-			"Broadcasters":        data.Broadcasters,
-			"DaysJSON":            data.DaysJSON,
-			"Days":                data.Days,
-			"allCompetitions":     data.AllCompetitions,
-			"topCompetitions":     data.TopCompetitions,
-			"topCompetitionsJSON": data.TopCompetitionsJSON,
-		})
-	})
+    return c.Render("views/broadcasters", fiber.Map{
+        // 
+        "Broadcasters":        data.BroadcastersOrdered,
+        "DaysJSON":            data.DaysJSON,
+        "Days":                data.Days,
+        "allCompetitions":     data.AllCompetitions,
+        "topCompetitions":     data.TopCompetitions,
+        "topCompetitionsJSON": data.TopCompetitionsJSON,
+    })
+})
 
 	app.Get("/refresh-data", func(c *fiber.Ctx) error {
 		if err := preloadData(); err != nil {
