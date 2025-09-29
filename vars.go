@@ -52,6 +52,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo:             "dazn3.png",
 		Links:            []string{
 			"d1d9ec2361a6ac8edc0b2841866383768cc28df9",
+			
 		},
 		Name:             "DAZN 3",
 		ShowListChannels: true,
@@ -62,8 +63,10 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"eb884f77ce8815cf1028c4d85e8b092c27ea1693",
 			"e2b8a4aba2f4ea3dd68992fcdb65c9e62d910b05",
+			"7e27e46c25d4308d16098d9dc67fcd8736e8c1f0",
+			
 			// "4e401fdceebffdf1f09aef954844d09f6c62f460",
-			// "eb884f77ce8815cf1028c4d85e8b092c27ea1693",
+			
 			// "6a11eb510edc5b3581c5c97883c44563eb894b1b",
 			// "7e90956539f4e1318a63f3960e4f75c7c7c5a3b8",
 			// "c21a2524a8de3e1e5b126f2677a3e993d9aa07c4",
@@ -75,13 +78,12 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN LALIGA": {
 		Logo:  "daznlaliga.png",
 		Links: []string{
+			"0e50439e68aa2435b38f0563bb2f2e98f32ff4b1",
+			"1bb5bf76fb2018d6db9aaa29b1467ecdfabe2884",
 			"e2b8a4aba2f4ea3dd68992fcdb65c9e62d910b05",
 			"74defb8f4ed3a917fd07c21b34f43c17107ec618",
 			"4e6d9cf7d177366045d33cd8311d8b1d7f4bed1f",
-			"1bb5bf76fb2018d6db9aaa29b1467ecdfabe2884",
 			
-			// "0e50439e68aa2435b38f0563bb2f2e98f32ff4b1",
-			// "1bb5bf76fb2018d6db9aaa29b1467ecdfabe2884",
 			// "f8d5e39a49b9da0215bbd3d9efb8fb3d06b76892",
 		},
 		Name:             "DAZN LALIGA",
@@ -91,9 +93,10 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN LALIGA 2": {
 		Logo:  "daznlaliga.png",
 		Links: []string{
+			"a231b2fa1f7754433efeb8bb8d69d7b9096dcba8",
+			
 			"5091ea94b75ba4b50b078b4102a3d0e158ef59c3",
 			"c976c7b37964322752db562b4ad65515509c8d36",
-			"a231b2fa1f7754433efeb8bb8d69d7b9096dcba8",
 		},
 		Name:             "DAZN LALIGA 2",
 		ShowListChannels: true,
@@ -134,10 +137,12 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN F1": {
 		Logo:  "daznf1.png",
 		Links: []string{
-			"1a63d886860e2b770590dcd64a4dd472eabb841d",
+			"b08e158ea3f5c72084f5ff8e3c30ca2e4d1ff6d1",
+			"bcf9dc38f92e90a71b87bd54b3bac91b76d09a69",
+			"fd53cfa7055fe458d4f5c0ff59a06cd43723be55",
 			"38e9ae1ee0c96d7c6187c9c4cc60ffccb565bdf7",
-			"3f5b7e2f883fe4b4b973e198d147a513d5c7c32a",
-			// "38e9ae1ee0c96d7c6187c9c4cc60ffccb565bdf7",
+			
+			
 			// "3f5b7e2f883fe4b4b973e198d147a513d5c7c32a",
 			// "ba6e1bdc8e03da60ff572557645eb04370af0cd0",
 			// "8c1155cdfae76eb582290c04904c98da066657c9",
@@ -322,7 +327,99 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Order: 74,
 	},
 	
-	
+	"M+": {
+		Logo:  "m.png",
+		Links: []string{
+			"1ab443f5b4beb6d586f19e8b25b9f9646cf2ab78",
+			"199190e3f28c1de0be34bccf0d3568dc65209b99",
+			"5866e83279307bf919068ae7a0d250e4e424e464",
+			// "5d9a26e0a5f3e5f2ae027bd05635ab9a4fd4b51a",
+			// "5e24a1b9187fccb91553f7c7da4b36341386f74a",
+			
+		},
+		Name:             "M+",
+		ShowListChannels: true,
+		Order: 20,
+	},
+	"MOVISTAR PLUS+": {
+		Logo:  "m.png",
+		Links: []string{
+			"1ab443f5b4beb6d586f19e8b25b9f9646cf2ab78",
+			"199190e3f28c1de0be34bccf0d3568dc65209b99",
+			
+			"5866e83279307bf919068ae7a0d250e4e424e464",
+			// "5d9a26e0a5f3e5f2ae027bd05635ab9a4fd4b51a",
+			// "5e24a1b9187fccb91553f7c7da4b36341386f74a",
+		},
+		Name:             "Movistar Plus+ 1",
+		ShowListChannels: true,
+		Order: 21,
+	},
+	"MOVISTAR PLUS+ 2": {
+		Logo:             "m2.png",
+		Links:            []string{
+			"e19c1fc5e3ada56c60d45257f7f4ed0d14bf7003",
+			"fbc39d8a9e5d7c9ac6a1438d440104620f54e09c",
+			
+		},
+		Name:             "Movistar Plus+ 2",
+		ShowListChannels: true,
+		Order: 22,
+	},
+	"MOVISTAR PLUS": {
+		Logo:  "m.png",
+		Links: []string{
+			// "199190e3f28c1de0be34bccf0d3568dc65209b99",
+			// "5866e83279307bf919068ae7a0d250e4e424e464",
+			// "5d9a26e0a5f3e5f2ae027bd05635ab9a4fd4b51a",
+			// "5e24a1b9187fccb91553f7c7da4b36341386f74a",
+		},
+		Name:             "Movistar Plus+ 1",
+		ShowListChannels: false,
+	},
+	"LALIGA TV HYPERMOTION": {
+		Logo:  "mlaligahyper.png",
+		Links: []string{
+			// "8ee52f6208e33706171856f99d2ed2dabd317f3a",
+			// "70f22be1286ef224b5e4e9451d9a42468152cda4",
+			// "f15f997f457e49ad9697e65cf2d78db26ee875b9",
+			// "ff38b875b60074d60edb64cf10d09b32370a7135",
+			// "778d2f60bb7207addedcca0b9aed98f41529724e",
+		},
+		Name:             "LALIGA HYPERMOTION",
+		ShowListChannels: true,
+		Order: 41,
+	},
+	"LALIGA TV HYPERMOTION 2": {
+		Logo: "mlaligahyper.png",
+		Links: []string{
+			"8a05571c0c8fe53f160fb7d116cdf97243679e86",
+		},
+		Name:             "LALIGA HYPERMOTION 2",
+		ShowListChannels: true,
+		Order: 42,
+	},
+	"LALIGA TV HYPERMOTION 3": {
+		Logo: "mlaligahyper.png",
+		Links: []string{
+			"1ba18731a8e18bb4b3a5dfa5bb7b0f05762849a6",
+		},
+		Name:             "LALIGA HYPERMOTION 3",
+		ShowListChannels: true,
+		Order: 43,
+	},
+	// "LALIGA TV HYPERMOTION": {
+	// 	Logo:  "mlaligahyper.png",
+	// 	Links: []string{
+	// 		// "8ee52f6208e33706171856f99d2ed2dabd317f3a",
+	// 		// "70f22be1286ef224b5e4e9451d9a42468152cda4",
+	// 		// "f15f997f457e49ad9697e65cf2d78db26ee875b9",
+	// 		// "ff38b875b60074d60edb64cf10d09b32370a7135",
+	// 		// "778d2f60bb7207addedcca0b9aed98f41529724e",
+	// 	},
+	// 	Name: "LALIGA HYPERMOTION",
+	// 	ShowListChannels: true,
+	// },
 	"M+ LALIGA": {
 		Logo:  "mlaliga.png",
 		Links: []string{
@@ -361,9 +458,10 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"M+ LALIGA 2": {
 		Logo:  "mlaliga2.png",
 		Links: []string{
+			
 			"911ad127726234b97658498a8b790fdd7516541d",
 			// "51b363b1c4d42724e05240ad068ad219df8042ec",
-			// "911ad127726234b97658498a8b790fdd7516541d",
+			
 			"ad42faa399df66dcd62a1cbc9d1c99ed4512d3b8",
 		},
 		Name:             "M+ LALIGA 2",
@@ -375,6 +473,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"911ad127726234b97658498a8b790fdd7516541d",
 			"51b363b1c4d42724e05240ad068ad219df8042ec",
+			
 			// "911ad127726234b97658498a8b790fdd7516541d",
 			// "51b363b1c4d42724e05240ad068ad219df8042ec",
 			// "ad42faa399df66dcd62a1cbc9d1c99ed4512d3b8",
@@ -606,97 +705,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: true,
 		Order: 80,
 	},
-	"M+": {
-		Logo:  "m.png",
-		Links: []string{
-			"1ab443f5b4beb6d586f19e8b25b9f9646cf2ab78",
-			// "199190e3f28c1de0be34bccf0d3568dc65209b99",
-			// "5866e83279307bf919068ae7a0d250e4e424e464",
-			// "5d9a26e0a5f3e5f2ae027bd05635ab9a4fd4b51a",
-			// "5e24a1b9187fccb91553f7c7da4b36341386f74a",
-			// "1ab443f5b4beb6d586f19e8b25b9f9646cf2ab78",
-		},
-		Name:             "M+",
-		ShowListChannels: true,
-		Order: 20,
-	},
-	"MOVISTAR PLUS+": {
-		Logo:  "m.png",
-		Links: []string{
-			"1ab443f5b4beb6d586f19e8b25b9f9646cf2ab78",
-			// "199190e3f28c1de0be34bccf0d3568dc65209b99",
-			// "5866e83279307bf919068ae7a0d250e4e424e464",
-			// "5d9a26e0a5f3e5f2ae027bd05635ab9a4fd4b51a",
-			// "5e24a1b9187fccb91553f7c7da4b36341386f74a",
-		},
-		Name:             "Movistar Plus+ 1",
-		ShowListChannels: true,
-		Order: 21,
-	},
-	"MOVISTAR PLUS+ 2": {
-		Logo:             "m2.png",
-		Links:            []string{
-			"e19c1fc5e3ada56c60d45257f7f4ed0d14bf7003",
-			"fbc39d8a9e5d7c9ac6a1438d440104620f54e09c",
-		},
-		Name:             "Movistar Plus+ 2",
-		ShowListChannels: true,
-		Order: 22,
-	},
-	"MOVISTAR PLUS": {
-		Logo:  "m.png",
-		Links: []string{
-			// "199190e3f28c1de0be34bccf0d3568dc65209b99",
-			// "5866e83279307bf919068ae7a0d250e4e424e464",
-			// "5d9a26e0a5f3e5f2ae027bd05635ab9a4fd4b51a",
-			// "5e24a1b9187fccb91553f7c7da4b36341386f74a",
-		},
-		Name:             "Movistar Plus+ 1",
-		ShowListChannels: false,
-	},
-	"LALIGA TV HYPERMOTION": {
-		Logo:  "mlaligahyper.png",
-		Links: []string{
-			// "8ee52f6208e33706171856f99d2ed2dabd317f3a",
-			// "70f22be1286ef224b5e4e9451d9a42468152cda4",
-			// "f15f997f457e49ad9697e65cf2d78db26ee875b9",
-			// "ff38b875b60074d60edb64cf10d09b32370a7135",
-			// "778d2f60bb7207addedcca0b9aed98f41529724e",
-		},
-		Name:             "LALIGA HYPERMOTION",
-		ShowListChannels: true,
-		Order: 41,
-	},
-	"LALIGA TV HYPERMOTION 2": {
-		Logo: "mlaligahyper.png",
-		Links: []string{
-			"8a05571c0c8fe53f160fb7d116cdf97243679e86",
-		},
-		Name:             "LALIGA HYPERMOTION 2",
-		ShowListChannels: true,
-		Order: 42,
-	},
-	"LALIGA TV HYPERMOTION 3": {
-		Logo: "mlaligahyper.png",
-		Links: []string{
-			"1ba18731a8e18bb4b3a5dfa5bb7b0f05762849a6",
-		},
-		Name:             "LALIGA HYPERMOTION 3",
-		ShowListChannels: true,
-		Order: 43,
-	},
-	// "LALIGA TV HYPERMOTION": {
-	// 	Logo:  "mlaligahyper.png",
-	// 	Links: []string{
-	// 		// "8ee52f6208e33706171856f99d2ed2dabd317f3a",
-	// 		// "70f22be1286ef224b5e4e9451d9a42468152cda4",
-	// 		// "f15f997f457e49ad9697e65cf2d78db26ee875b9",
-	// 		// "ff38b875b60074d60edb64cf10d09b32370a7135",
-	// 		// "778d2f60bb7207addedcca0b9aed98f41529724e",
-	// 	},
-	// 	Name: "LALIGA HYPERMOTION",
-	// 	ShowListChannels: true,
-	// },
+	
 
 	"GOL": {
 		Logo: "gol.png",
@@ -849,10 +858,11 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SKY SPORTS PREMIER LEAGUE": {
 		Logo: "skysportspremier.png",
 		Links: []string{
+			"ec5eabe0144ccfffc337e1d6708e2afb81d0638e",
 			// "https://d15.epicquesthero.com:1686/hls/skysprem.m3u8?md5=Otw5SigwrXNTvRvU_0kgKg&expires=1758149711", //
 		},
 		Name:             "SKY SPORTS PREMIER LEAGUE",
-		ShowListChannels: false,
+		ShowListChannels: true,
 		Order: 90,
 	},
 	"CANAL + SPORTS": {
@@ -878,6 +888,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"REAL MADRID TV": {
 		Logo: "realmadridtv.png",
 		Links: []string{
+			"681800793751afa5a9a4f0aa5868d07e982d5d7a",
 			"https://rmtv.akamaized.net/hls/live/2043153/rmtv-es-web/bitrate_3.m3u8", //
 		},
 		Name:             "REAL MADRID TV",
@@ -921,10 +932,11 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo: "sporttv1.png",
 		Links: []string{
 			// "p;https://maldivesn.net/hilaytv/sporttv1",
-			
+			"2ddaacdb6ace68d8e5f55392a634eed92c728b7e",
 			"p;http://clarotv7.com/live/508373667/k717x9942z/111995.m3u8",
 			// "094365152cc1f4ca60f822bb7902411fdc2600d1",
 			"c5c19ac98d333df9b1cb979de1ca0f3a008721a4",
+			"c53f505241bd50e28259b5495c70c3b978678793",
 		},
 		Name:             "SPORT TV 1",
 		ShowListChannels: true,
@@ -933,7 +945,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SPORT TV 2": {
 		Logo: "sporttv2.png",
 		Links: []string{
-			
+			"7f1ebc824207c260ddb859e3526cc3a3137004ab",
 			// "p;https://maldivesn.net/hilaytv/sporttv2",
 			"p;http://clarotv7.com/live/508373667/k717x9942z/111998.m3u8",
 			// "fc3a8f2152ca01e1954a61ba2f8c01bc2f8d97cf",
@@ -1025,7 +1037,9 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo: "redbulltv.png",
 		Links: []string{
 			"62daab1c54565d0c5ba4e3c660f3a4a5c93adc8a",
-			"p;https://jmp2.uk/stvp-GBBD2300003IK",
+			"1b7e277946766834d0f034532e0b5ab1764732ee",
+			"3dc0ae739191bc152c295b850fa71ced337249e4",
+			// "p;https://jmp2.uk/stvp-GBBD2300003IK",
 			"acbf39f533469f3aca35c597dc898d093921291e",
 			"acea92d83ba261aa3a72a3c0a662981fa92e0ce9",
 		},
@@ -1037,9 +1051,11 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"UFC": {
 		Logo: "ufc.png",
 		Links: []string{
+
 			"p;https://jmp2.uk/stvp-CA2900012S9",
 			"p;https://jmp2.uk/stvp-US2900017P2",
 			"p;https://jmp2.uk/plu-677d9adfa9a51b0008497fa0.m3u8",
+			"a3164546b984d41a662ee44ddc9ece5952f69d33",
 		},
 		Name:             "UFC",
 		ShowListChannels: true,
@@ -1076,9 +1092,10 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN 3 PT": {
 		Logo: "dazn3.png",
 		Links: []string{
+			
 			"dae7d1251f069516cc0a9c8f15f6639d2a17df1e",
 			// "33246d7ad41db9ad7654f0d553b5e7500363d1b8",
-			// "dae7d1251f069516cc0a9c8f15f6639d2a17df1e",
+			
 		},
 		Name:             "DAZN 3 PT",
 		ShowListChannels: true,
@@ -1087,6 +1104,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN 4 PT": {
 		Logo: "dazn4.png",
 		Links: []string{
+			
 			"0f32c0131a2d9444996410801f4e18b04384db98",
 			"3043d5d3627a170af53bc5a298e79d4759f5ac87",
 			// "3043d5d3627a170af53bc5a298e79d4759f5ac87",
@@ -1100,6 +1118,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN 5 PT": {
 		Logo: "dazn5.png",
 		Links: []string{
+			"4dbe63b44fc4f439f5b634c0d2aa7e0cccad808a",
 			"2c9a996c060d157ff63109c5b999d55bbc2ffd95",
 		},
 		Name:             "DAZN 5 PT",
