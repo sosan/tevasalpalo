@@ -25,7 +25,7 @@
             {{ if .eventname }}📺 {{ .eventname }} |{{ end }}
             {{ if .broadcastername }}🎙️ {{ .broadcastername }} {{ end }}
         </span>
-        
+
         <div class="video-container">
             <video id="videoPlayer" autoplay muted controls></video>
             <!-- <div id="statusMessage">Cargando reproductor...</div> -->
@@ -42,7 +42,7 @@
                         <option value="120">Muy Alto (120s)</option>
                     </select>
                 </div>
-        
+
                 <div>
                     <label for="latency-mode">Modo de Latencia:</label>
                     <select id="latency-mode">
@@ -51,7 +51,7 @@
                         <option value="high">Reproducción Suave (Alta Latencia)</option>
                     </select>
                 </div>
-        
+
                 <div>
                     <label for="prebuffer-time">Tiempo de Pre-búfer:</label>
                     <select id="prebuffer-time">
@@ -61,8 +61,9 @@
                         <option value="15">15 segundos</option>
                     </select>
                 </div>
-        
-                <button id="apply-settings" class="settings-btn"><i class="fas fa-check"></i> Aplicar Configuración</button>
+
+                <button id="apply-settings" class="settings-btn"><i class="fas fa-check"></i> Aplicar
+                    Configuración</button>
             </div>
         </div>
     </div>
@@ -70,38 +71,38 @@
 </body>
 <script>
     function getSettings() {
-            const bufferSize = parseInt(document.getElementById('buffer-size').value);
-            const latencyMode = document.getElementById('latency-mode').value;
-            const prebufferTime = parseInt(document.getElementById('prebuffer-time').value);
+        const bufferSize = parseInt(document.getElementById('buffer-size').value);
+        const latencyMode = document.getElementById('latency-mode').value;
+        const prebufferTime = parseInt(document.getElementById('prebuffer-time').value);
 
-            let maxBufferLength, maxMaxBufferLength, backBufferLength;
+        let maxBufferLength, maxMaxBufferLength, backBufferLength;
 
-            switch (latencyMode) {
-                case 'low':
-                    maxBufferLength = 15; // Bajo
-                    maxMaxBufferLength = 30;
-                    backBufferLength = 15;
-                    break;
-                case 'medium':
-                    maxBufferLength = bufferSize; // Medio, usa el valor del select
-                    maxMaxBufferLength = bufferSize * 2;
-                    backBufferLength = bufferSize - 15; // Ajuste relativo
-                    break;
-                case 'high':
-                default:
-                    maxBufferLength = bufferSize; // Alto, usa el valor del select
-                    maxMaxBufferLength = bufferSize * 2;
-                    backBufferLength = bufferSize - 30; // Ajuste relativo
-                    break;
-            }
-
-            return {
-                maxBufferLength: maxBufferLength,
-                maxMaxBufferLength: maxMaxBufferLength,
-                backBufferLength: backBufferLength,
-                prebufferTime: prebufferTime // No se usa directamente en HLS.js config, pero puedes usarlo para lógica adicional
-            };
+        switch (latencyMode) {
+            case 'low':
+                maxBufferLength = 15; // Bajo
+                maxMaxBufferLength = 30;
+                backBufferLength = 15;
+                break;
+            case 'medium':
+                maxBufferLength = bufferSize; // Medio, usa el valor del select
+                maxMaxBufferLength = bufferSize * 2;
+                backBufferLength = bufferSize - 15; // Ajuste relativo
+                break;
+            case 'high':
+            default:
+                maxBufferLength = bufferSize; // Alto, usa el valor del select
+                maxMaxBufferLength = bufferSize * 2;
+                backBufferLength = bufferSize - 30; // Ajuste relativo
+                break;
         }
+
+        return {
+            maxBufferLength: maxBufferLength,
+            maxMaxBufferLength: maxMaxBufferLength,
+            backBufferLength: backBufferLength,
+            prebufferTime: prebufferTime // No se usa directamente en HLS.js config, pero puedes usarlo para lógica adicional
+        };
+    }
 
     function fromBase64Url(str) {
         const padding = '='.repeat((4 - str.length % 4) % 4);
@@ -111,145 +112,313 @@
         return atob(base64);
     }
 
+    // function loadVideo() {
+    //     let linkID = "{{ .linkid }}";
+
+    //     if (linkID == "") {
+    //         return;
+    //     }
+    //     let hlsUrl = `http://127.0.0.1:6878/ace/manifest.m3u8?id=${linkID}&pid={{ .pid }}`;
+    //     if (linkID.includes(";") === true) {
+    //         const splitted = linkID.split(";")[1];
+    //         let decoded = fromBase64Url(splitted);
+    //         hlsUrl = decoded;
+    //         if (decoded.includes("p;")) {
+    //             hlsUrl = `/api/iptv/${linkID}`;
+    //         }
+    //     }
+
+    //     const video = document.getElementById('videoPlayer');
+    //     // const statusMessage = document.getElementById('statusMessage');
+    //     if (window.hlsPlayer) {
+    //         window.hlsPlayer.detachMedia();
+    //         window.hlsPlayer.destroy();
+    //     }
+
+    //     if (Hls.isSupported()) {
+    //         // statusMessage.textContent = "Conectando al stream...";
+    //         // const hls = new Hls({
+    //         //     enableWorker: true,
+    //         //     lowLatencyMode: false,
+    //         //     backBufferLength: 90,
+
+    //         //     // Buffer
+    //         //     maxBufferLength: 60,
+    //         //     maxMaxBufferLength: 220,
+    //         //     maxBufferSize: 500 * 1000 * 1000,
+
+    //         //     // Latencia
+    //         //     liveSyncDuration: 30,
+    //         //     liveMaxLatencyDuration: 60,
+
+    //         //     // Recuperación de errores
+    //         //     fragLoadingRetryDelay: 5000,
+    //         //     manifestLoadingRetryDelay: 5000,
+    //         //     levelLoadingRetryDelay: 5000,
+
+    //         //     // Calidad
+    //         //     capLevelToPlayerSize: true,
+    //         //     startLevel: -1
+    //         // });
+
+    //         //  const hls = new Hls({
+    //         //     maxBufferLength: 30,
+    //         //      maxMaxBufferLength: 60,
+    //         //      enableWorker: true,
+    //         //      lowLatencyMode: false,
+    //         //      backBufferLength: 60,
+    //         //      // Increase buffer size for smoother playback
+    //         //      maxBufferSize: 30 * 1000 * 1000, // 30MB
+    //         //      // Increase retry attempts
+    //         //      maxLoadingRetry: 8,
+    //         //      // Increase timeouts
+    //         //      manifestLoadingTimeOut: 20000,
+    //         //      manifestLoadingMaxRetry: 6,
+    //         //      levelLoadingTimeOut: 20000,
+    //         //      fragLoadingTimeOut: 120000,
+    //         //     // maxBufferSize: 750 * 1000 * 1000, // 750,000,000 bytes = 750 MB
+
+    //         //     // Objetivo de longitud del buffer en segundos.
+    //         //     // maxBufferLength: 60, // 1 minuto objetivo
+
+    //         //     // Longitud máxima absoluta del buffer. Permite acumular más si hay ancho de banda.
+    //         //     // maxMaxBufferLength: 120, // 2 minutos máximo
+
+    //         //     // --- Configuraciones para Streams en Vivo ---
+    //         //     // Usar *Count para mayor robustez con duraciones de segmentos variables
+    //         //     liveSyncDurationCount: 3, // Sincronizar 3 segmentos desde el final
+    //         //     liveMaxLatencyDurationCount: 6, // Permitir hasta 6 segmentos de latencia
+
+    //         //     // --- Políticas de Carga (Reemplazan configuraciones obsoletas) ---
+    //         //     fragLoadPolicy: {
+    //         //         default: {
+    //         //             maxTimeToFirstByteMs: 30000, // 30 segundos
+    //         //             maxLoadTimeMs: 60000,       // 60 segundos
+    //         //             timeoutRetry: {
+    //         //                 maxNumRetry: 4,
+    //         //                 retryDelayMs: 1000, // 1 segundo inicial
+    //         //                 maxRetryDelayMs: 64000 // Hasta 64 segundos entre reintentos
+    //         //             },
+    //         //             errorRetry: {
+    //         //                 maxNumRetry: 6, // Un poco más de reintentos para errores
+    //         //                 retryDelayMs: 2000,
+    //         //                 maxRetryDelayMs: 120000 // Hasta 2 minutos
+    //         //             }
+    //         //         }
+    //         //     },
+    //         //     manifestLoadPolicy: {
+    //         //         default: {
+    //         //             maxTimeToFirstByteMs: 30000,
+    //         //             maxLoadTimeMs: 60000,
+    //         //             timeoutRetry: { maxNumRetry: 4, retryDelayMs: 1000, maxRetryDelayMs: 64000 },
+    //         //             errorRetry: { maxNumRetry: 6, retryDelayMs: 2000, maxRetryDelayMs: 120000 }
+    //         //         }
+    //         //     },
+    //         //     playlistLoadPolicy: { // Reemplaza levelLoading* (como advertía el log)
+    //         //         default: {
+    //         //             maxTimeToFirstByteMs: 30000,
+    //         //             maxLoadTimeMs: 60000,
+    //         //             timeoutRetry: { maxNumRetry: 4, retryDelayMs: 1000, maxRetryDelayMs: 64000 },
+    //         //             errorRetry: { maxNumRetry: 6, retryDelayMs: 2000, maxRetryDelayMs: 120000 }
+    //         //         }
+    //         //     },
+
+    //         //     // --- Otras Configuraciones ---
+    //         //     // enableWorker: true, // Mantener para mejor rendimiento
+    //         //     // lowLatencyMode: false, // Mantener desactivado para streams normales
+    //         //     // backBufferLength: 90, // Longitud del buffer hacia atrás, está bien
+
+    //         //     // Calidad - Puede ayudar a reducir la carga inicial
+    //         //     capLevelToPlayerSize: true, // Limita la calidad al tamaño del reproductor
+    //         //     // startLevel: -1, // Comenzar con calidad automática. Comenta o elige una.
+    //         //     startLevel: 0, // O descomenta esta para forzar la calidad más baja al inicio
+
+    //         //     // --- Debugging ---
+    //         //     // debug: true, // Mantener activo para seguir monitoreando
+    //         // });
+    //         const settings = getSettings();
+
+    //         const hls = new Hls({
+    //             enableWorker: true,
+    //             lowLatencyMode: false,
+
+    //             // Buffer
+    //             // maxBufferLength: 30,   // 30s suele ser más estable
+    //             // maxMaxBufferLength: 60,
+    //             // backBufferLength: 90,
+    //             maxBufferLength: settings.maxBufferLength,
+    //             maxMaxBufferLength: settings.maxMaxBufferLength,
+    //             backBufferLength: settings.backBufferLength,
+
+    //             // Manejo de red (nuevo esquema)
+    //             fragLoadPolicy: {
+    //                 default: {
+    //                     maxTimeToFirstByteMs: 20000,
+    //                     maxLoadTimeMs: 60000,
+    //                     timeoutRetry: { maxNumRetry: 5, retryDelayMs: 2000, maxRetryDelayMs: 60000 },
+    //                     errorRetry: { maxNumRetry: 5, retryDelayMs: 2000, maxRetryDelayMs: 60000 }
+    //                 }
+    //             },
+    //             playlistLoadPolicy: {
+    //                 default: {
+    //                     maxTimeToFirstByteMs: 20000,
+    //                     maxLoadTimeMs: 60000,
+    //                     timeoutRetry: { maxNumRetry: 5, retryDelayMs: 2000, maxRetryDelayMs: 60000 },
+    //                     errorRetry: { maxNumRetry: 5, retryDelayMs: 2000, maxRetryDelayMs: 60000 }
+    //                 }
+    //             },
+
+    //             // Calidad
+    //             capLevelToPlayerSize: true,
+    //             startLevel: -1
+    //         });
+    //         window.hlsPlayer = hls;
+
+    //         hls.on(Hls.Events.MEDIA_ATTACHED, function () {
+    //             console.log("HLS.js: Media attached");
+    //         });
+
+    //         hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
+    //             console.log("HLS.js: Manifest parsed. Niveles de calidad: ", data.levels.length);
+    //             // statusMessage.textContent = "Stream cargado. Iniciando reproducción...";
+    //             console.log('Pistas de audio:', hls.audioTracks);
+    //             hls.audioTrack = 0;
+    //             setTimeout(() => {
+    //                 video.play().then(() => {
+    //                     // statusMessage.style.display = 'none';
+    //                     console.log("Reproducción iniciada automáticamente.");
+    //                 }).catch(e => {
+    //                     console.warn("Autoplay bloqueado o fallido:", e);
+    //                     // statusMessage.textContent = "Haz clic en el video para iniciar la reproducción.";
+    //                     // Puedes mostrar un overlay aquí si es necesario
+    //                     // statusMessage.style.display = 'block';
+    //                 });
+    //             }, settings.prebufferTime * 1000); // Convertir segundos a milisegundos
+    //         });
+
+    //         // Manejo de errores
+    //         hls.on(Hls.Events.ERROR, function (event, data) {
+    //             if (data.fatal) {
+    //                 switch (data.type) {
+    //                     case Hls.ErrorTypes.NETWORK_ERROR:
+    //                         // statusMessage.textContent = `❌ Error de red: ${data.details}. ¿Está el motor Ace Stream ejecutándose en 127.0.0.1:6878?`;
+    //                         console.error("HLS.js: Error de red fatal", data);
+    //                         // Opcional: intentar reconectar automáticamente después de un tiempo
+    //                         hls.startLoad();
+    //                         // setTimeout(() => hls.startLoad(), 5000);
+    //                         break;
+    //                     case Hls.ErrorTypes.MEDIA_ERROR:
+    //                         // statusMessage.textContent = `❌ Error de medios: ${data.details}.`;
+    //                         const mimeType = 'video/mp4; codecs="hvc1.1.6.L120.B0"';
+    //                         if (!MediaSource.isTypeSupported(mimeType)) {
+    //                             console.warn('HEVC no soportado en este navegador');
+    //                             return;
+    //                         }
+    //                         console.error("HLS.js: Error de medios fatal", data);
+    //                         hls.recoverMediaError();
+    //                         break;
+    //                     default:
+    //                         // statusMessage.textContent = `❌ Error fatal: ${data.details}`;
+    //                         console.error("HLS.js: Error fatal", data);
+    //                         hls.destroy();
+    //                         window.hlsPlayer = null;
+    //                         break;
+    //                 }
+    //             } else {
+    //                 // Errores no fatales, solo se registran
+    //                 console.warn("HLS.js: Error (no fatal)", data);
+    //             }
+    //         });
+
+
+    //         try {
+    //             hls.loadSource(hlsUrl);
+    //             hls.attachMedia(video);
+    //         } catch (e) {
+    //             console.error("Error al inicializar HLS.js:", e);
+    //             // statusMessage.textContent = `❌ Error al cargar el stream: ${e.message}`;
+    //         }
+
+    //     }
+    //     else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    //         // Para Safari en macOS/iOS que soportan HLS nativamente
+    //         console.log("Usando soporte HLS nativo del navegador (Safari).");
+    //         // statusMessage.textContent = "Usando reproductor nativo...";
+    //         video.src = hlsUrl;
+    //         video.addEventListener('loadedmetadata', function () {
+    //             // statusMessage.textContent = "Metadata cargada. Iniciando reproducción...";
+    //             video.play().then(() => {
+    //                 console.log("Reproducción iniciada en Safari.");
+    //                 // statusMessage.style.display = 'none';
+    //             }).catch(e => {
+    //                 console.warn("Autoplay bloqueado en Safari:", e);
+    //                 // statusMessage.textContent = "Haz clic en el video para iniciar la reproducción.";
+    //             });
+    //         });
+    //         video.addEventListener('error', function (e) {
+    //             console.error("Error de video en Safari:", video.error);
+    //             // statusMessage.textContent = `❌ Error de video en Safari: ${video.error ? video.error.message : 'Desconocido'}`;
+    //         });
+    //     } else {
+    //         console.error("Este navegador no soporta HLS.");
+    //     }
+
+    // }
+
+    function isInfohash(str) {
+        return /^[0-9a-fA-F]{40}$/.test(str);
+    }
+
+    function buildHlsUrl(linkID, pid, useInfohash = false) {
+        if (useInfohash) {
+            return `http://127.0.0.1:6878/ace/manifest.m3u8?infohash=${linkID}&pid=${pid}`;
+        } else {
+            return `http://127.0.0.1:6878/ace/manifest.m3u8?id=${linkID}&pid=${pid}`;
+        }
+    }
+
     function loadVideo() {
         let linkID = "{{ .linkid }}";
-        
+        const pid = "{{ .pid }}";
+
         if (linkID == "") {
             return;
         }
-        let hlsUrl = `http://127.0.0.1:6878/ace/manifest.m3u8?id=${linkID}&pid={{ .pid }}`;
+
         if (linkID.includes(";") === true) {
             const splitted = linkID.split(";")[1];
             let decoded = fromBase64Url(splitted);
-            hlsUrl = decoded;
             if (decoded.includes("p;")) {
                 hlsUrl = `/api/iptv/${linkID}`;
+            } else {
+                hlsUrl = decoded;
             }
+            loadHlsVideo(hlsUrl);
+            return;
         }
 
+        const initialUseInfohash = false; //isInfohash(linkID);
+        let hlsUrl = buildHlsUrl(linkID, pid, initialUseInfohash);
+        loadHlsVideo(hlsUrl, initialUseInfohash, linkID, pid);
+    }
+
+    function loadHlsVideo(hlsUrl, wasInfohash = false, linkID, pid) {
         const video = document.getElementById('videoPlayer');
-        // const statusMessage = document.getElementById('statusMessage');
-         if (window.hlsPlayer) {
+
+        if (window.hlsPlayer) {
             window.hlsPlayer.detachMedia();
             window.hlsPlayer.destroy();
         }
 
         if (Hls.isSupported()) {
-            // statusMessage.textContent = "Conectando al stream...";
-            // const hls = new Hls({
-            //     enableWorker: true,
-            //     lowLatencyMode: false,
-            //     backBufferLength: 90,
-
-            //     // Buffer
-            //     maxBufferLength: 60,
-            //     maxMaxBufferLength: 220,
-            //     maxBufferSize: 500 * 1000 * 1000,
-
-            //     // Latencia
-            //     liveSyncDuration: 30,
-            //     liveMaxLatencyDuration: 60,
-
-            //     // Recuperación de errores
-            //     fragLoadingRetryDelay: 5000,
-            //     manifestLoadingRetryDelay: 5000,
-            //     levelLoadingRetryDelay: 5000,
-
-            //     // Calidad
-            //     capLevelToPlayerSize: true,
-            //     startLevel: -1
-            // });
-           
-            //  const hls = new Hls({
-            //     maxBufferLength: 30,
-            //      maxMaxBufferLength: 60,
-            //      enableWorker: true,
-            //      lowLatencyMode: false,
-            //      backBufferLength: 60,
-            //      // Increase buffer size for smoother playback
-            //      maxBufferSize: 30 * 1000 * 1000, // 30MB
-            //      // Increase retry attempts
-            //      maxLoadingRetry: 8,
-            //      // Increase timeouts
-            //      manifestLoadingTimeOut: 20000,
-            //      manifestLoadingMaxRetry: 6,
-            //      levelLoadingTimeOut: 20000,
-            //      fragLoadingTimeOut: 120000,
-            //     // maxBufferSize: 750 * 1000 * 1000, // 750,000,000 bytes = 750 MB
-
-            //     // Objetivo de longitud del buffer en segundos.
-            //     // maxBufferLength: 60, // 1 minuto objetivo
-
-            //     // Longitud máxima absoluta del buffer. Permite acumular más si hay ancho de banda.
-            //     // maxMaxBufferLength: 120, // 2 minutos máximo
-
-            //     // --- Configuraciones para Streams en Vivo ---
-            //     // Usar *Count para mayor robustez con duraciones de segmentos variables
-            //     liveSyncDurationCount: 3, // Sincronizar 3 segmentos desde el final
-            //     liveMaxLatencyDurationCount: 6, // Permitir hasta 6 segmentos de latencia
-
-            //     // --- Políticas de Carga (Reemplazan configuraciones obsoletas) ---
-            //     fragLoadPolicy: {
-            //         default: {
-            //             maxTimeToFirstByteMs: 30000, // 30 segundos
-            //             maxLoadTimeMs: 60000,       // 60 segundos
-            //             timeoutRetry: {
-            //                 maxNumRetry: 4,
-            //                 retryDelayMs: 1000, // 1 segundo inicial
-            //                 maxRetryDelayMs: 64000 // Hasta 64 segundos entre reintentos
-            //             },
-            //             errorRetry: {
-            //                 maxNumRetry: 6, // Un poco más de reintentos para errores
-            //                 retryDelayMs: 2000,
-            //                 maxRetryDelayMs: 120000 // Hasta 2 minutos
-            //             }
-            //         }
-            //     },
-            //     manifestLoadPolicy: {
-            //         default: {
-            //             maxTimeToFirstByteMs: 30000,
-            //             maxLoadTimeMs: 60000,
-            //             timeoutRetry: { maxNumRetry: 4, retryDelayMs: 1000, maxRetryDelayMs: 64000 },
-            //             errorRetry: { maxNumRetry: 6, retryDelayMs: 2000, maxRetryDelayMs: 120000 }
-            //         }
-            //     },
-            //     playlistLoadPolicy: { // Reemplaza levelLoading* (como advertía el log)
-            //         default: {
-            //             maxTimeToFirstByteMs: 30000,
-            //             maxLoadTimeMs: 60000,
-            //             timeoutRetry: { maxNumRetry: 4, retryDelayMs: 1000, maxRetryDelayMs: 64000 },
-            //             errorRetry: { maxNumRetry: 6, retryDelayMs: 2000, maxRetryDelayMs: 120000 }
-            //         }
-            //     },
-
-            //     // --- Otras Configuraciones ---
-            //     // enableWorker: true, // Mantener para mejor rendimiento
-            //     // lowLatencyMode: false, // Mantener desactivado para streams normales
-            //     // backBufferLength: 90, // Longitud del buffer hacia atrás, está bien
-
-            //     // Calidad - Puede ayudar a reducir la carga inicial
-            //     capLevelToPlayerSize: true, // Limita la calidad al tamaño del reproductor
-            //     // startLevel: -1, // Comenzar con calidad automática. Comenta o elige una.
-            //     startLevel: 0, // O descomenta esta para forzar la calidad más baja al inicio
-
-            //     // --- Debugging ---
-            //     // debug: true, // Mantener activo para seguir monitoreando
-            // });
             const settings = getSettings();
 
             const hls = new Hls({
                 enableWorker: true,
                 lowLatencyMode: false,
-
-                // Buffer
-                // maxBufferLength: 30,   // 30s suele ser más estable
-                // maxMaxBufferLength: 60,
-                // backBufferLength: 90,
                 maxBufferLength: settings.maxBufferLength,
                 maxMaxBufferLength: settings.maxMaxBufferLength,
                 backBufferLength: settings.backBufferLength,
-
-                // Manejo de red (nuevo esquema)
                 fragLoadPolicy: {
                     default: {
                         maxTimeToFirstByteMs: 20000,
@@ -266,12 +435,10 @@
                         errorRetry: { maxNumRetry: 5, retryDelayMs: 2000, maxRetryDelayMs: 60000 }
                     }
                 },
-
-                // Calidad
                 capLevelToPlayerSize: true,
                 startLevel: -1
             });
-             window.hlsPlayer = hls;
+            window.hlsPlayer = hls;
 
             hls.on(Hls.Events.MEDIA_ATTACHED, function () {
                 console.log("HLS.js: Media attached");
@@ -279,95 +446,81 @@
 
             hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
                 console.log("HLS.js: Manifest parsed. Niveles de calidad: ", data.levels.length);
-                // statusMessage.textContent = "Stream cargado. Iniciando reproducción...";
                 console.log('Pistas de audio:', hls.audioTracks);
                 hls.audioTrack = 0;
                 setTimeout(() => {
                     video.play().then(() => {
-                    // statusMessage.style.display = 'none';
-                    console.log("Reproducción iniciada automáticamente.");
-                }).catch(e => {
-                    console.warn("Autoplay bloqueado o fallido:", e);
-                    // statusMessage.textContent = "Haz clic en el video para iniciar la reproducción.";
-                    // Puedes mostrar un overlay aquí si es necesario
-                    // statusMessage.style.display = 'block';
-                });
-                }, settings.prebufferTime * 1000); // Convertir segundos a milisegundos
+                        console.log("Reproducción iniciada automáticamente.");
+                    }).catch(e => {
+                        console.warn("Autoplay bloqueado o fallido:", e);
+                    });
+                }, settings.prebufferTime * 1000);
             });
 
-            // Manejo de errores
             hls.on(Hls.Events.ERROR, function (event, data) {
                 if (data.fatal) {
                     switch (data.type) {
                         case Hls.ErrorTypes.NETWORK_ERROR:
-                            // statusMessage.textContent = `❌ Error de red: ${data.details}. ¿Está el motor Ace Stream ejecutándose en 127.0.0.1:6878?`;
                             console.error("HLS.js: Error de red fatal", data);
-                            // Opcional: intentar reconectar automáticamente después de un tiempo
-                            hls.startLoad();
-                            // setTimeout(() => hls.startLoad(), 5000);
+
+                            // Si fue un intento con infohash, intentar con id
+                            if (wasInfohash) {
+                                console.log("Intentando con ?id= en lugar de ?infohash=");
+                                const alternateUrl = buildHlsUrl(linkID, pid, false);
+                                loadHlsVideo(alternateUrl, false, linkID, pid);
+                            }
+                            // Si fue un intento con id, intentar con infohash
+                            else {
+                                console.log("Intentando con ?infohash= en lugar de ?id=");
+                                const alternateUrl = buildHlsUrl(linkID, pid, true);
+                                loadHlsVideo(alternateUrl, true, linkID, pid);
+                            }
                             break;
                         case Hls.ErrorTypes.MEDIA_ERROR:
-                            // statusMessage.textContent = `❌ Error de medios: ${data.details}.`;
-                            const mimeType = 'video/mp4; codecs="hvc1.1.6.L120.B0"';
-                            if (!MediaSource.isTypeSupported(mimeType)) {
-                                console.warn('HEVC no soportado en este navegador');
-                                return;
-                            }
                             console.error("HLS.js: Error de medios fatal", data);
                             hls.recoverMediaError();
                             break;
                         default:
-                            // statusMessage.textContent = `❌ Error fatal: ${data.details}`;
                             console.error("HLS.js: Error fatal", data);
                             hls.destroy();
                             window.hlsPlayer = null;
                             break;
                     }
                 } else {
-                    // Errores no fatales, solo se registran
                     console.warn("HLS.js: Error (no fatal)", data);
                 }
             });
-
 
             try {
                 hls.loadSource(hlsUrl);
                 hls.attachMedia(video);
             } catch (e) {
                 console.error("Error al inicializar HLS.js:", e);
-                // statusMessage.textContent = `❌ Error al cargar el stream: ${e.message}`;
             }
-
         }
         else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            // Para Safari en macOS/iOS que soportan HLS nativamente
             console.log("Usando soporte HLS nativo del navegador (Safari).");
-            // statusMessage.textContent = "Usando reproductor nativo...";
             video.src = hlsUrl;
             video.addEventListener('loadedmetadata', function () {
-                // statusMessage.textContent = "Metadata cargada. Iniciando reproducción...";
                 video.play().then(() => {
                     console.log("Reproducción iniciada en Safari.");
-                    // statusMessage.style.display = 'none';
                 }).catch(e => {
                     console.warn("Autoplay bloqueado en Safari:", e);
-                    // statusMessage.textContent = "Haz clic en el video para iniciar la reproducción.";
                 });
             });
             video.addEventListener('error', function (e) {
                 console.error("Error de video en Safari:", video.error);
-                // statusMessage.textContent = `❌ Error de video en Safari: ${video.error ? video.error.message : 'Desconocido'}`;
             });
         } else {
             console.error("Este navegador no soporta HLS.");
         }
-
     }
-     document.getElementById('apply-settings').addEventListener('click', function () {
-            console.log("Botón 'Aplicar Configuración' presionado.");
-            // Vuelve a cargar el video con la nueva configuración
-            loadVideo();
-        });
+
+
+    document.getElementById('apply-settings').addEventListener('click', function () {
+        console.log("Botón 'Aplicar Configuración' presionado.");
+        loadVideo();
+    });
     window.addEventListener("DOMContentLoaded", loadVideo);
 
 </script>
