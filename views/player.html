@@ -385,6 +385,9 @@
             return;
         }
 
+        const initialUseInfohash = false; //isInfohash(linkID);
+        let hlsUrl = buildHlsUrl(linkID, pid, initialUseInfohash);
+
         if (linkID.includes(";") === true) {
             const splitted = linkID.split(";")[1];
             let decoded = fromBase64Url(splitted);
@@ -396,9 +399,6 @@
             loadHlsVideo(hlsUrl);
             return;
         }
-
-        const initialUseInfohash = false; //isInfohash(linkID);
-        let hlsUrl = buildHlsUrl(linkID, pid, initialUseInfohash);
         loadHlsVideo(hlsUrl, initialUseInfohash, linkID, pid);
     }
 
