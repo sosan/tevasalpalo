@@ -3,6 +3,7 @@ const updateContentButton = document.getElementById("updatecontent");
 const dialogUpdating = document.getElementById('dialog-updating');
 const contentUpdating = document.getElementById('content-updating');
 const messageWarn = document.getElementById('message-warn');
+
 const oneHour = 60 * 60 * 1000;
 let updating = false;
 let updatingcheck = false;
@@ -133,16 +134,16 @@ document.addEventListener("DOMContentLoaded", function () {
         console.error("No se encontraron datos de días.");
         return;
     }
+    
     console.log("Datos de días cargados:", days);
     console.log("Top Competitions para filtrar:", topCompetitions);
-
     updateContentButton.addEventListener("click", updateContent);
+    
     // solapamiento startUpdateCheck y setinterval
     startCheckAppUpdate();
     setInterval(startCheckAppUpdate, oneHour);
     renderFullSchedule(days);
 });
-
 
 
 /**
