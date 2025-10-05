@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Ver Canales - TVAS AL PALO!</title>
+    <script src="./js/theme.js"></script>
     <link rel="stylesheet" href="/css/reset.css">
     <link rel="stylesheet" href="/css/index.css">
     <link rel="stylesheet" href="/css/modal.css">
@@ -24,11 +25,11 @@
             {{ range $info := .Broadcasters }}
             <div
                 class="card bg-white shadow-lg rounded-2xl overflow-hidden transform transition-transform hover:scale-105 hover:shadow-2xl">
-                <div class="h-48 flex items-center justify-center bg-gray-100">
+                <div class="h-48 flex items-center justify-center  logostv logo-container">
                     <img src="/images/logos-tv/{{ $info.Logo }}" alt="{{ $info.Name }}"
-                        class="h-24 w-24 object-contain">
+                        class=" h-24 w-24 object-contain">
                 </div>
-                <div class="p-6 text-center">
+                <div class="links-container p-6 text-center">
                     <h3 class="text-gray-900 font-bold text-xl mb-2">{{ $info.Name }}</h3>
                     <ol class="link-list">
                         {{ range $i, $link := $info.Links }}

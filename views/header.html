@@ -1,6 +1,6 @@
 {{ define "header" }}
 <header class="header-wrapper">
-    <a href="/" class="logo">
+    <a href="/" class="logo hidden">
         <img src="./images/tvas.png" alt="tvas al palo!" title="TVAS AL PALO!">
     </a>
     <div class="main-menu">
@@ -46,9 +46,10 @@
                 </a>
             </li>
             <li class="menu-li">
-                <a class="header-menu settings_language" href="#">
-                    <img class="imglang img-header" src="/images/es.svg" alt="Español" title="Español">
-                    <span class="block">Idioma</span></a>
+                <a id="toggletheme" class="header-menu settings_language" href="#">
+                    <img class="imglang img-header" src="/images/routine.svg" alt="Color" title="Color">
+                    <span class="block">Color</span>
+                </a>
             </li>
             <li class="menu-li">
                 <dialog id="config-menu" class="config-menu ">

@@ -6,14 +6,6 @@ body {
     line-height: 1.5;
 }
 
-
-
-body {
-    font-family: "Segoe UI", Roboto, system-ui, sans-serif;
-    background: #f3f4f6;
-    color: #1f2937;
-}
-
 header {
     display: flex;
     justify-content: center;
@@ -134,10 +126,10 @@ h1 {
 }
 
 
-.bg-gray-100 {
+/* .bg-gray-100 {
     --tw-bg-opacity: 1;
     background-color: rgb(243 244 246 / var(--tw-bg-opacity, 1));
-}
+} */
 
 .justify-center {
     justify-content: center;
@@ -164,7 +156,7 @@ h1 {
 }
 
 .text-gray-900 {
-    --tw-text-opacity 1: 1;
+    --tw-text-opacity: 1;
     color: rgb(17 24 39 / var(--tw-text-opacity, 1));
 }
 
@@ -208,4 +200,28 @@ h1 {
 
 .rounded-full {
     border-radius: 9999px;
+}
+
+.logostv {
+    background-color: white;
+    
+}
+
+.logostv[data-theme="light"] {
+  filter: invert(0);
+}
+
+.logostv[data-theme="dark"] {
+  filter: invert(1);
+}
+
+.object-contain {
+    object-fit: contain;
+    /* object-fit: fill; */
+    height: 100%;
+}
+
+.links-container {
+    background-color: #dbdbdb;
+    height: 100%;
 }
