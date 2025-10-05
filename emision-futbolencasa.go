@@ -469,10 +469,10 @@ func mixCompetitions(general, mxliga, ligue1, calcio, eventsmma, bundesligaPT []
 		general = addNewBroadcaster(general, "SKY SPORTS", "LaLiga")
 	}
 
-	general = addNewBroadcaster(general, "DAZN 1", "Liga Endesa")
-	general = addNewBroadcaster(general, "DAZN 2", "Liga Endesa")
-	general = addNewBroadcaster(general, "DAZN 3", "Liga Endesa")
-	general = addNewBroadcaster(general, "DAZN 4", "Liga Endesa")
+	general = addNewBroadcaster(general, "LIGA ENDESA 7", "Liga Endesa")
+	// general = addNewBroadcaster(general, "DAZN 2", "Liga Endesa")
+	// general = addNewBroadcaster(general, "DAZN 3", "Liga Endesa")
+	// general = addNewBroadcaster(general, "DAZN 4", "Liga Endesa")
 
 	if len(calcio) > 0 {
 		calcio = changeCompetitionName(calcio, "Liga italiana", "Serie A Italiana")

@@ -335,6 +335,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"b6ffbbc72a5b6b579faf79ebac229af7a25b933b",
 			"8c67cdb5ba81976662c3a67984a9545d9cfb0f70",
 			"c3c3f61bea8a17fb59105278de704a548b58f2dc",
+			"7ab348f9f96f8719649c02129e68a0264d421e0c",
 			// "5d9a26e0a5f3e5f2ae027bd05635ab9a4fd4b51a",
 			// "5e24a1b9187fccb91553f7c7da4b36341386f74a",
 			
@@ -352,6 +353,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"b6ffbbc72a5b6b579faf79ebac229af7a25b933b",
 			"8c67cdb5ba81976662c3a67984a9545d9cfb0f70",
 			"c3c3f61bea8a17fb59105278de704a548b58f2dc",
+			"7ab348f9f96f8719649c02129e68a0264d421e0c",
 			// "5d9a26e0a5f3e5f2ae027bd05635ab9a4fd4b51a",
 			// "5e24a1b9187fccb91553f7c7da4b36341386f74a",
 		},
@@ -517,6 +519,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"0f7842f8b6c26571e5a974407b61623e56e6a052",
 			"f3eea003e23f94dc2d527306de9dd386e3ebf4ba",
 			"bb5a8bf7752e978460ee1710e5e8950a5c9e1f99",
+			"e0c8c8d12c6e3ea1d4a27a171be6c11a08cff6fb",
 			// "680187938f9305cce3ae240298f10e8695bf77c2",
 			// "e572a5178ff72eed7d1d751a18b4b3419699f370",
 			// "c16b4fab1f724c94cad92081cbb7fc7c6fe8a2cc",
@@ -534,6 +537,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"74ab4e4ec7e2da001f473ca40893b7307b8029c5",
 			"4fc6d0331830ad8743abab2fe2473b63bdfbc49f",
 			"dd93c8469d02c179a63bcf9a3fcf0970bf7bb04f",
+			"2faa67e78d2c2bca752056ecf8a62c8ffb1364c5",
 			// "38f7b2044e549df2039ff26cefa6f9a60c854d5e",
 			// "33c009a025508cb2186b9ce36279640bb2507bdf",
 			
@@ -549,6 +553,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"4416843c96b7f7a1bc55c476091a60fff0922bc7",
 			"2b5129adc57d43790634d796fe3468b9fd061259",
 			"4cd17d525469e65e0b898aad86257f21a61fefdb",
+			"09a24e6a594438946c277c27bacf669ebace26ca",
 			// "17b8bc4bf8e29547b0071c742e3d7da3bcbc484d",
 		},
 		Name:             "M+ LIGA DE CAMPEONES 3",
@@ -560,6 +565,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"77998f8161373611ff6b348e7eda5b4e97d3ec29",
 			"e9f4493d2d851f4636720f639113e05b4a21a74c",
+			"6617dfa2c9527bc620579d4dd4f3020efd8c41b8",
 		},
 		Name:             "M+ LIGA DE CAMPEONES 4",
 		ShowListChannels: true,
@@ -570,6 +576,9 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"5620c0ce3dcbf14a6375cb2c2d681207f45eb97d",
 			"e2737e7a8d93fcf25d0f687c2fe79dc7496b23d9",
+			"9e599f79585b390dd7c17d561832bc8aba49caf7",
+			"90ed151957e8198fa993c6cdb4bacb59481c3e09",
+			"4543b0a05e7ab29022c78bc5753e8b29b5c82f94",
 		},
 		Name:             "M+ LIGA DE CAMPEONES 5",
 		ShowListChannels: true,
@@ -579,6 +588,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo:  "mligacampeones.png",
 		Links: []string{
 			"991f1c87728632037ecdd730b0c44f9933863119",
+			"adeb88f7744ca1cb9f3c3c449cd07bbd8ed3a7f3",
+			"806b8f3f1092808aea29cedea6e8f9900f74b2ba",
 		},
 		Name:             "M+ LIGA DE CAMPEONES 6",
 		ShowListChannels: true,
@@ -588,6 +599,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo:  "mligacampeones.png",
 		Links: []string{
 			"d0c92cf5ad82ea19dc8df8bafd4fa61e40f98762",
+			"005976d96cf86b5169b0b16795fb2cc5b98edcf4",
 		},
 		Name:             "M+ LIGA DE CAMPEONES 7",
 		ShowListChannels: true,
@@ -596,7 +608,9 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"M+ LIGA DE CAMPEONES 8": {
 		Logo:  "mligacampeones.png",
 		Links: []string{
-			"63789ef8cb07422638a2176c2c4cf29d6882df17",
+			"f9a53a6a969cdd00747465a51a92b2bb748737af",
+			// "63789ef8cb07422638a2176c2c4cf29d6882df17",
+			"fb3e10862e749384806adaafe9c9dc0ab51d95c2",
 		},
 		Name:             "M+ LIGA DE CAMPEONES 8",
 		ShowListChannels: true,
@@ -1008,7 +1022,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Order: 143,
 	},
 	"SPORT TV 5": {
-		Logo: "sporttv4.png",
+		Logo: "sporttv5.png",
 		Links: []string{
 			// "p;https://maldivesn.net/hilaytv/sporttv5",
 			"p;http://clarotv7.com/live/508373667/k717x9942z/112004.m3u8",
@@ -1020,7 +1034,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Order: 144,
 	},
 	"SPORT TV 6": {
-		Logo: "sporttv4.png",
+		Logo: "sporttv6.png",
 		Links: []string{
 			// "p;https://maldivesn.net/hilaytv/sporttv6",
 			"p;http://clarotv7.com/live/508373667/k717x9942z/112006.m3u8",
@@ -1094,6 +1108,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"36cad67fed5a739757a9db844a551aa845a8d51b",
 			"29df34d41d25647e1963e95a1cd9ed5bf59702c8",
 			"e2cba4dce6c0795b738fe4b0001db90b1294835a",
+			"059625a23c8c93af1808408196b2d0084e0d2aa5",
 			// "29df34d41d25647e1963e95a1cd9ed5bf59702c8",
 			// "969e14989a98c62518a7640741dbf15d90212d1a",
 			
@@ -1135,6 +1150,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"0f32c0131a2d9444996410801f4e18b04384db98",
 			"3043d5d3627a170af53bc5a298e79d4759f5ac87",
 			"095e98003ab5732a4ad0bf240ad0cdd192649d0c",
+			"9930f38e6ff670fb7bf1e820f60bf1781c47acbd",
 			// "3043d5d3627a170af53bc5a298e79d4759f5ac87",
 			// "3c0cfbeb4075be58baa32e41dabee3c75b8a80e6",
 			// "0f32c0131a2d9444996410801f4e18b04384db98",
@@ -1153,6 +1169,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: true,
 		Order: 184,
 	},
+	
 	"APLAZADO" : {
 		Logo: "aplazado.png",
 		Links: []string{
@@ -1160,6 +1177,71 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Name:             "APLAZADO",
 		ShowListChannels: false,
 		Order: 200,
+	},
+	"LIGA ENDESA 1": {
+		Logo: "",
+		Links: []string{
+			"35575a31d76f6c5f5e9e6364dacfdeca3b85f2ee",
+		},
+		Name:             "SPORT KLUB 1",
+		ShowListChannels: false,
+		Order: 301,
+	},
+	"LIGA ENDESA 2": {
+		Logo: "",
+		Links: []string{
+			"35575a31d76f6c5f5e9e6364dacfdeca3b85f2ee",
+		},
+		Name:             "SPORT KLUB 2",
+		ShowListChannels: false,
+		Order: 302,
+	},
+	"LIGA ENDESA 3": {
+		Logo: "",
+		Links: []string{
+			"35575a31d76f6c5f5e9e6364dacfdeca3b85f2ee",
+		},
+		Name:             "SPORT KLUB 3",
+		ShowListChannels: false,
+		Order: 303,
+	},
+	"LIGA ENDESA 4": {
+		Logo: "",
+		Links: []string{
+			"35575a31d76f6c5f5e9e6364dacfdeca3b85f2ee",
+		},
+		Name:             "SPORT KLUB 4",
+		ShowListChannels: false,
+		Order: 304,
+	},
+	"LIGA ENDESA 5": {
+		Logo: "",
+		Links: []string{
+			"35575a31d76f6c5f5e9e6364dacfdeca3b85f2ee",
+		},
+		Name:             "SPORT KLUB 5",
+		ShowListChannels: false,
+		Order: 305,
+	},
+	"LIGA ENDESA 6": {
+		Logo: "",
+		Links: []string{
+			"35575a31d76f6c5f5e9e6364dacfdeca3b85f2ee",
+		},
+		Name:             "SPORT KLUB 6",
+		ShowListChannels: false,
+		Order: 306,
+	},
+	// Sport Klub [PL]
+	"LIGA ENDESA 7": {
+		Logo: "",
+		Links: []string{
+			"35575a31d76f6c5f5e9e6364dacfdeca3b85f2ee",
+			"14594b3c9520715e48756cb7258e102c5e48c29c",
+		},
+		Name:             "SPORT KLUB",
+		ShowListChannels: false,
+		Order: 307,
 	},
 }
 

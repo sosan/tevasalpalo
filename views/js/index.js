@@ -180,7 +180,7 @@ function renderFullSchedule(daysData) {
 
             const competitionSection = document.createElement('li');
             competitionSection.className = 'competition-section';
-            competitionSection.dataset.competition = competitionName; // Para facilitar el filtrado
+            competitionSection.dataset.competition = competitionName;
 
             // Título de la competición
             const competitionTitle = document.createElement('h3');
