@@ -155,12 +155,12 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 	log.Println("Obteniendo programación...")
 
 	requests := []CompetitionRequest{
-		{"https://www.futbolenlatv.es/deporte", false, "general"},
+		{"https://www.futbolenlatv.es/deporte", true, "general"},
 		{"https://www.futbolenvivomexico.com/competicion/la-liga", true, "laligaMX"},
 		{"https://www.futebolnatv.pt/campeonato/bundesliga", true, "bundesligaPT"},
 		{"https://www.futebolnatv.pt/campeonato/ligue-1", true, "ligue1PT"},
 		{"https://www.futebolnatv.pt/campeonato/calcio-serie-a", true, "calcioPT"},
-		{"https://www.futbolenlatv.es/deporte/mma", false, "mma"},
+		{"https://www.futbolenlatv.es/deporte/mma", true, "mma"},
 	}
 
 	results := FetchCompetitionsParallel(requests, getCompetition)
@@ -468,6 +468,11 @@ func mixCompetitions(general, mxliga, ligue1, calcio, eventsmma, bundesligaPT []
 	if len(mxliga) == 0 {
 		general = addNewBroadcaster(general, "SKY SPORTS", "LaLiga")
 	}
+
+	general = addNewBroadcaster(general, "DAZN 1", "Liga Endesa")
+	general = addNewBroadcaster(general, "DAZN 2", "Liga Endesa")
+	general = addNewBroadcaster(general, "DAZN 3", "Liga Endesa")
+	general = addNewBroadcaster(general, "DAZN 4", "Liga Endesa")
 
 	if len(calcio) > 0 {
 		calcio = changeCompetitionName(calcio, "Liga italiana", "Serie A Italiana")
