@@ -17,7 +17,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "6538b79ce0da657d8455d1da6a5f342398899a0e",
 			// "50a8a13c474848d1efbd5586efdb5b6cdd173fa9",
 			// "4141892f5df7d6474bf0279895ce02b7336c9928",
-			
+			"01b9d9bd3d4ee299569e4a161ae719c2781aa7cb",
+			"fe0614decc0bd6e703cc060628c9914c26815f65",
 		},
 		Name:             "DAZN",
 		ShowListChannels: true,
