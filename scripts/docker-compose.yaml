@@ -1,0 +1,19 @@
+services:
+  acestream:
+    image: wafy80/acestream
+    container_name: acestream
+    restart: unless-stopped
+    ports:
+      - 8621:8621/udp
+      - 6878:6878/tcp
+  tvasalpalo:
+    build:
+      context: ../
+      dockerfile: ./scripts/Dockerfile
+    container_name: tvasalpalo
+    restart: unless-stopped
+    environment:
+      -  ENV=dev
+    ports:
+      - 3000:3000/tcp
+      - 9050:9050
