@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 )
@@ -27,7 +26,7 @@ const (
 	aceAssetNameWin      = "acestream-runtime-windows.zip"
 )
 
-func findBroadcaster(name string, competitionName string) BroadcasterInfo {
+func findBroadcaster(name string, competitionName, sport string) BroadcasterInfo {
 	// Coincidencia exacta
 	// quizas pasarlo a minisculas
 	nameUpper := strings.ToUpper(name)
@@ -37,6 +36,14 @@ func findBroadcaster(name string, competitionName string) BroadcasterInfo {
 	if competitionName == "LaLiga" && nameUpper == "SKY SPORTS" {
 		nameUpper = "SKY SPORTS LALIGA"
 	}
+	if sport == "Baloncesto" {
+		if nameUpper == "DAZN" {
+			nameUpper = "DAZN BALONCESTO"
+		}
+		if competitionName == "Copa del Rey Baloncesto" {
+			nameUpper = "DAZN BALONCESTO"
+		}
+	} 
 
 	if dataAce, exists := broadcasterToAcestream[nameUpper]; exists {
 		return dataAce
@@ -44,35 +51,35 @@ func findBroadcaster(name string, competitionName string) BroadcasterInfo {
 	return BroadcasterInfo{}
 }
 
-// findLinkForBroadcaster busca un enlace para un nombre de broadcaster.
-// Prioriza la coincidencia exacta, luego parcial.
-func findLinkForBroadcaster(name string, competitionName string) []string {
-	// Coincidencia exacta
-	// quizas pasarlo a minisculas
-	nameUpper := strings.ToUpper(name)
-	if competitionName == "Bundesliga" && nameUpper == "SKY SPORTS" {
-		nameUpper = "SKY SPORTS BUNDESLIGA"
-	}
-	if dataAce, exists := broadcasterToAcestream[nameUpper]; exists {
-		return dataAce.Links
-	}
+// // findLinkForBroadcaster busca un enlace para un nombre de broadcaster.
+// // Prioriza la coincidencia exacta, luego parcial.
+// func findLinkForBroadcaster(name string, competitionName string) []string {
+// 	// Coincidencia exacta
+// 	// quizas pasarlo a minisculas
+// 	nameUpper := strings.ToUpper(name)
+// 	if competitionName == "Bundesliga" && nameUpper == "SKY SPORTS" {
+// 		nameUpper = "SKY SPORTS BUNDESLIGA"
+// 	}
+// 	if dataAce, exists := broadcasterToAcestream[nameUpper]; exists {
+// 		return dataAce.Links
+// 	}
 
-	// Coincidencia parcial (como antes)
-	// nameUpper := strings.ToUpper(name)
-	for key, dataAce := range broadcasterToAcestream {
-		baseKey := strings.Split(key, " [")[0]
-		if strings.Contains(nameUpper, strings.ToUpper(baseKey)) {
-			// Preferir coincidencia exacta de base si es posible
-			if nameUpper == strings.ToUpper(baseKey) {
-				return dataAce.Links
-			}
-			// Si no hay exacta, esta es una candidata (la última encontrada)
-			// Para hacerlo más robusto, podrías tener lógica para elegir la mejor parcial
-		}
-	}
-	// Si no se encontró parcial, devolver vacío
-	return []string{}
-}
+// 	// Coincidencia parcial (como antes)
+// 	// nameUpper := strings.ToUpper(name)
+// 	for key, dataAce := range broadcasterToAcestream {
+// 		baseKey := strings.Split(key, " [")[0]
+// 		if strings.Contains(nameUpper, strings.ToUpper(baseKey)) {
+// 			// Preferir coincidencia exacta de base si es posible
+// 			if nameUpper == strings.ToUpper(baseKey) {
+// 				return dataAce.Links
+// 			}
+// 			// Si no hay exacta, esta es una candidata (la última encontrada)
+// 			// Para hacerlo más robusto, podrías tener lógica para elegir la mejor parcial
+// 		}
+// 	}
+// 	// Si no se encontró parcial, devolver vacío
+// 	return []string{}
+// }
 
 func RunAceStream() (*exec.Cmd, error) {
 	exePath, err := os.Executable()
@@ -113,9 +120,6 @@ func RunAceStream() (*exec.Cmd, error) {
 		log.Fatal("❌ No respondió después de 30 segundos")
 	}
 
-	log.Println("🎉 Lista Canales TV lista. Abriendo interfaz...")
-	openBrowser(fmt.Sprintf("http://localhost:%d", httpWebServerPort))
-
 	log.Println("✅ Todo listo. ¡A relajarse y disfrutar del contenido! 🍿")
 
 	return cmd, err
@@ -123,24 +127,20 @@ func RunAceStream() (*exec.Cmd, error) {
 
 // extractRuntime extrae el ZIP embebido en el directorio runtime
 func extractRuntime(targetDir, pathFile string) error {
-	// Abrir el ZIP embebido
 	zipFile, err := runtimeZip.Open(pathFile)
 	if err != nil {
 		return fmt.Errorf("no se pudo abrir el ZIP embebido: %w", err)
 	}
 	defer zipFile.Close()
 
-	// Obtener tamaño
 	zipInfo, _ := zipFile.Stat()
 	zipSize := zipInfo.Size()
 
-	// Crear reader ZIP
 	zipReader, err := zip.NewReader(io.NewSectionReader(zipFile.(io.ReaderAt), 0, zipSize), zipSize)
 	if err != nil {
 		return fmt.Errorf("no se pudo leer el ZIP: %w", err)
 	}
 
-	// Extraer cada archivo
 	for _, file := range zipReader.File {
 		filePath := filepath.Join(targetDir, file.Name)
 		if file.FileInfo().IsDir() {
@@ -150,31 +150,32 @@ func extractRuntime(targetDir, pathFile string) error {
 			continue
 		}
 
-		// Crear directorios intermedios
 		if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
 			return err
 		}
 
-		// Extraer archivo
 		inFile, err := file.Open()
 		if err != nil {
-			return fmt.Errorf("no se pudo abrir archivo en ZIP: %s: %w", file.Name, err)
+			return fmt.Errorf("no se pudo abrir archivo en ZIP: %s: %v", file.Name, err)
 		}
+		log.Printf("%s", filePath)
 		outFile, err := os.Create(filePath)
 		if err != nil {
 			inFile.Close()
-			return fmt.Errorf("no se pudo crear archivo: %s: %w", filePath, err)
+			return fmt.Errorf("no se pudo crear archivo: %s: %v", filePath, err)
 		}
 
 		_, err = io.Copy(outFile, inFile)
 		inFile.Close()
 		outFile.Close()
 		if err != nil {
-			return fmt.Errorf("error al copiar %s: %w", file.Name, err)
+			return fmt.Errorf("error al copiar %s: %v", file.Name, err)
 		}
 
-		// Aplicar permisos (opcional en Windows)
-		os.Chmod(filePath, file.Mode())
+		err = os.Chmod(filePath, file.Mode())
+		if err != nil {
+			return fmt.Errorf("error al cambiar permisos %s: %v", file.Name, err)
+		}
 	}
 	return nil
 }
@@ -202,19 +203,3 @@ func waitForAPI(url string, timeout time.Duration) bool {
 	return false
 }
 
-// openBrowser abre el navegador según el sistema
-func openBrowser(url string) {
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "windows":
-		switch runtime.GOOS {
-		case "windows":
-			cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
-		case "darwin":
-			cmd = exec.Command("open", url)
-		default: // Linux, etc.
-			cmd = exec.Command("xdg-open", url)
-		}
-	}
-	_ = cmd.Start()
-}

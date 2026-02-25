@@ -34,7 +34,6 @@ func main() {
 	}
 
 	log.Println("📡 Obteniendo programacion TV...")
-	// donwload updated lists
 	err = FetchUpdatedList()
 	if err != nil {
 		log.Printf("Error al obtener la programación")
@@ -45,16 +44,8 @@ func main() {
 		log.Printf("❌ Error en servidor web: %v", err)
 	}
 
-	if cmdTor != nil && cmdTor.Process != nil {
-		if err := cmdTor.Process.Kill(); err != nil {
-			log.Printf("❌ Error al cerrar: %v", err)
-		} else {
-			log.Println("✅ Cerrado TOR correctamente")
-		}
-	}
-
 	log.Println("🌐 Servidor web iniciando en http://localhost:3000")
-	time.Sleep(1 * time.Second)
+	time.Sleep(10 * time.Second)
 	var cmdAcestream *exec.Cmd
 
 	env := os.Getenv("ENV")
@@ -64,6 +55,8 @@ func main() {
 			if err != nil {
 				log.Fatal("❌ Error al iniciar AceStream: ", err)
 			}
+			// log.Println("🎉 Lista Canales TV lista. Abriendo interfaz...")
+			openBrowser(fmt.Sprintf("http://localhost:%d", httpWebServerPort))
 		}()
 	}
 
@@ -86,6 +79,11 @@ func main() {
 		log.Println("✅ Cerrado webserver correctamente")
 	}
 
+	err = StopTor(cmdTor)
+	if err != nil {
+		log.Printf("❌ Error al detener TOR: %v %v", err, cmdTor)
+	}
+
 	if cmdAcestream != nil && cmdAcestream.Process != nil {
 		if err := cmdAcestream.Process.Kill(); err != nil {
 			log.Printf("❌ Error al cerrar: %v", err)
@@ -93,5 +91,4 @@ func main() {
 			log.Println("✅ Cerrado ace correctamente")
 		}
 	}
-
 }

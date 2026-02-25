@@ -22,6 +22,29 @@ const (
 	timeTimeout = 20 * time.Second
 )
 
+func IinitializeRedirectClients() *http.Client {
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 10 {
+				return fmt.Errorf("stopped after 10 redirects")
+			}
+			
+			return http.ErrUseLastResponse
+		},
+		Timeout: timeTimeout,
+	}
+
+	return client
+}
+
+func StopRedirectClient(client *http.Client) {
+	if client.Transport != nil {
+		if transport, ok := client.Transport.(*http.Transport); ok {
+			transport.CloseIdleConnections()
+		}
+	}
+}
+
 func FetchWebData(url string, proxied bool) ([]byte, error) {
 	var err error
 	client := &http.Client{
@@ -70,7 +93,7 @@ func FetchWebData(url string, proxied bool) ([]byte, error) {
 }
 
 func createSOCKS5Client() (*http.Client, error) {
-	sockURL, err := url.Parse("socks5://127.0.0.1:" + portTor)
+	sockURL, err := url.Parse("socks5://localhost:" + portTor)
 	if err != nil {
 		return nil, err
 	}
@@ -168,10 +191,7 @@ func testSOCKS5Proxy(proxyAddr string) bool {
 	}
 }
 
-func FetchCompetitionsParallel(
-	requests []CompetitionRequest,
-	getFunc func(url string, proxied bool) ([]DayView, error),
-) map[string][]DayView {
+func FetchCompetitionsParallel(requests []CompetitionRequest, getFunc func(url string, proxied bool) ([]DayView, error) ) map[string][]DayView {
 	results := make(map[string][]DayView)
 	var mu sync.Mutex
 	var wg sync.WaitGroup
@@ -196,29 +216,74 @@ func FetchCompetitionsParallel(
 }
 
 
-func fetchWithRedirects(initialURL string, proxified bool) (finalURL string, finalHeaders http.Header, manifestBody []byte, err error) {
-	client := &http.Client{
-		// CheckRedirect: func(req *http.Request, via []*http.Request) error {
-		// 	if len(via) >= 10 {
-		// 		return fmt.Errorf("stopped after 10 redirects")
-		// 	}
+// func fetchWithRedirects(initialURL string, proxified bool) (finalURL string, finalHeaders http.Header, manifestBody []byte, err error) {
+// 	client := &http.Client{
+// 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+// 			if len(via) >= 10 {
+// 				return fmt.Errorf("stopped after 10 redirects")
+// 			}
 			
-		// 	return http.ErrUseLastResponse
-		// },
-		Timeout: timeTimeout,
-	}
+// 			return http.ErrUseLastResponse
+// 		},
+// 		Timeout: timeTimeout,
+// 	}
 
-	if proxified {
-		client, err = createSOCKS5Client()
-	}
+// 	if proxified {
+// 		client, err = createSOCKS5Client()
+// 	}
 
-	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		if len(via) >= 10 {
-			return fmt.Errorf("stopped after 10 redirects")
-		}
-		return http.ErrUseLastResponse
-	}
+// 	// client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+// 	// 	if len(via) >= 10 {
+// 	// 		return fmt.Errorf("stopped after 10 redirects")
+// 	// 	}
+// 	// 	return http.ErrUseLastResponse
+// 	// }
 
+// 	currentURL := initialURL
+// 	redirectCount := 0
+
+// 	for {
+// 		req, err := http.NewRequest("GET", currentURL, nil)
+// 		if err != nil {
+// 			return "", nil, nil, fmt.Errorf("failed to create request for %s: %w", currentURL, err)
+// 		}
+
+// 		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+// 		req.Header.Set("Accept", "*/*")
+// 		req.Header.Set("Connection", "keep-alive")
+
+// 		// Hacer la solicitud
+// 		resp, err := client.Do(req)
+// 		if err != nil {
+// 			return "", nil, nil, fmt.Errorf("failed to fetch %s: %w", currentURL, err)
+// 		}
+
+// 		defer resp.Body.Close() 
+
+// 		if resp.StatusCode >= 300 && resp.StatusCode < 400 {
+// 			redirectCount++
+// 			if redirectCount > 10 {
+// 				return "", nil, nil, fmt.Errorf("too many redirects (>10)")
+// 			}
+
+// 			location := resp.Header.Get("Location")
+// 			if location == "" {
+// 				return "", nil, nil, fmt.Errorf("redirect status %d received but no Location header found for URL %s", resp.StatusCode, currentURL)
+// 			}
+// 			currentURL = location
+// 			continue
+// 		}
+
+// 		body, err := io.ReadAll(resp.Body)
+// 		if err != nil {
+// 			return "", nil, nil, fmt.Errorf("failed to read manifest body from %s: %w", currentURL, err)
+// 		}
+
+// 		return resp.Request.URL.String(), resp.Header, body, nil
+// 	}
+// }
+
+func fetchWithRedirects(initialURL string, client *http.Client) (finalURL string, finalHeaders http.Header, manifestBody []byte, err error) {
 	currentURL := initialURL
 	redirectCount := 0
 
@@ -232,13 +297,12 @@ func fetchWithRedirects(initialURL string, proxified bool) (finalURL string, fin
 		req.Header.Set("Accept", "*/*")
 		req.Header.Set("Connection", "keep-alive")
 
-		// Hacer la solicitud
-		resp, err := client.Do(req)
+		resp, err := client.Do(req) // <--- Usar el cliente pasado como parámetro
 		if err != nil {
 			return "", nil, nil, fmt.Errorf("failed to fetch %s: %w", currentURL, err)
 		}
 
-		defer resp.Body.Close() 
+		defer resp.Body.Close()
 
 		if resp.StatusCode >= 300 && resp.StatusCode < 400 {
 			redirectCount++

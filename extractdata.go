@@ -8,34 +8,51 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"regexp"
 	"strings"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/grafov/m3u8"
 )
 
 var filterList = []string{
-	"ESPN HD",
-	"ESPN 2 HD",
-	"ESPN 3 HD",
-	"ESPN 4 HD",
-	"ESPN 5 HD",
-	"ESPN 6 HD",
-	"ESPN 7 HD",
+	// "ESPN HD",
+	// "ESPN 2 HD",
+	// "ESPN 3 HD",
+	// "ESPN 4 HD",
+	// "ESPN 5 HD",
+	// "ESPN 6 HD",
+	// "ESPN 7 HD",
+	"ESPN ARGENTINA",
+	"DAZN",
 }
 
 const (
 	shickatWeb = "https://shickat.me/"
-	elcanoWeb = "https://ipfs.io/ipns/elcano.top"
-) 
+	elcanoWeb  = "https://ipfs.io/ipns/elcano.top"
+	listaplana = "https://ipfs.io/ipns/k2k4r8oqlcjxsritt5mczkcn4mmvcmymbqw7113fz2flkrerfwfps004/data/listas/listaplana.txt"
+)
 
 func FetchUpdatedList() error {
-	body, err := FetchWebData(shickatWeb, false)
-	if err != nil {
-		return err
+	var extractedData map[string][]string
+	var err error
+	for range 10 {
+		body, err := FetchWebData(listaplana, false)
+		if err != nil || len(body) == 0 {
+			log.Print("cannot read lista plana")
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		extractedData = extractDataFromWebTxtRaw(body)
+		break
+		// if err == nil {
+		// 	// extractedData = extractDataFromWebShitkat(body)
+		// }
+
 	}
-	extractedData := extractDataFromWebShitkat(body)
 	broadcasterToAcestream = updateBroadcasterMapWithGateway(broadcasterToAcestream, extractedData)
+	broadcasterToAcestream = transformUriSafeBroadcasters(broadcasterToAcestream)
 
 	// body, err = FetchWebData(elcanoWeb)
 	// if err != nil {
@@ -48,6 +65,7 @@ func FetchUpdatedList() error {
 	// broadcasterToAcestream = updateBroadcasterMapWithGateway(broadcasterToAcestream, extractedData)
 
 	// body, err = FetchWebData("https://gist.githubusercontent.com/GUAPACHA/ff9cf6435b379c4c550913fdadc8edc4/raw/563943f091669fc21d96de72d0f9937a9b10221c/the%2520beatles")
+	// body, err = FetchWebData("https://raw.githubusercontent.com/Icastresana/lista1/refs/heads/main/peticiones", true)
 	// if err != nil {
 	// 	return err
 	// }
@@ -59,12 +77,19 @@ func FetchUpdatedList() error {
 	// broadcasterToAcestream = updateBroadcasterMapWithGateway(broadcasterToAcestream, extractedData)
 
 	// programacion espn, skysports
-	
+	// 'https://api.acestream.me/all?api_version=1&api_key=test_api_key
 	// check active link
 	// broadcasterToAcestream = checkActiveLinks(broadcasterToAcestream)
-
+	log.Print("Filtrando....")
 	// transform uri links to base64 uri safe
-	broadcasterToAcestream = transformUriSafeBroadcasters(broadcasterToAcestream)
+
+	topCompetitions = transformCompetitionsToTop(allCompetitions)
+
+	if err := preloadProgramationTVData(); err != nil {
+		log.Printf("⚠️  Advertencia: No se pudieron pre-cargar datos: %v", err)
+	}
+
+	startTVProgramationDataRefresh()
 	return err
 }
 
@@ -155,12 +180,76 @@ func extractDataFromWebShitkat(body []byte) map[string][]string {
 	return extractedData
 }
 
+func extractDataFromWebTxtRaw(body []byte) map[string][]string {
+	extractedData := make(map[string][]string)
+	lines := strings.Split(string(body), "\n")
+	for i := 0; i < len(lines); i += 2 {
+		if i+1 >= len(lines) {
+			break
+		}
+		
+		nombre := normalizeChannelName(lines[i])
+		if nombre == "ACB EVENTO 01" {
+			nombre = "DAZN BALONCESTO 1"
+		}
+		if nombre == "ACB EVENTO 02" {
+			nombre = "DAZN BALONCESTO 2"
+		}
+		acestreamLink := strings.TrimSpace(lines[i+1])
+
+		if nombre == "" || acestreamLink == "" {
+			continue
+		}
+
+		extractedData[nombre] = append(extractedData[nombre], acestreamLink)
+	}
+
+	return extractedData
+}
+
+var (
+	reArrow      = regexp.MustCompile(`\s*-->.*$`)
+	reParens     = regexp.MustCompile(`\([^)]*\)`)
+	reBrackets   = regexp.MustCompile(`\[[^]]*\]`)
+	reStars      = regexp.MustCompile(`\*+`)
+	reQuality    = regexp.MustCompile(`(?i)\b(4K|UHD|FHDp|FHD|HDp|HD|SDp|SD|720p|1080p|2160p)\b`)
+	reMultiSpace = regexp.MustCompile(`\s+`)
+)
+
+// NormalizeChannelName limpia y normaliza el nombre del canal
+func normalizeChannelName(input string) string {
+
+	s := input
+
+	// 1. eliminar todo después de -->
+	s = reArrow.ReplaceAllString(s, "")
+
+	// 2. eliminar (...) y [...]
+	s = reParens.ReplaceAllString(s, "")
+	s = reBrackets.ReplaceAllString(s, "")
+
+	// 3. eliminar *
+	s = reStars.ReplaceAllString(s, "")
+
+	// 4. eliminar etiquetas de calidad
+	s = reQuality.ReplaceAllString(s, "")
+
+	// 5. trim
+	s = strings.TrimSpace(s)
+
+	// 6. normalizar espacios
+	s = reMultiSpace.ReplaceAllString(s, " ")
+
+	return s
+}
+
 func transformUriSafeBroadcasters(broadcasterToAcestream map[string]BroadcasterInfo) map[string]BroadcasterInfo {
+	redirectClient := IinitializeRedirectClients()
 	for key := range broadcasterToAcestream {
 		for i := 0; i < len(broadcasterToAcestream[key].Links); i++ {
 			if strings.Contains(broadcasterToAcestream[key].Links[i], "p;") {
 				initialUri := strings.Split(broadcasterToAcestream[key].Links[i], "p;")[1]
-				finalURL, _, _, _ := resolveFinalManifestURL(initialUri)
+				finalURL, _, _, _ := resolveFinalManifestURL(initialUri, redirectClient)
 				// fmt.Println(string(manifestContent) + "...")
 				// fmt.Printf("%v", headers)
 				// fmt.Println(string(finalURL) + "...")
@@ -172,6 +261,7 @@ func transformUriSafeBroadcasters(broadcasterToAcestream map[string]BroadcasterI
 			}
 		}
 	}
+	StopRedirectClient(redirectClient)
 	return broadcasterToAcestream
 }
 
@@ -198,6 +288,9 @@ func extractDataFromM3U8(body []byte, filterList []string) (map[string][]string,
 	}
 	extractedData := make(map[string][]string)
 	for i := 0; i < len(mediapl.Segments); i++ {
+		if mediapl.Segments[i] == nil {
+			continue
+		}
 		name := mediapl.Segments[i].Title
 		link := mediapl.Segments[i].URI
 		extractedData[name] = append(extractedData[name], link)
@@ -205,8 +298,8 @@ func extractDataFromM3U8(body []byte, filterList []string) (map[string][]string,
 	return extractedData, nil
 }
 
-func resolveFinalManifestURL(initialURL string) (finalURL string, finalHeaders http.Header, manifestBody []byte, err error) {
-	return fetchWithRedirects(initialURL, true)
+func resolveFinalManifestURL(initialURL string, redirectClient *http.Client) (finalURL string, finalHeaders http.Header, manifestBody []byte, err error) {
+	return fetchWithRedirects(initialURL, redirectClient)
 }
 
 func checkActiveLinks(broadcasters map[string]BroadcasterInfo) map[string]BroadcasterInfo {
@@ -262,7 +355,7 @@ func checkActiveLink(initialURL string) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		defer resp.Body.Close() 
+		defer resp.Body.Close()
 
 		if resp.StatusCode >= 300 && resp.StatusCode < 400 {
 			redirectCount++

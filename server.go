@@ -44,73 +44,66 @@ type CachedData struct {
 	AllCompetitions     AllCompetitions
 	TopCompetitions     map[string]CompetitionDetail
 	Broadcasters        map[string]BroadcasterInfo
-	BroadcastersOrdered []BroadcasterInfo  
+	BroadcastersOrdered []BroadcasterInfo
 }
 
-func preloadData() error {
-    days, daysJSON, topCompetitionsJSON, err := fetchEvents()
-    if err != nil {
-        return fmt.Errorf("error preloading data: %v", err)
-    }
+func preloadProgramationTVData() error {
+	days, daysJSON, topCompetitionsJSON, err := fetchEvents()
+	if err != nil {
+		return fmt.Errorf("error preloading data: %v", err)
+	}
 
-    broadcastersMap := broadcasterToAcestream // Tu mapa original
-    broadcastersSlice := make([]BroadcasterInfo, 0, len(broadcastersMap))
+	broadcastersMap := broadcasterToAcestream
+	broadcastersSlice := make([]BroadcasterInfo, 0, len(broadcastersMap))
 
-    for _, info := range broadcastersMap {
-        if info.ShowListChannels {
-            broadcastersSlice = append(broadcastersSlice, info)
-        }
-    }
+	for _, info := range broadcastersMap {
+		if info.ShowListChannels {
+			broadcastersSlice = append(broadcastersSlice, info)
+		}
+	}
 
-    // based in order value
-    sort.Slice(broadcastersSlice, func(i, j int) bool {
-        if broadcastersSlice[i].Order == 0 && broadcastersSlice[j].Order != 0 {
-            return false
-        }
-        if broadcastersSlice[j].Order == 0 && broadcastersSlice[i].Order != 0 {
-            return true
-        }
-        return broadcastersSlice[i].Order < broadcastersSlice[j].Order
-    })
+	// based in order value
+	sort.Slice(broadcastersSlice, func(i, j int) bool {
+		if broadcastersSlice[i].Order == 0 && broadcastersSlice[j].Order != 0 {
+			return false
+		}
+		if broadcastersSlice[j].Order == 0 && broadcastersSlice[i].Order != 0 {
+			return true
+		}
+		return broadcastersSlice[i].Order < broadcastersSlice[j].Order
+	})
 
-    dataMutex.Lock()
-    cachedData = CachedData{
-        Days:                days,
-        DaysJSON:            *daysJSON,
-        TopCompetitionsJSON: *topCompetitionsJSON,
-        AllCompetitions:     allCompetitions,
-        TopCompetitions:     topCompetitions,
-        Broadcasters:        broadcasterToAcestream,
-        BroadcastersOrdered: broadcastersSlice,
-    }
-    lastDataUpdate = time.Now()
-    dataMutex.Unlock()
+	dataMutex.Lock()
+	cachedData = CachedData{
+		Days:                days,
+		DaysJSON:            *daysJSON,
+		TopCompetitionsJSON: *topCompetitionsJSON,
+		AllCompetitions:     allCompetitions,
+		TopCompetitions:     topCompetitions,
+		Broadcasters:        broadcasterToAcestream,
+		BroadcastersOrdered: broadcastersSlice,
+	}
+	lastDataUpdate = time.Now()
+	dataMutex.Unlock()
 
-    log.Println("✅ Datos pre-cargados en memoria")
-    return nil
+	log.Println("✅ Datos pre-cargados en memoria")
+	return nil
 }
 
 // Refrescar datos periódicamente
-func startDataRefresh() {
+func startTVProgramationDataRefresh() {
 	ticker := time.NewTicker(6 * time.Hour)
 	go func() {
 		for range ticker.C {
-			if err := preloadData(); err != nil {
-				log.Printf("⚠️  Error refrescando datos: %v", err)
+			err := preloadProgramationTVData()
+			if err != nil {
+				log.Fatal("❌ Error refrescando datos: ", err)
 			}
 		}
 	}()
 }
 
 func StartWebServer() (*fiber.App, error) {
-	topCompetitions = transformCompetitionsToTop(allCompetitions)
-
-	if err := preloadData(); err != nil {
-		log.Printf("⚠️  Advertencia: No se pudieron pre-cargar datos: %v", err)
-	}
-
-	startDataRefresh()
-
 	engine := html.NewFileSystem(http.FS(viewsFS), ".html")
 	engine.AddFunc("b64", encodeContent)
 
@@ -118,11 +111,112 @@ func StartWebServer() (*fiber.App, error) {
 		Views: engine,
 	})
 
+	// app.Use(cors.New(cors.Config{
+	// 	AllowOrigins: "http://localhost:3000",
+	// 	AllowMethods: "GET,POST,PUT,DELETE",
+	// 	AllowHeaders: "Origin, Content-Type, Accept",
+	// }))
+
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "http://localhost:3000",
-		AllowMethods: "GET,POST,PUT,DELETE",
-		AllowHeaders: "Origin, Content-Type, Accept",
+		AllowOrigins:     "*",
+		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
+		AllowHeaders:     "Origin, Content-Type, Accept, Range",
+		AllowCredentials: false,
 	}))
+
+	app.Get("/ace/*", func(c *fiber.Ctx) error {
+		// Obtener la ruta completa después de /ace/
+		acePath := c.Params("*")
+
+		// Construir la URL de destino (Ace Stream)
+		targetURL := "http://127.0.0.1:6878/ace/" + acePath
+
+		// 🔥 SOLO añadir query string si realmente existe y no está vacío
+		queryString := string(c.Request().URI().QueryString())
+		if queryString != "" {
+			targetURL += "?" + queryString
+		}
+
+		log.Printf("🔄 Proxy ACE: %s -> %s", c.Path(), targetURL)
+
+		// Crear cliente HTTP
+		client := &http.Client{
+			Timeout: 30 * time.Second,
+		}
+
+		// Crear la petición
+		req, err := http.NewRequest("GET", targetURL, nil)
+		if err != nil {
+			log.Printf("❌ Error creando petición proxy: %v", err)
+			return c.Status(500).SendString("Error en proxy: " + err.Error())
+		}
+
+		// Copiar headers importantes
+		if userAgent := c.Get("User-Agent"); userAgent != "" {
+			req.Header.Set("User-Agent", userAgent)
+		}
+		if acceptLang := c.Get("Accept-Language"); acceptLang != "" {
+			req.Header.Set("Accept-Language", acceptLang)
+		}
+		if rangeHeader := c.Get("Range"); rangeHeader != "" {
+			req.Header.Set("Range", rangeHeader)
+		}
+
+		// Hacer la petición
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Printf("❌ Error en petición a Ace Stream: %v", err)
+			return c.Status(502).SendString("Error conectando con Ace Stream: " + err.Error())
+		}
+		defer resp.Body.Close()
+
+		// 🔥 SI ES UN MANIFEST M3U8, MODIFICAR LAS URLs
+		if strings.HasSuffix(acePath, ".m3u8") {
+			return handleAceManifest(c, resp)
+		}
+
+		// Para archivos .ts y otros
+		// Copiar headers de respuesta
+		for key, values := range resp.Header {
+			for _, value := range values {
+				c.Set(key, value)
+			}
+		}
+
+		// 🔥 CORREGIR Content-Type para archivos .ts
+		if strings.HasSuffix(acePath, ".ts") {
+			c.Set("Content-Type", "video/mp2t")
+			log.Printf("✅ Content-Type corregido para .ts: %s", acePath)
+		}
+
+		// Asegurar CORS
+		c.Set("Access-Control-Allow-Origin", "*")
+		c.Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		c.Set("Access-Control-Allow-Headers", "*")
+		c.Set("Access-Control-Expose-Headers", "Content-Length, Content-Range, Accept-Ranges")
+
+		// Manejar OPTIONS
+		if c.Method() == "OPTIONS" {
+			return c.SendStatus(200)
+		}
+
+		// Copiar status code y body
+		c.Status(resp.StatusCode)
+
+		// 🔥 Si Ace Stream devuelve error, loggear y devolver
+		if resp.StatusCode >= 400 {
+			bodyBytes, _ := io.ReadAll(resp.Body)
+			log.Printf("❌ Ace Stream devolvió error %d para %s: %s", resp.StatusCode, targetURL, string(bodyBytes))
+			return c.SendString(string(bodyBytes))
+		}
+
+		_, err = io.Copy(c.Response().BodyWriter(), resp.Body)
+		if err != nil {
+			log.Printf("⚠️ Error copiando respuesta: %v", err)
+		}
+
+		return nil
+	})
 
 	app.Use("/css", filesystem.New(filesystem.Config{
 		Root:       http.FS(viewsFS),
@@ -168,23 +262,23 @@ func StartWebServer() (*fiber.App, error) {
 	})
 
 	app.Get("/broadcasters", func(c *fiber.Ctx) error {
-    dataMutex.RLock()
-    data := cachedData
-    dataMutex.RUnlock()
+		dataMutex.RLock()
+		data := cachedData
+		dataMutex.RUnlock()
 
-    return c.Render("views/broadcasters", fiber.Map{
-        // 
-        "Broadcasters":        data.BroadcastersOrdered,
-        "DaysJSON":            data.DaysJSON,
-        "Days":                data.Days,
-        "allCompetitions":     data.AllCompetitions,
-        "topCompetitions":     data.TopCompetitions,
-        "topCompetitionsJSON": data.TopCompetitionsJSON,
-    })
-})
+		return c.Render("views/broadcasters", fiber.Map{
+			//
+			"Broadcasters":        data.BroadcastersOrdered,
+			"DaysJSON":            data.DaysJSON,
+			"Days":                data.Days,
+			"allCompetitions":     data.AllCompetitions,
+			"topCompetitions":     data.TopCompetitions,
+			"topCompetitionsJSON": data.TopCompetitionsJSON,
+		})
+	})
 
 	app.Get("/refresh-data", func(c *fiber.Ctx) error {
-		if err := preloadData(); err != nil {
+		if err := preloadProgramationTVData(); err != nil {
 			return c.Status(500).JSON(fiber.Map{
 				"error": err.Error(),
 			})
@@ -287,9 +381,9 @@ func StartWebServer() (*fiber.App, error) {
 					"error": "Channel not found",
 				})
 			}
-			if strings.Contains(targetURL, "p;") {
-				targetURL = strings.Replace(targetURL, "p;", "", 1)
-			}
+			// if strings.Contains(targetURL, "p;") {
+			targetURL = strings.Replace(targetURL, "p;", "", 1)
+			// }
 		}
 		return fetchAndProxy(c, targetURL)
 	})
@@ -310,34 +404,29 @@ func fetchEvents() ([]DayView, *template.JS, *template.JS, error) {
 	for i := 1; i < 3; i++ {
 		days, err = fetchScheduleMatchesFutbolEnCasa()
 		if err != nil {
-			// Loggear el error completo para depuración
 			log.Printf("Error fetching schedule: %v", err)
 			time.Sleep(3 * time.Second)
 			continue
-			// Devolver un error al cliente
-			// return nil, nil, nil, fmt.Errorf("Error al obtener la programación")
 		}
 		break
 	}
 
 	if err != nil {
-		// Loggear el error completo para depuración
 		log.Printf("Error fetching schedule: %v", err)
-		// Devolver un error al cliente
-		return nil, nil, nil, fmt.Errorf("Error al obtener la programación")
+		return nil, nil, nil, fmt.Errorf("1 Error al obtener la programación")
 	}
 
 	daysJSONBytes, err := json.Marshal(days)
 	if err != nil {
 		log.Printf("Error marshaling days to JSON: %v", err)
-		return nil, nil, nil, fmt.Errorf("Error al obtener la programación")
+		return nil, nil, nil, fmt.Errorf("2 Error al obtener la programación")
 	}
 	daysJSON := template.JS(daysJSONBytes)
 
 	topCompetitionsBytes, err := json.Marshal(topCompetitions)
 	if err != nil {
 		log.Printf("Error marshaling days to JSON: %v", err)
-		return nil, nil, nil, fmt.Errorf("Error al obtener la programación")
+		return nil, nil, nil, fmt.Errorf("3 Error al obtener la programación")
 	}
 	topCompetitionsJSON := template.JS(topCompetitionsBytes)
 	return days, &daysJSON, &topCompetitionsJSON, nil
@@ -578,6 +667,96 @@ func modifySegmentURLs(manifestContent string, baseURL *url.URL) string {
 
 func encodeContent(input string) string {
 	return base64.StdEncoding.EncodeToString([]byte(input))
+}
+
+func handleAceManifest(c *fiber.Ctx, resp *http.Response) error {
+	// Leer el contenido del manifest
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("❌ Error leyendo manifest: %v", err)
+		return c.Status(500).SendString("Error leyendo manifest: " + err.Error())
+	}
+
+	manifestContent := string(body)
+
+	// Obtener el origen del servidor (http://127.0.0.1:3000 o el que sea)
+	scheme := "http"
+	if c.Protocol() == "https" {
+		scheme = "https"
+	}
+	host := string(c.Request().Host())
+	if host == "" {
+		host = "127.0.0.1:3000" // Fallback
+	}
+
+	serverOrigin := fmt.Sprintf("%s://%s", scheme, host)
+
+	log.Printf("📝 Reescribiendo URLs del manifest con origen: %s", serverOrigin)
+
+	// Reescribir las URLs en el manifest
+	lines := strings.Split(manifestContent, "\n")
+	for i, line := range lines {
+		line = strings.TrimSpace(line)
+
+		// Saltar líneas vacías y comentarios
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		// Si la línea contiene una URL (segmentos .ts o sub-manifests .m3u8)
+		// if strings.Contains(line, "http://") {
+		// 	// Parsear la URL original
+		// 	originalURL, err := url.Parse(line)
+		// 	if err != nil {
+		// 		log.Printf("⚠️ No se pudo parsear URL: %s", line)
+		// 		continue
+		// 	}
+
+		// 	// Construir la nueva URL a través del proxy
+		// 	// De: http://127.0.0.1:6878/ace/c/xxx/0.ts
+		// 	// A:  http://127.0.0.1:3000/ace/c/xxx/0.ts
+		// 	newPath := strings.TrimPrefix(originalURL.Path, "/")
+		// 	if originalURL.RawQuery != "" {
+		// 		newPath += "?" + originalURL.RawQuery
+		// 	}
+
+		// 	newURL := fmt.Sprintf("%s/%s", serverOrigin, newPath)
+		// 	lines[i] = newURL
+
+		// 	log.Printf("🔄 URL reescrita: %s -> %s", line, newURL)
+		// } else if strings.HasSuffix(line, ".ts") || strings.HasSuffix(line, ".m3u8") {
+		// 	// Si es una URL relativa, convertirla en absoluta a través del proxy
+		// 	newURL := fmt.Sprintf("%s/ace/%s", serverOrigin, line)
+		// 	lines[i] = newURL
+		// 	log.Printf("🔄 URL relativa convertida: %s -> %s", line, newURL)
+		// }
+		if strings.Contains(line, "127.0.0.1:6878") {
+			// De: http://127.0.0.1:6878/ace/c/xxx/0.ts
+			// A:  http://127.0.0.1:3000/ace/c/xxx/0.ts
+			newLine := strings.Replace(line, "127.0.0.1:6878", host, 1)
+			lines[i] = newLine
+			log.Printf("🔄 URL reescrita: %s -> %s", line, newLine)
+		} else if strings.HasSuffix(line, ".ts") || strings.HasSuffix(line, ".m3u8") {
+			// Si es una URL relativa, convertirla en absoluta
+			if !strings.HasPrefix(line, "http://") && !strings.HasPrefix(line, "https://") {
+				newURL := fmt.Sprintf("%s/ace/%s", serverOrigin, strings.TrimPrefix(line, "/"))
+				lines[i] = newURL
+				log.Printf("🔄 URL relativa convertida: %s -> %s", line, newURL)
+			}
+		}
+	}
+
+	modifiedManifest := strings.Join(lines, "\n")
+
+	// Establecer headers
+	c.Set("Content-Type", "application/vnd.apple.mpegurl")
+	c.Set("Access-Control-Allow-Origin", "*")
+	c.Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	c.Set("Access-Control-Allow-Headers", "*")
+	c.Set("Cache-Control", "no-cache")
+
+	c.Status(resp.StatusCode)
+	return c.SendString(modifiedManifest)
 }
 
 // var client = &http.Client{

@@ -161,6 +161,7 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 		{"https://www.futebolnatv.pt/campeonato/ligue-1", true, "ligue1PT"},
 		{"https://www.futebolnatv.pt/campeonato/calcio-serie-a", true, "calcioPT"},
 		{"https://www.futbolenlatv.es/deporte/mma", true, "mma"},
+		// {"https://www.futbolenlatv.es/deporte/baloncesto", true, "baloncesto"},
 	}
 
 	results := FetchCompetitionsParallel(requests, getCompetition)
@@ -172,6 +173,7 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 	eventsFromLigue1ToPt := results["ligue1PT"]
 	eventsFromCalcioToPt := results["calcioPT"]
 	eventsmma := results["mma"]
+	// eventsbaloncesto := results["baloncesto"]
 
 	// Ajustes de nombres de canales de Bundesliga
 	eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN", "DAZN 1 PT", "Bundesliga")
@@ -182,6 +184,7 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 	eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 5", "DAZN 5 PT", "Bundesliga")
 	eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 6", "DAZN 6 PT", "Bundesliga")
 	eventsmma = changeBroadcasterName(eventsmma, "", "UFC", "UFC")
+	// eventsbaloncesto = changeBroadcasterName(eventsbaloncesto, "DAZN", "UFC", "UFC")
 
 	// Sobrescribir y mezclar resultados
 	generalEvents = overrideCompetition(generalEvents, eventsFromBundesligaToPt)
@@ -290,7 +293,10 @@ func prepareMatchDay(body []byte) ([]DayView, error) {
 			}
 
 			if channelName != "" {
-				broadcaster := findBroadcaster(channelName, competitionName)
+				if sport == "Baloncesto" && strings.ToUpper(competitionName)  == "COPA DEL REY" {
+					competitionName = "Copa del Rey Baloncesto"
+				}
+				broadcaster := findBroadcaster(channelName, competitionName, sport)
 				// links := findLinkForBroadcaster(channelName, competitionName)
 				broadcasters = append(broadcasters, broadcaster)
 			}
@@ -482,6 +488,7 @@ func mixCompetitions(general, mxliga, ligue1, calcio, eventsmma, bundesligaPT []
 		general[i] = addCompetition(general[i], calcio)
 		general[i] = addCompetition(general[i], mxliga)
 		general[i] = addCompetition(general[i], eventsmma)
+		// general[i] = addCompetition(general[i], eventsbaloncesto)
 	}
 	return general
 }
@@ -561,158 +568,158 @@ func changeCompetitionName(days []DayView, competitionNameOrigin, competitionNam
 	return days
 }
 
-func getPremierLeagueMatchesFromDAZNChannels(generalEvents []DayView) ([]DayView, error) {
-	var dayviews []DayView
-	for i := range generalEvents {
-		if _, ok := generalEvents[i].Competitions["Premier League"]; !ok {
-			continue
-		}
-		parsedDate, _ := time.Parse("02-01-2006", generalEvents[i].DateKey)
-		usaParsedDate := parsedDate.Format("2006-01-02")
-		uri := fmt.Sprintf("https://tvepg.eu/es/spain/epg/sports/%s", usaParsedDate)
-		body, err := FetchWebData(uri, false)
-		if err != nil {
-			return nil, err
-		}
+// func getPremierLeagueMatchesFromDAZNChannels(generalEvents []DayView) ([]DayView, error) {
+// 	var dayviews []DayView
+// 	for i := range generalEvents {
+// 		if _, ok := generalEvents[i].Competitions["Premier League"]; !ok {
+// 			continue
+// 		}
+// 		parsedDate, _ := time.Parse("02-01-2006", generalEvents[i].DateKey)
+// 		usaParsedDate := parsedDate.Format("2006-01-02")
+// 		uri := fmt.Sprintf("https://tvepg.eu/es/spain/epg/sports/%s", usaParsedDate)
+// 		body, err := FetchWebData(uri, false)
+// 		if err != nil {
+// 			return nil, err
+// 		}
 
-		tempdays, err := extractPremierLeagueMatchesFromDAZNChannels(body, generalEvents[i].DateKey, generalEvents[i].FormattedDate, usaParsedDate)
-		if err != nil {
-			return nil, err
-		}
-		if len(tempdays.Competitions) == 0 {
-			continue
-		}
-		dayviews = append(dayviews, tempdays)
-	}
-	generalEvents = mixDaznChannelsforGeneralEvents(generalEvents, dayviews)
+// 		tempdays, err := extractPremierLeagueMatchesFromDAZNChannels(body, generalEvents[i].DateKey, generalEvents[i].FormattedDate, usaParsedDate)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		if len(tempdays.Competitions) == 0 {
+// 			continue
+// 		}
+// 		dayviews = append(dayviews, tempdays)
+// 	}
+// 	generalEvents = mixDaznChannelsforGeneralEvents(generalEvents, dayviews)
 
-	return generalEvents, nil
-}
+// 	return generalEvents, nil
+// }
 
-func mixDaznChannelsforGeneralEvents(generalEvents []DayView, dayviews []DayView) []DayView {
-	panic("unimplemented")
-}
+// func mixDaznChannelsforGeneralEvents(generalEvents []DayView, dayviews []DayView) []DayView {
+// 	panic("unimplemented")
+// }
 
-var channelNameMap = map[string]string{
-	"dazn_1": "DAZN 1",
-	"dazn_2": "DAZN 2",
-	"dazn_3": "DAZN 3",
-	"dazn_4": "DAZN 4",
-}
+// var channelNameMap = map[string]string{
+// 	"dazn_1": "DAZN 1",
+// 	"dazn_2": "DAZN 2",
+// 	"dazn_3": "DAZN 3",
+// 	"dazn_4": "DAZN 4",
+// }
 
-func extractPremierLeagueMatchesFromDAZNChannels(body []byte, datekey, formatedDate, usaParsedDate string) (DayView, error) {
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
-	if err != nil {
-		return DayView{}, fmt.Errorf("error al parsear el HTML: %w", err)
-	}
+// func extractPremierLeagueMatchesFromDAZNChannels(body []byte, datekey, formatedDate, usaParsedDate string) (DayView, error) {
+// 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
+// 	if err != nil {
+// 		return DayView{}, fmt.Errorf("error al parsear el HTML: %w", err)
+// 	}
 
-	targetChannels := []string{"dazn_1", "dazn_2", "dazn_3", "dazn_4"}
+// 	targetChannels := []string{"dazn_1", "dazn_2", "dazn_3", "dazn_4"}
 
-	// // Supongamos que la fecha del EPG es 2025-09-20 (como se ve en los hrefs)
-	// // Puedes extraerla del HTML si es variable
-	// epgDateStr := "20250920" // Formato YYYYMMDD
-	// // Convertir a FormattedDate (DD/MM/YYYY)
-	// parsedDate, err := time.Parse("20060102", epgDateStr)
-	// if err != nil {
-	// 	log.Printf("Error parsing date %s: %v", epgDateStr, err)
-	// 	// Fallback si no se puede parsear
-	// 	epgDateStr = time.Now().Format("20060102")
-	// 	parsedDate, _ = time.Parse("20060102", epgDateStr)
-	// }
-	// formattedDate := parsedDate.Format("02/01/2006")
+// 	// // Supongamos que la fecha del EPG es 2025-09-20 (como se ve en los hrefs)
+// 	// // Puedes extraerla del HTML si es variable
+// 	// epgDateStr := "20250920" // Formato YYYYMMDD
+// 	// // Convertir a FormattedDate (DD/MM/YYYY)
+// 	// parsedDate, err := time.Parse("20060102", epgDateStr)
+// 	// if err != nil {
+// 	// 	log.Printf("Error parsing date %s: %v", epgDateStr, err)
+// 	// 	// Fallback si no se puede parsear
+// 	// 	epgDateStr = time.Now().Format("20060102")
+// 	// 	parsedDate, _ = time.Parse("20060102", epgDateStr)
+// 	// }
+// 	// formattedDate := parsedDate.Format("02/01/2006")
 
-	dayView := DayView{
-		FormattedDate: formatedDate,
-		DateKey:       datekey,
-		Competitions:  make(map[string][]MatchView),
-	}
+// 	dayView := DayView{
+// 		FormattedDate: formatedDate,
+// 		DateKey:       datekey,
+// 		Competitions:  make(map[string][]MatchView),
+// 	}
 
-	// Regex para extraer hora y evento del title/span text
-	// Ejemplo: "15:50 Premier League (T25/26): Wolverhampton - Leeds"
-	// Captura grupos: 1=Hora, 2=Competición completa, 3=Evento
-	eventRegex := regexp.MustCompile(`^(\d{2}:\d{2})\s+(.+?):\s*(.+)$`)
+// 	// Regex para extraer hora y evento del title/span text
+// 	// Ejemplo: "15:50 Premier League (T25/26): Wolverhampton - Leeds"
+// 	// Captura grupos: 1=Hora, 2=Competición completa, 3=Evento
+// 	eventRegex := regexp.MustCompile(`^(\d{2}:\d{2})\s+(.+?):\s*(.+)$`)
 
-	// var days []DayView
-	// var currentDayView *DayView
+// 	// var days []DayView
+// 	// var currentDayView *DayView
 
-	// Iterar por cada canal objetivo
-	channelLinkSelector := "div.mr-tvgrid-row" //fmt.Sprintf("a[href='/es/spain/channel/%s/%s']", channelKey, usaParsedDate)
-	// fmt.Println("Buscando enlace de canal:", channelLinkSelector) // Debug
+// 	// Iterar por cada canal objetivo
+// 	channelLinkSelector := "div.mr-tvgrid-row" //fmt.Sprintf("a[href='/es/spain/channel/%s/%s']", channelKey, usaParsedDate)
+// 	// fmt.Println("Buscando enlace de canal:", channelLinkSelector) // Debug
 
-	doc.Find(channelLinkSelector).Each(func(rowIndex int, row *goquery.Selection) {
-		for _, channelKey := range targetChannels {
-			programSelector := fmt.Sprintf("a[href*='/channel/%s/'][title*='Premier League' i]", channelKey)
-			row.Find(programSelector).Each(func(programIndex int, program *goquery.Selection) {
-				titleAttr, titleExists := program.Attr("title")
-				if !titleExists {
-					return
-				}
+// 	doc.Find(channelLinkSelector).Each(func(rowIndex int, row *goquery.Selection) {
+// 		for _, channelKey := range targetChannels {
+// 			programSelector := fmt.Sprintf("a[href*='/channel/%s/'][title*='Premier League' i]", channelKey)
+// 			row.Find(programSelector).Each(func(programIndex int, program *goquery.Selection) {
+// 				titleAttr, titleExists := program.Attr("title")
+// 				if !titleExists {
+// 					return
+// 				}
 
-				// Extraer datos del title o del span
-				displayText := strings.TrimSpace(program.Find("span").Text())
-				if displayText == "" {
-					displayText = titleAttr
-				}
+// 				// Extraer datos del title o del span
+// 				displayText := strings.TrimSpace(program.Find("span").Text())
+// 				if displayText == "" {
+// 					displayText = titleAttr
+// 				}
 
-				// Parsear displayText con regex
-				matches := eventRegex.FindStringSubmatch(displayText)
-				if len(matches) < 4 {
-					log.Printf("Warning: Could not parse event format for: %s", displayText)
-					return // Saltar si no coincide el formato esperado
-				}
+// 				// Parsear displayText con regex
+// 				matches := eventRegex.FindStringSubmatch(displayText)
+// 				if len(matches) < 4 {
+// 					log.Printf("Warning: Could not parse event format for: %s", displayText)
+// 					return // Saltar si no coincide el formato esperado
+// 				}
 
-				timeStr := matches[1]
-				// competitionFull := strings.TrimSpace(matches[2]) // "Premier League (T25/26)"
-				eventStr := strings.TrimSpace(matches[3]) // "Wolverhampton - Leeds"
+// 				timeStr := matches[1]
+// 				// competitionFull := strings.TrimSpace(matches[2]) // "Premier League (T25/26)"
+// 				eventStr := strings.TrimSpace(matches[3]) // "Wolverhampton - Leeds"
 
-				// Extraer solo "Premier League" como clave de competición
-				// Puedes usar strings.Split o regexp para esto también si es más complejo
-				competitionKey := "Premier League" // Simplificación, asumiendo siempre es "Premier League ..."
-				// Opción más robusta si hay variaciones:
-				// parts := strings.SplitN(competitionFull, " (", 2)
-				// if len(parts) > 0 { competitionKey = parts[0] }
+// 				// Extraer solo "Premier League" como clave de competición
+// 				// Puedes usar strings.Split o regexp para esto también si es más complejo
+// 				competitionKey := "Premier League" // Simplificación, asumiendo siempre es "Premier League ..."
+// 				// Opción más robusta si hay variaciones:
+// 				// parts := strings.SplitN(competitionFull, " (", 2)
+// 				// if len(parts) > 0 { competitionKey = parts[0] }
 
-				var broadcaster BroadcasterInfo
-				channelName := channelNameMap[channelKey]
-				if channelName != "" {
-					broadcaster = broadcasterToAcestream[channelName]
-					// links := findLinkForBroadcaster(channelName, "premiere league")
-					// // broadcaster = append(broadcasters, BroadcasterInfo{Name: channelName, Links: links})
-					// broadcaster := BroadcasterInfo{
-					// 	Name: channelName,
-					// 	Logo: channelLogo,
-					// 	Links: links,
-					// }
-				}
+// 				var broadcaster BroadcasterInfo
+// 				channelName := channelNameMap[channelKey]
+// 				if channelName != "" {
+// 					broadcaster = broadcasterToAcestream[channelName]
+// 					// links := findLinkForBroadcaster(channelName, "premiere league")
+// 					// // broadcaster = append(broadcasters, BroadcasterInfo{Name: channelName, Links: links})
+// 					// broadcaster := BroadcasterInfo{
+// 					// 	Name: channelName,
+// 					// 	Logo: channelLogo,
+// 					// 	Links: links,
+// 					// }
+// 				}
 
-				// Crear BroadcasterInfo
+// 				// Crear BroadcasterInfo
 
-				// Crear Match
-				match := Match{
-					Competition:  competitionKey,
-					Date:         datekey,
-					Time:         timeStr,
-					Event:        eventStr,
-					Broadcasters: []BroadcasterInfo{broadcaster},
-					Country:      "",       // Asumido
-					Sport:        "Fútbol", // Asumido
-				}
+// 				// Crear Match
+// 				match := Match{
+// 					Competition:  competitionKey,
+// 					Date:         datekey,
+// 					Time:         timeStr,
+// 					Event:        eventStr,
+// 					Broadcasters: []BroadcasterInfo{broadcaster},
+// 					Country:      "",       // Asumido
+// 					Sport:        "Fútbol", // Asumido
+// 				}
 
-				// Crear MatchView
-				matchView := MatchView{
-					Match: match,
-					Icon:  "icon-futbol",
-					Sport: match.Sport,
-				}
+// 				// Crear MatchView
+// 				matchView := MatchView{
+// 					Match: match,
+// 					Icon:  "icon-futbol",
+// 					Sport: match.Sport,
+// 				}
 
-				// Añadir al DayView.Competitions map
-				dayView.Competitions[competitionKey] = append(dayView.Competitions[competitionKey], matchView)
-			})
-		}
-	})
+// 				// Añadir al DayView.Competitions map
+// 				dayView.Competitions[competitionKey] = append(dayView.Competitions[competitionKey], matchView)
+// 			})
+// 		}
+// 	})
 
-	return dayView, nil
-}
+// 	return dayView, nil
+// }
 
 func overrideCompetition(original, override []DayView) []DayView {
 	for i := range original {

@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"syscall"
 	"time"
 )
 
@@ -32,7 +35,6 @@ func RunTor() (*exec.Cmd, error) {
 	if runtime.GOOS == "windows" {
 		zipTorFile = "assets/" + torAssetNameWin
 	}
-
 	extractedTorDir := filepath.Join(execDir, torDirName)
 
 	torExecutablePath := filepath.Join(extractedTorDir, "tor", "tor")
@@ -54,13 +56,15 @@ func RunTor() (*exec.Cmd, error) {
 		"--SocksPort", portTor,
 		"--GeoIPFile", filepath.Join(extractedTorDir, "data", "geoip"),
 		"--GeoIPv6File", filepath.Join(extractedTorDir, "data", "geoip6"),
-		// "--ClientOnly", "1", // Asegura modo cliente si es necesario
-		"--RunAsDaemon", "0", // Asegura que no se demonice si lo controlas desde Go
+		"--ClientOnly", "1", // Asegura modo cliente si es necesario
+		"--RunAsDaemon", "0",
 	}
 
-	// 5. Crear el comando
 	cmd := exec.Command(torExecutablePath, args...)
 	cmd.Dir = extractedTorDir
+	if runtime.GOOS != "windows" {
+		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	}
 
 	// stdout, err := cmd.StdoutPipe()
 	// if err != nil {
@@ -74,35 +78,52 @@ func RunTor() (*exec.Cmd, error) {
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
-	
-	// go func() {
-	// 	scanner := bufio.NewScanner(stdout)
-	// 	for scanner.Scan() {
-	// 		log.Printf("Tor STDOUT: %s", scanner.Text()) // O manejar como prefieras
-	// 	}
-	// }()
 
-	// go func() {
-	// 	scanner := bufio.NewScanner(stderr)
-	// 	for scanner.Scan() {
-	// 		log.Printf("Tor STDERR: %s", scanner.Text()) // Aquí es probable que aparezcan errores
-	// 	}
-	// }()
+	// go logPipe(stdout, "TOR")
+    // go logPipe(stderr, "TOR-ERR")
 	time.Sleep(10 * time.Second)
 	log.Println("🚀 Tor iniciado exitosamente.")
-	return cmd, nil // Devuelve el comando sin el error original (si Start tuvo éxito, err es nil)
+	return cmd, nil
+}
+
+func logPipe(r io.Reader, prefix string) {
+    scanner := bufio.NewScanner(r)
+    for scanner.Scan() {
+        line := scanner.Text()
+        log.Printf("[%s] %s", prefix, line)
+    }
 }
 
 func changeOwnership(path string, newUID, newGID int) error {
 	return filepath.WalkDir(path, func(filePath string, d os.DirEntry, err error) error {
 		if err != nil {
-			// Puedes manejar errores específicos aquí si es necesario
 			return err
 		}
-		// Cambia la propiedad del archivo/directorio actual
 		if err := os.Chown(filePath, newUID, newGID); err != nil {
 			return fmt.Errorf("error cambiando propiedad de %s: %w", filePath, err)
 		}
 		return nil
 	})
+}
+
+func StopTor(cmdTor *exec.Cmd) error {
+	var err error
+	var pgid int
+	if cmdTor != nil && cmdTor.Process != nil {
+		if runtime.GOOS == "windows" {
+			exec.Command("taskkill", "/F", "/T", "/PID", fmt.Sprint(cmdTor.Process.Pid)).Run()
+		} else {
+			pgid, err = syscall.Getpgid(cmdTor.Process.Pid)
+			if err == nil {
+				syscall.Kill(-pgid, syscall.SIGTERM)
+				time.Sleep(1 * time.Second)
+				syscall.Kill(-pgid, syscall.SIGKILL)
+				cmdTor.Wait()
+				log.Println("✅ TOR cerrado (grupo de procesos terminado)")
+			} else {
+				log.Printf("❌ No se pudo obtener PGID: %v", err)
+			}
+		}
+	}
+	return err
 }
