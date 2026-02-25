@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"syscall"
+	// "syscall"
 	"time"
 )
 
@@ -62,9 +62,10 @@ func RunTor() (*exec.Cmd, error) {
 
 	cmd := exec.Command(torExecutablePath, args...)
 	cmd.Dir = extractedTorDir
-	if runtime.GOOS != "windows" {
-		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	}
+	setSysProcAttr(cmd)
+	// if runtime.GOOS != "windows" {
+	// 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	// }
 
 	// stdout, err := cmd.StdoutPipe()
 	// if err != nil {
@@ -106,24 +107,24 @@ func changeOwnership(path string, newUID, newGID int) error {
 	})
 }
 
-func StopTor(cmdTor *exec.Cmd) error {
-	var err error
-	var pgid int
-	if cmdTor != nil && cmdTor.Process != nil {
-		if runtime.GOOS == "windows" {
-			exec.Command("taskkill", "/F", "/T", "/PID", fmt.Sprint(cmdTor.Process.Pid)).Run()
-		} else {
-			pgid, err = syscall.Getpgid(cmdTor.Process.Pid)
-			if err == nil {
-				syscall.Kill(-pgid, syscall.SIGTERM)
-				time.Sleep(1 * time.Second)
-				syscall.Kill(-pgid, syscall.SIGKILL)
-				cmdTor.Wait()
-				log.Println("✅ TOR cerrado (grupo de procesos terminado)")
-			} else {
-				log.Printf("❌ No se pudo obtener PGID: %v", err)
-			}
-		}
-	}
-	return err
-}
+// func StopTor(cmdTor *exec.Cmd) error {
+// 	var err error
+// 	var pgid int
+// 	if cmdTor != nil && cmdTor.Process != nil {
+// 		if runtime.GOOS == "windows" {
+// 			exec.Command("taskkill", "/F", "/T", "/PID", fmt.Sprint(cmdTor.Process.Pid)).Run()
+// 		} else {
+// 			pgid, err = syscall.Getpgid(cmdTor.Process.Pid)
+// 			if err == nil {
+// 				syscall.Kill(-pgid, syscall.SIGTERM)
+// 				time.Sleep(1 * time.Second)
+// 				syscall.Kill(-pgid, syscall.SIGKILL)
+// 				cmdTor.Wait()
+// 				log.Println("✅ TOR cerrado (grupo de procesos terminado)")
+// 			} else {
+// 				log.Printf("❌ No se pudo obtener PGID: %v", err)
+// 			}
+// 		}
+// 	}
+// 	return err
+// }
