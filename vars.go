@@ -153,9 +153,11 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	},
 	"DAZN BALONCESTO": {
 		Logo:             "dazn.png",
-		Links:            []string{},
+		Links:            []string{
+			"23bee556c002d0726c1f0cac98a1901cff0a9239",
+		},
 		Name:             "DAZN BALONCESTO 1",
-		ShowListChannels: false,
+		ShowListChannels: true,
 		Order:            18,
 	},
 	"DAZN Baloncesto 1": {
@@ -167,16 +169,20 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	},
 	"DAZN BALONCESTO 1": {
 		Logo:             "dazn.png",
-		Links:            []string{},
+		Links:            []string{
+			"23bee556c002d0726c1f0cac98a1901cff0a9239",
+		},
 		Name:             "DAZN BALONCESTO 1",
 		ShowListChannels: false,
 		Order:            18,
 	},
 	"DAZN BALONCESTO 2": {
 		Logo:             "dazn.png",
-		Links:            []string{},
+		Links:            []string{
+			"22b702984a0db43fd371c30e2df150b2336551cd",
+		},
 		Name:             "DAZN BALONCESTO 2",
-		ShowListChannels: false,
+		ShowListChannels: true,
 		Order:            19,
 	},
 	"DAZN Baloncesto 2": {
@@ -283,15 +289,43 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	// 	Name:             "ESPN 7 MX",
 	// 	ShowListChannels: false,
 	// },
-	// "ESPN DEPORTES": {
-	// 	Logo: "espndeportes.png",
-	// 	Links: []string{
-	// 		"https://tvpass.org/live/espn-deportes/sd",
-	// 		"4b048bcfaed7daec454e88f0e29b56756300447d",
-	// 	},
-	// 	Name:             "ESPN DEPORTES",
-	// 	ShowListChannels: false,
-	// },
+	"ESPN ARGENTINA": {
+		Logo: "espndeportes.png",
+		Links: []string{
+			"4bf4431b4815f07c1b3749f5a10f905ba566cd47",
+			"79f10c6c6168e42bfc606f3f7b9e5f3ca79dedab",
+		},
+		Name:             "ESPN ARGENTINA 1",
+		ShowListChannels: true,
+	},
+	"ESPN ARGENTINA 2": {
+		Logo: "espndeportes.png",
+		Links: []string{
+			"ab7f9cc29ad09ee9575fed758ab317c818fdc491",
+			"3e0ba6867173f345d482d80c771f1a5dc3b37e63",
+		},
+		Name:             "ESPN ARGENTINA 2",
+		ShowListChannels: true,
+	},
+	"ESPN ARGENTINA 3": {
+		Logo: "espndeportes.png",
+		Links: []string{
+			
+			"d872a44653bf2ad232d5f8476597754b69e3d56c",
+			"a97cafedefe189d63e52eadc5c9bbc351b01540a",
+		},
+		Name:             "ESPN ARGENTINA 3",
+		ShowListChannels: true,
+	},
+	"ESPN ARGENTINA 4": {
+		Logo: "espndeportes.png",
+		Links: []string{
+			"5f9b19c57195cc28ab81e0ec8cad03b55118687a",
+		},
+		Name:             "ESPN ARGENTINA 4",
+		ShowListChannels: true,
+	},
+
 	// "ESPN PREMIUM": {
 	// 	Logo: "espnpremium.webp",
 	// 	Links: []string{
@@ -725,10 +759,10 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"M+ VAMOS": {
 		Logo: "mvamos.png",
 		Links: []string{
-			"0e5d8c9724fa9163f49096b70484e315251eb785",
-			"4e99e755aa32c4bc043a4bb1cd1de35f9bd94dde",
+			// "0e5d8c9724fa9163f49096b70484e315251eb785",
+			// "4e99e755aa32c4bc043a4bb1cd1de35f9bd94dde",
 			// "1444a976d2cf6e7fdcee833ed36ee5e55632253f",
-			"c7c81acdd1a03ecc418c94c2f28e2adb0556c40b",
+			// "c7c81acdd1a03ecc418c94c2f28e2adb0556c40b",
 			// "3b2a8b41e7097c16b0468b42d7de0320886fa933",
 			// "2940120bf034db79a7f5849846ccea0255172eae",
 		},
@@ -903,9 +937,11 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SKY SPORTS": {
 		Logo: "skysports.png",
 		Links: []string{
-			// "http://190.92.10.66:4000/play/a001/index.m3u8", // "https://maldivesn.net/hilaytv/skysportslaliga", origin
+			// "http://190.92.10.66:4000/play/a001/index.m3u8", 
+			// "https://maldivesn.net/hilaytv/skysportslaliga", origin
 			"http://190.92.10.66:4000/play/a001/index.m3u8",
-			"https://l.hilay.tv/skysportslaliga",
+			
+			// "https://l.hilay.tv/skysportslaliga",
 		},
 		Name:             "SKY SPORTS LA LIGA",
 		ShowListChannels: true,
@@ -975,8 +1011,10 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"NBA TV": {
 		Logo: "nba.png",
 		Links: []string{
-			"b0f64a40f333ef5cc02c2b6d4a8c3f4b73dd8073",
+			"3bc122425f49648689cb8fd81de33cb19b848d20",
 			"e72d03fb9694164317260f684470be9ab781ed95",
+			
+			// "e72d03fb9694164317260f684470be9ab781ed95",
 		},
 		Name:             "NBA TV",
 		ShowListChannels: true,
@@ -1137,12 +1175,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN 1 PT": {
 		Logo: "dazn1.png",
 		Links: []string{
-			// "36cad67fed5a739757a9db844a551aa845a8d51b",
-			// "29df34d41d25647e1963e95a1cd9ed5bf59702c8",
-			// "e2cba4dce6c0795b738fe4b0001db90b1294835a",
-			// "059625a23c8c93af1808408196b2d0084e0d2aa5",
-			// "29df34d41d25647e1963e95a1cd9ed5bf59702c8",
-			// "969e14989a98c62518a7640741dbf15d90212d1a",
+			"36cad67fed5a739757a9db844a551aa845a8d51b",
+
 
 		},
 		Name:             "DAZN 1 PT",
@@ -1152,11 +1186,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN 2 PT": {
 		Logo: "dazn2.png",
 		Links: []string{
-			// "d08013df6e437a1fdf1e0c34f573fdf6a40c7fce",
-			// "9c726c4917a60bea3a2ebfde25a60355ec5368362",
-			// "ecb7ebae0103361e3a5eb86f7db43143071a95c9",
-			// "9c726c4917a60bea3a2ebfde25a60355ec536836",
-			// "27573fb01690fd55b25c07ae2180ee44b1ad8a7c",
+			"d08013df6e437a1fdf1e0c34f573fdf6a40c7fce",
 		},
 		Name:             "DAZN 2 PT",
 		ShowListChannels: true,
@@ -1165,11 +1195,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN 3 PT": {
 		Logo: "dazn3.png",
 		Links: []string{
-
-			// "dae7d1251f069516cc0a9c8f15f6639d2a17df1e",
-			// "311073a879829ae93fcf9966f5a9d0038c3e32bf",
-			// "33246d7ad41db9ad7654f0d553b5e7500363d1b8",
-
+			"dae7d1251f069516cc0a9c8f15f6639d2a17df1e",
+		
 		},
 		Name:             "DAZN 3 PT",
 		ShowListChannels: true,
@@ -1178,8 +1205,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN 4 PT": {
 		Logo: "dazn4.png",
 		Links: []string{
-
-			// "0f32c0131a2d9444996410801f4e18b04384db98",
+			"0f32c0131a2d9444996410801f4e18b04384db98",
+			
 			// "3043d5d3627a170af53bc5a298e79d4759f5ac87",
 			// "095e98003ab5732a4ad0bf240ad0cdd192649d0c",
 			// "9930f38e6ff670fb7bf1e820f60bf1781c47acbd",
@@ -1198,7 +1225,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "2c9a996c060d157ff63109c5b999d55bbc2ffd95",
 		},
 		Name:             "DAZN 5 PT",
-		ShowListChannels: true,
+		ShowListChannels: false,
 		Order:            184,
 	},
 
