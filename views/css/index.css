@@ -162,7 +162,8 @@ main {
   display: flex;
   flex-direction: column;
   gap: 30px;
-  align-items: flex-end;
+  align-items: flex-start;
+  width: 460px;
 }
 
 .broadcaster-links {

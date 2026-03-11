@@ -468,14 +468,14 @@ func FormatDateDMYToSpanish(dateStr string) (string, error) {
 }
 
 func mixCompetitions(general, mxliga, ligue1, calcio, eventsmma, bundesligaPT []DayView) []DayView {
-	general = changeBroadcasterName(general, "dazn", "ESPN", "Serie A Italiana")
+	general = changeBroadcasterName(general, "dazn", "DAZN CALCIO", "Serie A Italiana")
 	general = changeBroadcasterName(general, "dazn", "", "LaLiga Hypermotion")
 	eventsmma = changeBroadcasterName(eventsmma, "HBO MAX", "UFC", "UFC")
 	if len(mxliga) == 0 {
 		general = addNewBroadcaster(general, "SKY SPORTS", "LaLiga")
 	}
 
-	general = addNewBroadcaster(general, "LIGA ENDESA 7", "Liga Endesa")
+	// general = addNewBroadcaster(general, "LIGA ENDESA 7", "Liga Endesa")
 	// general = addNewBroadcaster(general, "DAZN 2", "Liga Endesa")
 	// general = addNewBroadcaster(general, "DAZN 3", "Liga Endesa")
 	// general = addNewBroadcaster(general, "DAZN 4", "Liga Endesa")

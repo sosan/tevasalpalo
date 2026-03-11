@@ -133,11 +133,11 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN F1": {
 		Logo: "daznf1.png",
 		Links: []string{
-			"b08e158ea3f5c72084f5ff8e3c30ca2e4d1ff6d1",
-			"bcf9dc38f92e90a71b87bd54b3bac91b76d09a69",
-			"fd53cfa7055fe458d4f5c0ff59a06cd43723be55",
-			"38e9ae1ee0c96d7c6187c9c4cc60ffccb565bdf7",
-			"3f5b7e2f883fe4b4b973e198d147a513d5c7c32a",
+			// "b08e158ea3f5c72084f5ff8e3c30ca2e4d1ff6d1",
+			// "bcf9dc38f92e90a71b87bd54b3bac91b76d09a69",
+			// "fd53cfa7055fe458d4f5c0ff59a06cd43723be55",
+			// "38e9ae1ee0c96d7c6187c9c4cc60ffccb565bdf7",
+			// "3f5b7e2f883fe4b4b973e198d147a513d5c7c32a",
 
 			// "ba6e1bdc8e03da60ff572557645eb04370af0cd0",
 			// "8c1155cdfae76eb582290c04904c98da066657c9",
@@ -151,10 +151,21 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: true,
 		Order:            17,
 	},
+	"DAZN MOTOGP": {
+		Logo:             "dazn.png",
+		Links:            []string{
+			"23bee556c002d0726c1f0cac98a1901cff0a9239",
+			"5548659c188e1d4d3b6e756e6c56485eb242abac",
+		},
+		Name:             "DAZN MOTOGP",
+		ShowListChannels: true,
+		Order:            18,
+	},
 	"DAZN BALONCESTO": {
 		Logo:             "dazn.png",
 		Links:            []string{
 			"23bee556c002d0726c1f0cac98a1901cff0a9239",
+			"8faa686a99697b99261346e479ead172b1d9d5d2",
 		},
 		Name:             "DAZN BALONCESTO 1",
 		ShowListChannels: true,
@@ -171,6 +182,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo:             "dazn.png",
 		Links:            []string{
 			"23bee556c002d0726c1f0cac98a1901cff0a9239",
+			"8faa686a99697b99261346e479ead172b1d9d5d2",
 		},
 		Name:             "DAZN BALONCESTO 1",
 		ShowListChannels: false,
@@ -446,10 +458,10 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Name:             "Movistar Plus+ 1",
 		ShowListChannels: false,
 	},
-	"LALIGA TV HYPERMOTION": {
+	"LALIGA HYPERMOTION": {
 		Logo: "mlaligahyper.png",
 		Links: []string{
-			"70f22be1286ef224b5e4e9451d9a42468152cda4",
+			// "70f22be1286ef224b5e4e9451d9a42468152cda4",
 			// "8ee52f6208e33706171856f99d2ed2dabd317f3a",
 			// "70f22be1286ef224b5e4e9451d9a42468152cda4",
 			// "f15f997f457e49ad9697e65cf2d78db26ee875b9",
@@ -460,23 +472,50 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: true,
 		Order:            45,
 	},
-	"LALIGA TV HYPERMOTION 2": {
+	"LALIGA HYPERMOTION 2": {
 		Logo: "mlaligahyper.png",
 		Links: []string{
-			"8a05571c0c8fe53f160fb7d116cdf97243679e86",
-			"709075831bf5c41ed0a20dfbd640aab6c28971f8",
+			// "8a05571c0c8fe53f160fb7d116cdf97243679e86",
+			// "709075831bf5c41ed0a20dfbd640aab6c28971f8",
 		},
 		Name:             "LALIGA HYPERMOTION 2",
 		ShowListChannels: true,
 		Order:            46,
 	},
-	"LALIGA TV HYPERMOTION 3": {
+	"LALIGA HYPERMOTION 3": {
 		Logo: "mlaligahyper.png",
 		Links: []string{
-			"1ba18731a8e18bb4b3a5dfa5bb7b0f05762849a6",
+			// "1ba18731a8e18bb4b3a5dfa5bb7b0f05762849a6",
 		},
 		Name:             "LALIGA HYPERMOTION 3",
 		ShowListChannels: true,
+		Order:            47,
+	},
+	"HYPERMOTION": {
+		Logo: "mlaligahyper.png",
+		Links: []string{
+			
+		},
+		Name:             "LALIGA HYPERMOTION",
+		ShowListChannels: false,
+		Order:            45,
+	},
+	"HYPERMOTION 2": {
+		Logo: "mlaligahyper.png",
+		Links: []string{
+	
+		},
+		Name:             "LALIGA HYPERMOTION 2",
+		ShowListChannels: false,
+		Order:            46,
+	},
+	"HYPERMOTION 3": {
+		Logo: "mlaligahyper.png",
+		Links: []string{
+	
+		},
+		Name:             "LALIGA HYPERMOTION 3",
+		ShowListChannels: false,
 		Order:            47,
 	},
 	// "LALIGA TV HYPERMOTION": {
@@ -495,6 +534,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo: "mlaliga.png",
 		Links: []string{
 			// "d2ddf9802ccfdc456f872eea4d24596880a638a0",
+			"c16b4fab1f724c94cad92081cbb7fc7c6fe8a2cc",
 			"c9321006921967d6258df6945f1d598a5c0cbf1e",
 			"4b528d10eaad747ddf52251206177573ee3e9f74",
 			"107c3ce5a5d2527c9f06e4eab87477201791f231",
@@ -577,7 +617,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"M+ LIGA DE CAMPEONES": {
 		Logo: "mligacampeones.png",
 		Links: []string{
-			"c16b4fab1f724c94cad92081cbb7fc7c6fe8a2cc",
+			
 			"bb5a8bf7752e978460ee1710e5e8950a5c9e1f99",
 			// "afbf2a479c5a5072698139f0f556ef3e77a99bd0",
 			// "0f7842f8b6c26571e5a974407b61623e56e6a052",
@@ -937,6 +977,10 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SKY SPORTS": {
 		Logo: "skysports.png",
 		Links: []string{
+			"2fab80a8445e31cb98169c0907600e1545ea8557",
+			"d58f619d860d29cd47720055b9bb842199971da1",
+			"e9975d38aaa4475ac0b1fa0faa541bbadd85a662",
+			"a9bddffdff085cdc18b34218d5dc1093b88e3c0a",
 			// "http://190.92.10.66:4000/play/a001/index.m3u8", 
 			// "https://maldivesn.net/hilaytv/skysportslaliga", origin
 			"http://190.92.10.66:4000/play/a001/index.m3u8",
@@ -950,6 +994,10 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SKY SPORTS LALIGA": {
 		Logo: "skysports.png",
 		Links: []string{
+			"2fab80a8445e31cb98169c0907600e1545ea8557",
+			"d58f619d860d29cd47720055b9bb842199971da1",
+			"e9975d38aaa4475ac0b1fa0faa541bbadd85a662",
+			"a9bddffdff085cdc18b34218d5dc1093b88e3c0a",
 			"http://190.92.10.66:4000/play/a001/index.m3u8",
 			// "p;https://maldivesn.net/hilaytv/skysportslaliga",
 		},
@@ -1007,7 +1055,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: true,
 		Order:            110,
 	},
-
+	"NBA LEAGUE PASS": {},
 	"NBA TV": {
 		Logo: "nba.png",
 		Links: []string{
@@ -1034,7 +1082,11 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SPORT TV 1": {
 		Logo: "sporttv1.png",
 		Links: []string{
-			"p;https://l.hilay.tv/sporttv1",
+			"da9038e51a4897659f7bb1bce52cab65dd4a8cf8",
+			"eeba95afeba53bdc2a081198743097e82eac47c8",
+			"bcdf6c923bbccb73b2db3edca64cf321fba48955",
+			"ca69b66fe0cd872d33da002241b59db38f5865c8",
+			// "p;https://l.hilay.tv/sporttv1",
 			// https://yce5o.envivoslatam.org/sporttvbr1/tracks-v1a1/mono.m3u8?ip=95.19.208.77&token=7474f77c7efb2196fa96bb93423dbeb7a1cac192-b8-1772083666-1772029666
 			// "p;https://maldivesn.net/hilaytv/sporttv1",
 			// "2ddaacdb6ace68d8e5f55392a634eed92c728b7e",
@@ -1050,7 +1102,12 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SPORT TV 2": {
 		Logo: "sporttv2.png",
 		Links: []string{
-			"p;https://l.hilay.tv/sporttv2",
+			"da9038e51a4897659f7bb1bce52cab65dd4a8cf8",
+			"87318413c1fe8bb228c0b0b62d070f77317bd9ba",
+			"eeba95afeba53bdc2a081198743097e82eac47c8",
+			"bcdf6c923bbccb73b2db3edca64cf321fba48955",
+			"ca69b66fe0cd872d33da002241b59db38f5865c8",
+			// "p;https://l.hilay.tv/sporttv2",
 			// https://smjt9q.envivoslatam.org/sporttvbr2/tracks-v1a1/mono.m3u8?ip=95.19.208.77&token=ece910a76cc4e6f366d7dcaa2e9fc7e068854601-a5-1772083897-1772029897
 			// "7f1ebc824207c260ddb859e3526cc3a3137004ab",
 			// "p;https://maldivesn.net/hilaytv/sporttv2",
@@ -1066,11 +1123,11 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SPORT TV 3": {
 		Logo: "sporttv3.png",
 		Links: []string{
-			"p;https://l.hilay.tv/sporttv3",
+			// "p;https://l.hilay.tv/sporttv3",
 			// "p;https://maldivesn.net/hilaytv/sporttv3",
 			// "p;http://clarotv7.com/live/508373667/k717x9942z/112000.m3u8",
-			// "0cfd0542227f29d9a5bb7fa2611aa5bfbeebd875",
-			// "fe74794f3fa7cf9138c2a0560d91e3eaed47df65",
+			"0cfd0542227f29d9a5bb7fa2611aa5bfbeebd875",
+			"fe74794f3fa7cf9138c2a0560d91e3eaed47df65",
 		},
 		Name:             "SPORT TV 3",
 		ShowListChannels: true,
@@ -1079,11 +1136,11 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SPORT TV 4": {
 		Logo: "sporttv4.png",
 		Links: []string{
-			"p;https://l.hilay.tv/sporttv4",
+			// "p;https://l.hilay.tv/sporttv4",
 			// "p;https://maldivesn.net/hilaytv/sporttv4",
 			// "p;http://clarotv7.com/live/508373667/k717x9942z/112002.m3u8",
-			// "8ecf79b68e351530a6c2a02446569a5bb4556580",
-			// "e119f0599b905ae4c9bd85a5fa14304ed56dcf97",
+			"8ecf79b68e351530a6c2a02446569a5bb4556580",
+			"e119f0599b905ae4c9bd85a5fa14304ed56dcf97",
 		},
 		Name:             "SPORT TV 4",
 		ShowListChannels: true,
@@ -1095,8 +1152,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"p;https://l.hilay.tv/sporttv5",
 			// "p;https://maldivesn.net/hilaytv/sporttv5",
 			// "p;http://clarotv7.com/live/508373667/k717x9942z/112004.m3u8",
-			// "7ce10d65789cfe74932c22399c7cb60474f1af9d",
-			// "cc66bae9be5eaf30ce046c82259f4a9d5ae3e48f",
+			"7ce10d65789cfe74932c22399c7cb60474f1af9d",
+			"cc66bae9be5eaf30ce046c82259f4a9d5ae3e48f",
 		},
 		Name:             "SPORT TV 5",
 		ShowListChannels: true,
@@ -1171,13 +1228,22 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: true,
 		Order:            62,
 	},
+	"DAZN CALCIO": {
+		Logo: "dazn1.png",
+		Links: []string{
+			"1e045b7e16a5c2c3e5a8c0c0176efa26b63d7955",
+		},
+		Name:             "DAZN CALCIO",
+		ShowListChannels: true,
+		Order:            180,
+		
+	},
 
 	"DAZN 1 PT": {
 		Logo: "dazn1.png",
 		Links: []string{
 			"36cad67fed5a739757a9db844a551aa845a8d51b",
-
-
+			
 		},
 		Name:             "DAZN 1 PT",
 		ShowListChannels: true,
