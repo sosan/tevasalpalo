@@ -1,16 +1,14 @@
 module main
 
-go 1.24.1
+go 1.25.0
 
 require (
 	github.com/gofiber/fiber/v2 v2.52.12
-	golang.org/x/net v0.50.0
+	golang.org/x/net v0.52.0
 )
 
-require (
-	// github.com/clipperhouse/stringish v0.1.1 // indirect
-	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
-)
+// github.com/clipperhouse/stringish v0.1.1 // indirect
+require github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 
 require (
 	aead.dev/minisign v0.3.0 // indirect
@@ -23,7 +21,7 @@ require (
 	// github.com/gobwas/ws v1.4.0 // indirect
 	github.com/gofiber/template v1.8.3 // indirect
 	github.com/gofiber/utils v1.2.0 // indirect
-	golang.org/x/crypto v0.48.0 // indirect
+	golang.org/x/crypto v0.49.0 // indirect
 )
 
 require (
@@ -41,5 +39,5 @@ require (
 	// github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.69.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
 )
