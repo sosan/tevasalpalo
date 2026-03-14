@@ -204,6 +204,20 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: false,
 		Order:            19,
 	},
+	"DAZN BALONCESTO 3": {
+		Logo:             "dazn.png",
+		Links:            []string{},
+		Name:             "DAZN BALONCESTO 3",
+		ShowListChannels: false,
+		Order:            19,
+	},
+	"DAZN Baloncesto 3": {
+		Logo:             "dazn.png",
+		Links:            []string{},
+		Name:             "DAZN BALONCESTO 3",
+		ShowListChannels: false,
+		Order:            19,
+	},
 
 	"DS SPORT": {
 		Logo: "dsport.webp",
@@ -1379,6 +1393,49 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Name:             "ESPORT3",
 		ShowListChannels: true,
 		Order:            130,
+	},
+	"ELEVEN SPORTS 1": {
+		Logo: "elevensports1.png",
+		Links: []string{
+			"7ac2d74ef6df9d15012992d7e0e635a95f58c652",
+			"14407b00d454cb7dc0d70aa26e8bbc554f457f00",
+			// "739792a3225e5eb3056f4faa7b1137c7f161f23c",
+			// "ed6524f8f73c30cf102fde66f2cb520f4b5842e3",
+			// "8f59ce96e4c902ba2f5193af07546d7ff17fc3bc",
+		},
+		Name:             "ELEVEN SPORTS 1",
+		ShowListChannels: true,
+		Order:            150,
+	},
+	"ELEVEN SPORTS 2": {
+		Logo: "elevensports2.png",
+		Links: []string{
+			"54a4a28882d3cae1ca19de5d4b022ebea40351f9",
+			
+		},
+		Name:             "ELEVEN SPORTS 2",
+		ShowListChannels: true,
+		Order:            151,
+	},
+	"ELEVEN SPORTS 3": {
+		Logo: "elevensports3.png",
+		Links: []string{
+			"b146ee4b6e16c9df58e27bd02ffd6cea840ff212",
+			
+		},
+		Name:             "ELEVEN SPORTS 3",
+		ShowListChannels: true,
+		Order:            152,
+	},
+	"ELEVEN SPORTS 4": {
+		Logo: "elevensports3.png",
+		Links: []string{
+			"458a0ddd7d193f6d2750cd14d03a47f47a808e09",
+			
+		},
+		Name:             "ELEVEN SPORTS 4",
+		ShowListChannels: true,
+		Order:            152,
 	},
 }
 
