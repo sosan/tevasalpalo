@@ -154,8 +154,14 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN MOTOGP": {
 		Logo:             "dazn.png",
 		Links:            []string{
-			"23bee556c002d0726c1f0cac98a1901cff0a9239",
-			"5548659c188e1d4d3b6e756e6c56485eb242abac",
+"e18b79bce27f6ee8eef9a1fc811bb5f80e4b558c",
+"20d4b3586bb822c3618cf8fb665a304869c5e1a5",
+"c53bdb3be55d12c5188d25085f1bb16911c15cea",
+"342ca6975a4884d81f9fec5c4085a47060bd2028",
+"ac33342ccf7d40d46174229085461d95000b9137",
+"129c707eb4854171d178a566f36d90b7f2b5e624",
+			// "23bee556c002d0726c1f0cac98a1901cff0a9239",
+			// "5548659c188e1d4d3b6e756e6c56485eb242abac",
 		},
 		Name:             "DAZN MOTOGP",
 		ShowListChannels: true,
@@ -548,16 +554,16 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo: "mlaliga.png",
 		Links: []string{
 			// "d2ddf9802ccfdc456f872eea4d24596880a638a0",
+			"14b6cd8769cd485f2cffdca64be9698d9bfeac58",
 			"c16b4fab1f724c94cad92081cbb7fc7c6fe8a2cc",
 			"c9321006921967d6258df6945f1d598a5c0cbf1e",
 			"4b528d10eaad747ddf52251206177573ee3e9f74",
 			"107c3ce5a5d2527c9f06e4eab87477201791f231",
-			// "00c9bc9c5d7d87680a5a6bed349edfa775a89947",
-			// "14b6cd8769cd485f2cffdca64be9698d9bfeac58",
+			"00c9bc9c5d7d87680a5a6bed349edfa775a89947",
 			// "d4ff041287a43e3114d411d671c4b4e92e21f31e",
 			// "107c3ce5a5d2527c9f06e4eab87477201791f231",
 			// "d2ddf9802ccfdc456f872eea4d24596880a638a0",
-			// "14b6cd8769cd485f2cffdca64be9698d9bfeac58",
+			
 			// "07f2b92762cfff99bba785c2f5260c7934ca6034",
 			// "4b528d10eaad747ddf52251206177573ee3e9f74",
 			// "d3de78aebe544611a2347f54d5796bd87f16c92d",
@@ -1253,61 +1259,61 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		
 	},
 
-	"DAZN 1 PT": {
-		Logo: "dazn1.png",
-		Links: []string{
-			"36cad67fed5a739757a9db844a551aa845a8d51b",
+	// "DAZN 1 PT": {
+	// 	Logo: "dazn1.png",
+	// 	Links: []string{
+	// 		"36cad67fed5a739757a9db844a551aa845a8d51b",
 			
-		},
-		Name:             "DAZN 1 PT",
-		ShowListChannels: true,
-		Order:            180,
-	},
-	"DAZN 2 PT": {
-		Logo: "dazn2.png",
-		Links: []string{
-			"d08013df6e437a1fdf1e0c34f573fdf6a40c7fce",
-		},
-		Name:             "DAZN 2 PT",
-		ShowListChannels: true,
-		Order:            181,
-	},
-	"DAZN 3 PT": {
-		Logo: "dazn3.png",
-		Links: []string{
-			"dae7d1251f069516cc0a9c8f15f6639d2a17df1e",
+	// 	},
+	// 	Name:             "DAZN 1 PT",
+	// 	ShowListChannels: true,
+	// 	Order:            180,
+	// },
+	// "DAZN 2 PT": {
+	// 	Logo: "dazn2.png",
+	// 	Links: []string{
+	// 		"d08013df6e437a1fdf1e0c34f573fdf6a40c7fce",
+	// 	},
+	// 	Name:             "DAZN 2 PT",
+	// 	ShowListChannels: true,
+	// 	Order:            181,
+	// },
+	// "DAZN 3 PT": {
+	// 	Logo: "dazn3.png",
+	// 	Links: []string{
+	// 		"dae7d1251f069516cc0a9c8f15f6639d2a17df1e",
 		
-		},
-		Name:             "DAZN 3 PT",
-		ShowListChannels: true,
-		Order:            182,
-	},
-	"DAZN 4 PT": {
-		Logo: "dazn4.png",
-		Links: []string{
-			"0f32c0131a2d9444996410801f4e18b04384db98",
+	// 	},
+	// 	Name:             "DAZN 3 PT",
+	// 	ShowListChannels: true,
+	// 	Order:            182,
+	// },
+	// "DAZN 4 PT": {
+	// 	Logo: "dazn4.png",
+	// 	Links: []string{
+	// 		"0f32c0131a2d9444996410801f4e18b04384db98",
 			
-			// "3043d5d3627a170af53bc5a298e79d4759f5ac87",
-			// "095e98003ab5732a4ad0bf240ad0cdd192649d0c",
-			// "9930f38e6ff670fb7bf1e820f60bf1781c47acbd",
-			// "3043d5d3627a170af53bc5a298e79d4759f5ac87",
-			// "3c0cfbeb4075be58baa32e41dabee3c75b8a80e6",
-			// "0f32c0131a2d9444996410801f4e18b04384db98",
-		},
-		Name:             "DAZN 4 PT",
-		ShowListChannels: true,
-		Order:            183,
-	},
-	"DAZN 5 PT": {
-		Logo: "dazn5.png",
-		Links: []string{
-			// "4dbe63b44fc4f439f5b634c0d2aa7e0cccad808a",
-			// "2c9a996c060d157ff63109c5b999d55bbc2ffd95",
-		},
-		Name:             "DAZN 5 PT",
-		ShowListChannels: false,
-		Order:            184,
-	},
+	// 		// "3043d5d3627a170af53bc5a298e79d4759f5ac87",
+	// 		// "095e98003ab5732a4ad0bf240ad0cdd192649d0c",
+	// 		// "9930f38e6ff670fb7bf1e820f60bf1781c47acbd",
+	// 		// "3043d5d3627a170af53bc5a298e79d4759f5ac87",
+	// 		// "3c0cfbeb4075be58baa32e41dabee3c75b8a80e6",
+	// 		// "0f32c0131a2d9444996410801f4e18b04384db98",
+	// 	},
+	// 	Name:             "DAZN 4 PT",
+	// 	ShowListChannels: true,
+	// 	Order:            183,
+	// },
+	// "DAZN 5 PT": {
+	// 	Logo: "dazn5.png",
+	// 	Links: []string{
+	// 		// "4dbe63b44fc4f439f5b634c0d2aa7e0cccad808a",
+	// 		// "2c9a996c060d157ff63109c5b999d55bbc2ffd95",
+	// 	},
+	// 	Name:             "DAZN 5 PT",
+	// 	ShowListChannels: false,
+	// 	Order:            184,
+	// },
 
 	"APLAZADO": {
 		Logo:             "aplazado.png",
