@@ -686,9 +686,11 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"M+ LIGA DE CAMPEONES 4": {
 		Logo: "mligacampeones4.png",
 		Links: []string{
-			// "77998f8161373611ff6b348e7eda5b4e97d3ec29",
-			// "e9f4493d2d851f4636720f639113e05b4a21a74c",
+			"77998f8161373611ff6b348e7eda5b4e97d3ec29",
+			"e9f4493d2d851f4636720f639113e05b4a21a74c",
 			"6617dfa2c9527bc620579d4dd4f3020efd8c41b8",
+			// "77998f8161373611ff6b348e7eda5b4e97d3ec29",
+"53cd86466d1faed03a607be92af601f7e8da128f",
 		},
 		Name:             "M+ LIGA DE CAMPEONES 4",
 		ShowListChannels: true,
@@ -697,11 +699,11 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"M+ LIGA DE CAMPEONES 5": {
 		Logo: "mligacampeones.png",
 		Links: []string{
-			// "5620c0ce3dcbf14a6375cb2c2d681207f45eb97d",
-			// "e2737e7a8d93fcf25d0f687c2fe79dc7496b23d9",
-			// "9e599f79585b390dd7c17d561832bc8aba49caf7",
-			// "90ed151957e8198fa993c6cdb4bacb59481c3e09",
-			// "4543b0a05e7ab29022c78bc5753e8b29b5c82f94",
+			"5620c0ce3dcbf14a6375cb2c2d681207f45eb97d",
+			"e2737e7a8d93fcf25d0f687c2fe79dc7496b23d9",
+			"9e599f79585b390dd7c17d561832bc8aba49caf7",
+			"90ed151957e8198fa993c6cdb4bacb59481c3e09",
+			"4543b0a05e7ab29022c78bc5753e8b29b5c82f94",
 		},
 		Name:             "M+ LIGA DE CAMPEONES 5",
 		ShowListChannels: true,
@@ -710,9 +712,9 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"M+ LIGA DE CAMPEONES 6": {
 		Logo: "mligacampeones.png",
 		Links: []string{
-			// "991f1c87728632037ecdd730b0c44f9933863119",
-			// "adeb88f7744ca1cb9f3c3c449cd07bbd8ed3a7f3",
-			// "806b8f3f1092808aea29cedea6e8f9900f74b2ba",
+			"991f1c87728632037ecdd730b0c44f9933863119",
+			"adeb88f7744ca1cb9f3c3c449cd07bbd8ed3a7f3",
+			"806b8f3f1092808aea29cedea6e8f9900f74b2ba",
 		},
 		Name:             "M+ LIGA DE CAMPEONES 6",
 		ShowListChannels: true,
@@ -721,8 +723,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"M+ LIGA DE CAMPEONES 7": {
 		Logo: "mligacampeones.png",
 		Links: []string{
-			// "d0c92cf5ad82ea19dc8df8bafd4fa61e40f98762",
-			// "005976d96cf86b5169b0b16795fb2cc5b98edcf4",
+			"d0c92cf5ad82ea19dc8df8bafd4fa61e40f98762",
+			"005976d96cf86b5169b0b16795fb2cc5b98edcf4",
 		},
 		Name:             "M+ LIGA DE CAMPEONES 7",
 		ShowListChannels: true,
@@ -731,9 +733,9 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"M+ LIGA DE CAMPEONES 8": {
 		Logo: "mligacampeones.png",
 		Links: []string{
-			// "f9a53a6a969cdd00747465a51a92b2bb748737af",
-			// // "63789ef8cb07422638a2176c2c4cf29d6882df17",
-			// "fb3e10862e749384806adaafe9c9dc0ab51d95c2",
+			"f9a53a6a969cdd00747465a51a92b2bb748737af",
+			// "63789ef8cb07422638a2176c2c4cf29d6882df17",
+			"fb3e10862e749384806adaafe9c9dc0ab51d95c2",
 		},
 		Name:             "M+ LIGA DE CAMPEONES 8",
 		ShowListChannels: true,
@@ -997,13 +999,13 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SKY SPORTS": {
 		Logo: "skysports.png",
 		Links: []string{
-			"2fab80a8445e31cb98169c0907600e1545ea8557",
+			// "2fab80a8445e31cb98169c0907600e1545ea8557",
 			"d58f619d860d29cd47720055b9bb842199971da1",
 			"e9975d38aaa4475ac0b1fa0faa541bbadd85a662",
 			"a9bddffdff085cdc18b34218d5dc1093b88e3c0a",
+			"http://190.92.10.66:4000/play/a001/index.m3u8",
 			// "http://190.92.10.66:4000/play/a001/index.m3u8", 
 			// "https://maldivesn.net/hilaytv/skysportslaliga", origin
-			"http://190.92.10.66:4000/play/a001/index.m3u8",
 			
 			// "https://l.hilay.tv/skysportslaliga",
 		},
