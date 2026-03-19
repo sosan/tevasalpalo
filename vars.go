@@ -152,7 +152,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Order:            17,
 	},
 	"DAZN MOTOGP": {
-		Logo:             "dazn.png",
+		Logo:             "daznmotogp.png",
 		Links:            []string{
 "e18b79bce27f6ee8eef9a1fc811bb5f80e4b558c",
 "20d4b3586bb822c3618cf8fb665a304869c5e1a5",
