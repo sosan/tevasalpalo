@@ -180,18 +180,18 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 	// eventsbaloncesto := results["baloncesto"]
 
 	// Ajustes de nombres de canales de Bundesliga
-	eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN", "DAZN 1 PT", "Bundesliga")
-	eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 1", "DAZN 1 PT", "Bundesliga")
-	eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 2", "DAZN 2 PT", "Bundesliga")
-	eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 3", "DAZN 3 PT", "Bundesliga")
-	eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 4", "DAZN 4 PT", "Bundesliga")
-	eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 5", "DAZN 5 PT", "Bundesliga")
-	eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 6", "DAZN 6 PT", "Bundesliga")
+	// eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN", "DAZN 1 PT", "Bundesliga")
+	// eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 1", "DAZN 1 PT", "Bundesliga")
+	// eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 2", "DAZN 2 PT", "Bundesliga")
+	// eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 3", "DAZN 3 PT", "Bundesliga")
+	// eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 4", "DAZN 4 PT", "Bundesliga")
+	// eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 5", "DAZN 5 PT", "Bundesliga")
+	// eventsFromBundesligaToPt = changeBroadcasterName(eventsFromBundesligaToPt, "DAZN 6", "DAZN 6 PT", "Bundesliga")
 	eventsmma = changeBroadcasterName(eventsmma, "", "UFC", "UFC")
 	// eventsbaloncesto = changeBroadcasterName(eventsbaloncesto, "DAZN", "UFC", "UFC")
 
 	// Sobrescribir y mezclar resultados
-	generalEvents = overrideCompetition(generalEvents, eventsFromBundesligaToPt)
+	// generalEvents = overrideCompetition(generalEvents, eventsFromBundesligaToPt)
 	generalEvents = mixCompetitions(generalEvents, eventsFromLigaToMx, eventsFromLigue1ToPt, eventsFromCalcioToPt, eventsFromCalcioToPl, eventsmma, eventsFromBundesligaToPt, eventsFromBundesligaToPl)
 
 	return generalEvents, nil
@@ -492,12 +492,12 @@ func mixCompetitions(general, mxliga, ligue1, calcio, calcioPL, eventsmma, bunde
 		calcioPL = changeCompetitionName(calcioPL, "Italian Serie A", "Serie A Italiana")
 	}
 	for i := range general {
-		general[i] = addCompetition(general[i], ligue1)
+		// general[i] = addCompetition(general[i], ligue1)
 		general[i] = addCompetition(general[i], calcio)
 		general[i] = addCompetition(general[i], calcioPL)
 		general[i] = addCompetition(general[i], mxliga)
 		general[i] = addCompetition(general[i], eventsmma)
-		general[i] = addCompetition(general[i], bundesligaPL)
+		// general[i] = addCompetition(general[i], bundesligaPL)
 		// general[i] = addCompetition(general[i], eventsbaloncesto)
 	}
 	return general

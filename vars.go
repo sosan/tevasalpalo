@@ -99,24 +99,24 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Order:            16,
 	},
 
-	"DAZN 1 BAR": {
-		Logo: "daznbar.png",
-		Links: []string{
-			// "688e785893b50acc1d00cb37f15bfc42e72f5ae3",
-		},
-		Name:             "DAZN BAR",
-		ShowListChannels: true,
-		Order:            18,
-	},
-	"DAZN 2 BAR": {
-		Logo: "dazn2bar.png",
-		Links: []string{
-			// "2f9211669499f413dab1a490198afab2a9b4b57c",
-		},
-		Name:             "DAZN 2 BAR",
-		ShowListChannels: true,
-		Order:            19,
-	},
+	// "DAZN 1 BAR": {
+	// 	Logo: "daznbar.png",
+	// 	Links: []string{
+	// 		// "688e785893b50acc1d00cb37f15bfc42e72f5ae3",
+	// 	},
+	// 	Name:             "DAZN BAR",
+	// 	ShowListChannels: true,
+	// 	Order:            18,
+	// },
+	// "DAZN 2 BAR": {
+	// 	Logo: "dazn2bar.png",
+	// 	Links: []string{
+	// 		// "2f9211669499f413dab1a490198afab2a9b4b57c",
+	// 	},
+	// 	Name:             "DAZN 2 BAR",
+	// 	ShowListChannels: true,
+	// 	Order:            19,
+	// },
 	"DAZN LALIGA TV": {
 		Logo: "daznlaliga.png",
 		Links: []string{
@@ -1397,7 +1397,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "8f59ce96e4c902ba2f5193af07546d7ff17fc3bc",
 		},
 		Name:             "ESPORT3",
-		ShowListChannels: true,
+		ShowListChannels: false,
 		Order:            130,
 	},
 	"ELEVEN SPORTS 1": {
