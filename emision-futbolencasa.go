@@ -301,6 +301,9 @@ func prepareMatchDay(body []byte) ([]DayView, error) {
 				if sport == "Baloncesto" && strings.ToUpper(competitionName)  == "COPA DEL REY" {
 					competitionName = "Copa del Rey Baloncesto"
 				}
+				if sport == "Hockey Patines" && strings.ToUpper(competitionName)  == "COPA DEL REY" {
+					competitionName = "Copa del Rey Hockey Patines"
+				}
 				broadcaster := findBroadcaster(channelName, competitionName, sport)
 				// links := findLinkForBroadcaster(channelName, competitionName)
 				broadcasters = append(broadcasters, broadcaster)

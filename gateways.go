@@ -17,6 +17,7 @@ var broadcasterGatewayMap = map[string][]string{
 	"DAZN 4":                             {"DAZN 4"},
 	"DAZN F1 (FHD)":                      {"DAZN F1"},
 	"DAZN F1":                            {"DAZN F1"},
+	"DAZN MotoGP": {"DAZN MOTOGP"},
 	"DAZN MOTOGP": {"DAZN MOTOGP"},
 	"Dazn motogp": {"DAZN MOTOGP"},
 	"DAZN LaLiga (FHD)":                  {"DAZN LALIGA", "DAZN LALIGA TV"},
