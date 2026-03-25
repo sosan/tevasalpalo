@@ -49,7 +49,7 @@ func RunTor() (*exec.Cmd, error) {
 		}
 		log.Println("✅ Tor extraído exitosamente.")
 	} else {
-		log.Println("🔁 Tor ya existe. Usando versión local.")
+		// log.Println("🔁 Tor ya existe. Usando versión local.")
 	}
 
 	args := []string{
@@ -83,7 +83,7 @@ func RunTor() (*exec.Cmd, error) {
 	// go logPipe(stdout, "TOR")
     // go logPipe(stderr, "TOR-ERR")
 	time.Sleep(10 * time.Second)
-	log.Println("🚀 Tor iniciado exitosamente.")
+	// log.Println("🚀 Tor iniciado exitosamente.")
 	return cmd, nil
 }
 

@@ -48,6 +48,7 @@ type CachedData struct {
 }
 
 func preloadProgramationTVData() error {
+	log.Println("📡 Obteniendo programacion TV...")
 	days, daysJSON, topCompetitionsJSON, err := fetchEvents()
 	if err != nil {
 		return fmt.Errorf("error preloading data: %v", err)

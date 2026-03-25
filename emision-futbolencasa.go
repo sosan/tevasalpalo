@@ -152,7 +152,6 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 	// return generalEvents, err
 
 	// ---------------
-	log.Println("Obteniendo programación...")
 
 	requests := []CompetitionRequest{
 		{"https://www.futbolenlatv.es/deporte", true, "general"},

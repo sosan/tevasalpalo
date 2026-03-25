@@ -27,13 +27,13 @@ func init() {
 }
 
 func main() {
-	log.Println("📡 Iniciando Tor...")
+	// log.Println("📡 Iniciando Tor...")
 	cmdTor, err := RunTor()
 	if err != nil {
 		log.Fatal("❌ Error al iniciar TOR: ", err)
 	}
 
-	log.Println("📡 Obteniendo programacion TV...")
+	
 	err = FetchUpdatedList()
 	if err != nil {
 		log.Printf("Error al obtener la programación")

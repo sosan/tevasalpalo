@@ -76,6 +76,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN LALIGA": {
 		Logo:  "daznlaliga.png",
 		Links: []string{
+			"19f28f60c908f987b1a03da078e63320d7bf29e8",
 			// "e2b8a4aba2f4ea3dd68992fcdb65c9e62d910b05",
 			// "74defb8f4ed3a917fd07c21b34f43c17107ec618",
 			// "0e50439e68aa2435b38f0563bb2f2e98f32ff4b1",
@@ -167,63 +168,63 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: true,
 		Order:            18,
 	},
-	"DAZN BALONCESTO": {
-		Logo:             "dazn.png",
+	// "DAZN BALONCESTO": {
+	// 	Logo:             "dazn.png",
+	// 	Links:            []string{
+	// 		// "23bee556c002d0726c1f0cac98a1901cff0a9239",
+	// 		// "8faa686a99697b99261346e479ead172b1d9d5d2",
+	// 	},
+	// 	Name:             "DAZN BALONCESTO 1 cccc",
+	// 	ShowListChannels: true,
+	// 	Order:            18,
+	// },
+	// "DAZN Baloncesto 1": {
+	// 	Logo:             "dazn.png",
+	// 	Links:            []string{},
+	// 	Name:             "DAZN BALONCESTO 1 bbbb",
+	// 	ShowListChannels: false,
+	// 	Order:            18,
+	// },
+	"DAZN BALONCESTO 1": {
+		Logo:             "daznbaloncesto.png",
 		Links:            []string{
-			"23bee556c002d0726c1f0cac98a1901cff0a9239",
-			"8faa686a99697b99261346e479ead172b1d9d5d2",
+			// "23bee556c002d0726c1f0cac98a1901cff0a9239",
+			// "8faa686a99697b99261346e479ead172b1d9d5d2",
 		},
 		Name:             "DAZN BALONCESTO 1",
 		ShowListChannels: true,
-		Order:            18,
-	},
-	"DAZN Baloncesto 1": {
-		Logo:             "dazn.png",
-		Links:            []string{},
-		Name:             "DAZN BALONCESTO 1",
-		ShowListChannels: false,
-		Order:            18,
-	},
-	"DAZN BALONCESTO 1": {
-		Logo:             "dazn.png",
-		Links:            []string{
-			"23bee556c002d0726c1f0cac98a1901cff0a9239",
-			"8faa686a99697b99261346e479ead172b1d9d5d2",
-		},
-		Name:             "DAZN BALONCESTO 1",
-		ShowListChannels: false,
 		Order:            18,
 	},
 	"DAZN BALONCESTO 2": {
-		Logo:             "dazn.png",
+		Logo:             "daznbaloncesto.png",
 		Links:            []string{
-			"22b702984a0db43fd371c30e2df150b2336551cd",
+			// "22b702984a0db43fd371c30e2df150b2336551cd",
 		},
 		Name:             "DAZN BALONCESTO 2",
 		ShowListChannels: true,
 		Order:            19,
 	},
-	"DAZN Baloncesto 2": {
-		Logo:             "dazn.png",
-		Links:            []string{},
-		Name:             "DAZN BALONCESTO 2",
-		ShowListChannels: false,
-		Order:            19,
-	},
+	// "DAZN Baloncesto 2": {
+	// 	Logo:             "dazn.png",
+	// 	Links:            []string{},
+	// 	Name:             "DAZN BALONCESTO 2 1111",
+	// 	ShowListChannels: false,
+	// 	Order:            19,
+	// },
 	"DAZN BALONCESTO 3": {
-		Logo:             "dazn.png",
+		Logo:             "daznbaloncesto.png",
 		Links:            []string{},
 		Name:             "DAZN BALONCESTO 3",
-		ShowListChannels: false,
-		Order:            19,
+		ShowListChannels: true,
+		Order:            20,
 	},
-	"DAZN Baloncesto 3": {
-		Logo:             "dazn.png",
-		Links:            []string{},
-		Name:             "DAZN BALONCESTO 3",
-		ShowListChannels: false,
-		Order:            19,
-	},
+	// "DAZN Baloncesto 3": {
+	// 	Logo:             "dazn.png",
+	// 	Links:            []string{},
+	// 	Name:             "DAZN BALONCESTO 3 222",
+	// 	ShowListChannels: true,
+	// 	Order:            19,
+	// },
 
 	"DS SPORT": {
 		Logo: "dsport.webp",
@@ -321,6 +322,14 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	// 	Name:             "ESPN 7 MX",
 	// 	ShowListChannels: false,
 	// },
+	"Fox Sports 2 ARG": {
+		Logo: "foxsports2.png",
+		Links: []string{
+			
+		},
+		Name:             "FOX SPORT 2 ARG",
+		ShowListChannels: true,
+	},
 	"ESPN ARGENTINA": {
 		Logo: "espndeportes.png",
 		Links: []string{
@@ -453,7 +462,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "5d9a26e0a5f3e5f2ae027bd05635ab9a4fd4b51a",
 			// "5e24a1b9187fccb91553f7c7da4b36341386f74a",
 		},
-		Name:             "Movistar Plus+ 1",
+		Name:             "MOVISTAR PLUS+ 1",
 		ShowListChannels: true,
 		Order:            21,
 	},
@@ -463,7 +472,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			"e19c1fc5e3ada56c60d45257f7f4ed0d14bf7003",
 			"fbc39d8a9e5d7c9ac6a1438d440104620f54e09c",
 		},
-		Name:             "Movistar Plus+ 2",
+		Name:             "MOVISTAR PLUS+ 2",
 		ShowListChannels: true,
 		Order:            22,
 	},
@@ -475,7 +484,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "5d9a26e0a5f3e5f2ae027bd05635ab9a4fd4b51a",
 			// "5e24a1b9187fccb91553f7c7da4b36341386f74a",
 		},
-		Name:             "Movistar Plus+ 1",
+		Name:             "MOVISTAR PLUS+ 1",
 		ShowListChannels: false,
 	},
 	"Movistar Plus+": {
@@ -486,7 +495,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "5d9a26e0a5f3e5f2ae027bd05635ab9a4fd4b51a",
 			// "5e24a1b9187fccb91553f7c7da4b36341386f74a",
 		},
-		Name:             "Movistar Plus+ 1",
+		Name:             "MOVISTAR PLUS+ 1",
 		ShowListChannels: false,
 	},
 	"LALIGA HYPERMOTION": {
@@ -825,6 +834,24 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "190a81938c2ddc6fe97758271f8c48f4db31c28a",
 		},
 		Name:             "M+ DEPORTES 6",
+		ShowListChannels: true,
+		Order:            57,
+	},
+	"M+ DEPORTES 7": {
+		Logo:  "mdeportes7.png",
+		Links: []string{
+			// "190a81938c2ddc6fe97758271f8c48f4db31c28a",
+		},
+		Name:             "M+ DEPORTES 7",
+		ShowListChannels: true,
+		Order:            57,
+	},
+	"M+ DEPORTES 8": {
+		Logo:  "mdeportes8.png",
+		Links: []string{
+			// "190a81938c2ddc6fe97758271f8c48f4db31c28a",
+		},
+		Name:             "M+ DEPORTES 8",
 		ShowListChannels: true,
 		Order:            57,
 	},

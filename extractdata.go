@@ -38,6 +38,7 @@ func FetchUpdatedList() error {
 	var extractedData map[string][]string
 	var err error
 	for range 10 {
+		log.Print("📡 Obteniendo listado de Canales TV")
 		body, err := FetchWebData(listaplana, false)
 		if err != nil || len(body) == 0 {
 			log.Print("cannot read lista plana")
@@ -80,7 +81,7 @@ func FetchUpdatedList() error {
 	// 'https://api.acestream.me/all?api_version=1&api_key=test_api_key
 	// check active link
 	// broadcasterToAcestream = checkActiveLinks(broadcasterToAcestream)
-	log.Print("Filtrando....")
+	log.Print("Filtrando canales TV....")
 	// transform uri links to base64 uri safe
 
 	topCompetitions = transformCompetitionsToTop(allCompetitions)
@@ -194,6 +195,9 @@ func extractDataFromWebTxtRaw(body []byte) map[string][]string {
 		}
 		if nombre == "ACB EVENTO 02" {
 			nombre = "DAZN BALONCESTO 2"
+		}
+		if nombre == "ACB EVENTO 03" {
+			nombre = "DAZN BALONCESTO 3"
 		}
 		acestreamLink := strings.TrimSpace(lines[i+1])
 
