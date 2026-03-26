@@ -1,8 +1,9 @@
 package main
 
 var broadcasterGatewayMap = map[string][]string{
-	"RFEF TV":                            {"Primera Federacion \"RFEF\""},
-	"PRIMERA FEDERACIÓN":                 {"Primera Federacion \"RFEF\""},
+	"RFEF TV":                            {"Primera Federacion"},
+	"RFEF":                            {"Primera Federacion"},
+	"PRIMERA FEDERACIÓN":                 {"Primera Federacion"},
 	`Primera Federacion "RFEF" (FHD)`:    {"Primera Federacion \"RFEF\""},
 	"Canal 1":                            {"Primera Federacion \"RFEF\""},
 	"Canal 2":                            {"Primera Federacion 2\"RFEF\""},
@@ -68,9 +69,11 @@ var broadcasterGatewayMap = map[string][]string{
 	"Movistar Golf (FHD)":                {"M+ GOLF", "Movistar Golf"},
 	"Eurosport (FHD)":                    {"EUROSPORT 1"},
 	"Eurosport 2 (FHD)":                  {"EUROSPORT 2"},
+	"Eurosport2":                         {"EUROSPORT 2"},
+	"EUROSPORT 1":                         {"EUROSPORT 1"},
+	"EUROSPORT 2":                         {"EUROSPORT 2"},
 	"M.LaLiga2":                          {"M+ LALIGA 2", "LALIGA TV 2"},
 	"DAZNLaLiga":                         {"DAZN LALIGA", "DAZN LALIGA TV"},
-	"Eurosport2":                         {"EUROSPORT 2"},
 	"DAZNF1":                             {"DAZN F1"},
 	"LaLigaSmartbank":                    {"LALIGA HYPERMOTION", "LALIGA TV HYPERMOTION"},
 	"LaLigaSmartbank3":                   {"LALIGA HYPERMOTION 3"},
