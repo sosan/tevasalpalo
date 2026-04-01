@@ -1,16 +1,15 @@
 module main
 
-go 1.24.1
+go 1.25.0
 
 require (
 	github.com/gofiber/fiber/v2 v2.52.12
+	github.com/gofiber/fiber/v3 v3.1.0
 	golang.org/x/net v0.50.0
 )
 
-require (
-	// github.com/clipperhouse/stringish v0.1.1 // indirect
-	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
-)
+// github.com/clipperhouse/stringish v0.1.1 // indirect
+require github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 
 require (
 	aead.dev/minisign v0.3.0 // indirect
