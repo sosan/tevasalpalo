@@ -47,6 +47,7 @@ type CompetitionDetail struct {
 	Top    bool   `json:"top"`
 	Icon   string `json:"icon,omitempty"`
 	Slug   string `json:"slug,omitempty"`
+	Order  int    `json:"order,omitempty"`
 }
 
 type CountryCompetitions map[string]CompetitionDetail
@@ -297,10 +298,10 @@ func prepareMatchDay(body []byte) ([]DayView, error) {
 			}
 
 			if channelName != "" {
-				if sport == "Baloncesto" && strings.ToUpper(competitionName)  == "COPA DEL REY" {
+				if sport == "Baloncesto" && strings.ToUpper(competitionName) == "COPA DEL REY" {
 					competitionName = "Copa del Rey Baloncesto"
 				}
-				if sport == "Hockey Patines" && strings.ToUpper(competitionName)  == "COPA DEL REY" {
+				if sport == "Hockey Patines" && strings.ToUpper(competitionName) == "COPA DEL REY" {
 					competitionName = "Copa del Rey Hockey Patines"
 				}
 				broadcaster := findBroadcaster(channelName, competitionName, sport)

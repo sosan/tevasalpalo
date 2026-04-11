@@ -47,10 +47,6 @@ func FetchUpdatedList() error {
 		}
 		extractedData = extractDataFromWebTxtRaw(body)
 		break
-		// if err == nil {
-		// 	// extractedData = extractDataFromWebShitkat(body)
-		// }
-
 	}
 	broadcasterToAcestream = updateBroadcasterMapWithGateway(broadcasterToAcestream, extractedData)
 	broadcasterToAcestream = transformUriSafeBroadcasters(broadcasterToAcestream)
