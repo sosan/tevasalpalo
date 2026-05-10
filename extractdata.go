@@ -31,7 +31,7 @@ var filterList = []string{
 const (
 	shickatWeb = "https://shickat.me/"
 	elcanoWeb  = "https://ipfs.io/ipns/elcano.top"
-	listaplana = "https://ipfs.io/ipns/k2k4r8oqlcjxsritt5mczkcn4mmvcmymbqw7113fz2flkrerfwfps004/data/listas/listaplana.txt"
+	listaplana = "https://k2k4r8lm8tkmuxbc8lkmq1in3v0oya1p6pe9o5bu0hu30br5ko08k2gb.ipns.dweb.link/data/listas/listaplana.txt"
 )
 
 func FetchUpdatedList() error {
