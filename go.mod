@@ -3,7 +3,7 @@ module main
 go 1.24.1
 
 require (
-	github.com/gofiber/fiber/v2 v2.52.12
+	github.com/gofiber/fiber/v2 v2.52.13
 	golang.org/x/net v0.50.0
 )
 
