@@ -6,7 +6,7 @@ require (
 	github.com/gofiber/fiber/v2 v2.52.15
 	github.com/gofiber/fiber/v3 v3.5.0
 	github.com/gofiber/template/html/v2 v2.1.3
-	golang.org/x/net v0.57.0
+	golang.org/x/net v0.58.0
 )
 
 // github.com/clipperhouse/stringish v0.1.1 // indirect
@@ -23,7 +23,7 @@ require (
 	// github.com/gobwas/ws v1.4.0 // indirect
 	github.com/gofiber/template v1.8.3 // indirect
 	github.com/gofiber/utils v1.2.0 // indirect
-	golang.org/x/crypto v0.54.0 // indirect
+	golang.org/x/crypto v0.55.0 // indirect
 )
 
 require (
