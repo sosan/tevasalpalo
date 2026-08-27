@@ -1,5 +1,10 @@
 package main
 
+import (
+	"log"
+	"os"
+)
+
 var broadcasterGatewayMap = map[string][]string{
 	"RFEF TV":                            {"Primera Federacion"},
 	"RFEF":                            {"Primera Federacion"},
@@ -28,6 +33,9 @@ var broadcasterGatewayMap = map[string][]string{
 	"LaLiga Hypermotion (FHD)":           {"LALIGA HYPERMOTION", "LALIGA TV HYPERMOTION"},
 	"LaLiga Hypermotion 2 (FHD)":         {"LALIGA HYPERMOTION 2"},
 	"LaLiga Hypermotion 3 (FHD)":         {"LALIGA HYPERMOTION 3"},
+	"LaLiga TV Hypermotion":              {"LALIGA HYPERMOTION"},
+	"LaLiga TV Hypermotion 2":            {"LALIGA HYPERMOTION 2"},
+	"LaLiga TV Hypermotion 3":            {"LALIGA HYPERMOTION 3"},
 	"M+ LALIGA":                        {"M+ LALIGA"},
 	"M+ LALIGA 2":                        {"M+ LALIGA 2"},
 	"M+ LALIGA 3":                        {"M+ LALIGA 3", "LALIGA TV 2"},
@@ -132,6 +140,9 @@ var broadcasterGatewayMap = map[string][]string{
 	"BEIN SPORTS 4":                      {"BEIN SPORTS 4"},
 	"SKY SPORTS FOOTBALL":                {"SKY SPORTS FOOTBALL"},
 	"DAZN BALONCESTO":                    {"DAZN BALONCESTO 1"},
+	"M+ Baloncesto":                      {"DAZN BALONCESTO 1"},
+	"M+ Baloncesto 2":                    {"DAZN BALONCESTO 2"},
+	"M+ Baloncesto 3":                    {"DAZN BALONCESTO 3"},
 	"HYPERMOTION":                        {"LALIGA HYPERMOTION"},
 	"HYPERMOTION 2":                      {"LALIGA HYPERMOTION 2"},
 	"HYPERMOTION 3":                      {"LALIGA HYPERMOTION 3"},
@@ -191,6 +202,40 @@ func updateBroadcasterMapWithGateway(existingMap map[string]BroadcasterInfo, new
 				existingMap[mappedKey] = BroadcasterInfo{Links: links}
 			}
 		}
+	}
+	return existingMap
+}
+
+func updateBroadcasterMapWithGatewayTolerant(existingMap map[string]BroadcasterInfo, newData map[string][]string) map[string]BroadcasterInfo {
+	ensureNormGateway()
+	isDev := os.Getenv("ENV") == "dev"
+	hits := 0
+	miss := 0
+	for extractedName, links := range newData {
+		nk := normalizeTolerant(extractedName)
+		mappedKeys, exists := normGateway[nk]
+		if !exists {
+			miss++
+			if isDev {
+				log.Printf("🔍 gateway miss: %q (norm %q) hashes %d", extractedName, nk, len(links))
+			}
+			continue
+		}
+		hits++
+		for _, mappedKey := range mappedKeys {
+			if mappedKey == "" {
+				continue
+			}
+			if info, ok := existingMap[mappedKey]; ok {
+				info.Links = removeDuplicates(append(info.Links, links...))
+				existingMap[mappedKey] = info
+			} else {
+				existingMap[mappedKey] = BroadcasterInfo{Links: links}
+			}
+		}
+	}
+	if isDev && len(newData) > 0 {
+		log.Printf("🔧 gateway tolerant: %d hits, %d miss de %d entradas", hits, miss, len(newData))
 	}
 	return existingMap
 }

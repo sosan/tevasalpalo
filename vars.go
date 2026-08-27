@@ -927,6 +927,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"GOL TV": {
 		Logo:  "goltv.png",
 		Links: []string{
+			"http://176.65.146.237:8401/play/a09k/index.m3u8",
 			// "http://181.188.216.5:18000/play/a0mj/index.m3u8",
 			// "b2d560741c006fc5e4a42412bb52dbd25a6a4a3a",
 			// "472d1f3a658a51bcab0ffa9138e1e28a05fba30b",
@@ -1027,8 +1028,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SKY SPORTS MX": {
 		Logo: "skysports.png",
 		Links: []string{
-			"http://181.78.106.127:9000/play/ca028/index.m3u8", //
-			"http://181.78.106.127:9000/play/ca030/index.m3u8", //
+			"p;http://181.78.106.127:9000/play/ca028/index.m3u8", //
+			"p;http://181.78.106.127:9000/play/ca030/index.m3u8", //
 		},
 		Name:             "SKY SPORTS MX",
 		ShowListChannels: true,
@@ -1037,14 +1038,6 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SKY SPORTS BUNDESLIGA": {
 		Logo:  "skysports.png",
 		Links: []string{
-			// "http://181.78.106.127:9000/play/ca028/32260689.m3u8",
-			// "dfbb321c7ee0d3309a03770fea07c67434182acc",
-			// "http://181.78.106.127:9000/play/ca028/index.m3u8", //
-			// "http://181.205.130.194:4000/play/a07s",
-			// "http://200.60.124.19:29000/play/a01e",
-			// "9033c7b8fc6fcd01b1f00fef8a87da74812c9c73",
-			// "7c12288663069a12aff58f3f62e8ea47ab78c65d",
-			// "fc9f1f580da8f641a5991d44b399982a3a069f69",
 		},
 		Name:             "SKY SPORTS BUNDESLIGA",
 		ShowListChannels: false,
@@ -1053,16 +1046,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SKY SPORTS": {
 		Logo: "skysports.png",
 		Links: []string{
-			"2fab80a8445e31cb98169c0907600e1545ea8557",
-
-			"d58f619d860d29cd47720055b9bb842199971da1",
-			"e9975d38aaa4475ac0b1fa0faa541bbadd85a662",
-			"a9bddffdff085cdc18b34218d5dc1093b88e3c0a",
-			"http://190.92.10.66:4000/play/a001/index.m3u8",
-			// "http://190.92.10.66:4000/play/a001/index.m3u8",
-			// "https://maldivesn.net/hilaytv/skysportslaliga", origin
-
-			// "https://l.hilay.tv/skysportslaliga",
+			"p;http://179.60.224.196:8000/play/a0i7/index.m3u8",
+			"p;http://190.92.10.66:4000/play/a001/index.m3u8",
 		},
 		Name:             "SKY SPORTS LA LIGA",
 		ShowListChannels: true,
@@ -1071,11 +1056,13 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SKY SPORTS LALIGA": {
 		Logo: "skysports.png",
 		Links: []string{
-			"2fab80a8445e31cb98169c0907600e1545ea8557",
-			"d58f619d860d29cd47720055b9bb842199971da1",
-			"e9975d38aaa4475ac0b1fa0faa541bbadd85a662",
-			"a9bddffdff085cdc18b34218d5dc1093b88e3c0a",
+			// "2fab80a8445e31cb98169c0907600e1545ea8557",
+			// "d58f619d860d29cd47720055b9bb842199971da1",
+			// "e9975d38aaa4475ac0b1fa0faa541bbadd85a662",
+			// "a9bddffdff085cdc18b34218d5dc1093b88e3c0a",
+			"p;http://179.60.224.196:8000/play/a0i7/index.m3u8",
 			"p;http://190.92.10.66:4000/play/a001/index.m3u8",
+			// "p;http://190.92.10.66:4000/play/a001/index.m3u8",
 			// "http://190.92.10.66:4000/play/a001/index.m3u8",
 			// "p;https://maldivesn.net/hilaytv/skysportslaliga",
 		},
@@ -1116,7 +1103,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo: "realmadridtv.png",
 		Links: []string{
 			// "681800793751afa5a9a4f0aa5868d07e982d5d7a",
-			"7a955964c91c66311eef9137a96332352dbb891e",
+			// "7a955964c91c66311eef9137a96332352dbb891e",
 			"https://rmtv.akamaized.net/hls/live/2043153/rmtv-es-web/bitrate_3.m3u8", //
 		},
 		Name:             "REAL MADRID TV",

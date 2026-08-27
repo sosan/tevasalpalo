@@ -129,6 +129,26 @@ async function startCheckAppUpdate() {
 
 }
 
+function getEffectiveTopForFilter() {
+    // Reusa window.getEffectiveTop si modal.js ya cargó, si no fallback local
+    if (typeof window.getEffectiveTop === "function") {
+        try { return window.getEffectiveTop(); } catch (e) {}
+    }
+    try {
+        const raw = localStorage.getItem("competitionsTop");
+        const userPrefs = raw ? JSON.parse(raw) : {};
+        const serverTop = (typeof topCompetitions !== "undefined" && topCompetitions) ? topCompetitions : {};
+        const effective = Object.assign({}, serverTop);
+        for (const [name, detail] of Object.entries(userPrefs || {})) {
+            if (detail && detail.Top) effective[name] = detail;
+            else delete effective[name];
+        }
+        return effective;
+    } catch (e) {
+        return (typeof topCompetitions !== "undefined" && topCompetitions) ? topCompetitions : {};
+    }
+}
+
 document.addEventListener("DOMContentLoaded", function () {
     if (!days || !topCompetitions) {
         console.error("No se encontraron datos de días.");
@@ -136,13 +156,25 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     
     console.log("Datos de días cargados:", days);
-    console.log("Top Competitions para filtrar:", topCompetitions);
+    console.log("Top Competitions para filtrar (server):", topCompetitions);
+    console.log("Top Competitions efectivo (server+local):", getEffectiveTopForFilter());
     updateContentButton.addEventListener("click", updateContent);
     
     // solapamiento startUpdateCheck y setinterval
     startCheckAppUpdate();
     setInterval(startCheckAppUpdate, oneHour);
     renderFullSchedule(days);
+
+    // Re-render cuando modal cambia prefs (sin recarga)
+    window.addEventListener("competitionsUpdated", () => {
+        console.log("competitionsUpdated → re-render con effectiveTop", getEffectiveTopForFilter());
+        renderFullSchedule(days);
+    });
+    window.addEventListener("storage", (e) => {
+        if (e.key === "competitionsTop") {
+            renderFullSchedule(days);
+        }
+    });
 });
 
 
@@ -156,6 +188,9 @@ function renderFullSchedule(daysData) {
         console.error("No se encontró el contenedor #daylist para renderizar.");
         return;
     }
+
+    // EffectiveTop = serverTop + localStorage overlay (Plan A)
+    const effectiveTop = getEffectiveTopForFilter();
 
     // Limpiar cualquier contenido previo
     container.innerHTML = '';
@@ -192,7 +227,7 @@ function renderFullSchedule(daysData) {
             const matchList = document.createElement('ol');
 
             matches.forEach((matchData, matchIndex) => {
-                const filterCompetition = topCompetitions[competitionName];
+                const filterCompetition = effectiveTop[competitionName];
                 if (filterCompetition === undefined && matchData.Sport !== "Tenis" && matchData.Sport !== "Motociclismo") {
                     competitionSection.remove();
                     matchList.remove();

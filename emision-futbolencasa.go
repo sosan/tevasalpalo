@@ -298,6 +298,10 @@ func prepareMatchDay(body []byte) ([]DayView, error) {
 			}
 
 			if channelName != "" {
+				channelName = cleanChannelNameFutbolEnCasa(channelName)
+				if channelName == "" {
+					return
+				}
 				if sport == "Baloncesto" && strings.ToUpper(competitionName) == "COPA DEL REY" {
 					competitionName = "Copa del Rey Baloncesto"
 				}
@@ -353,6 +357,35 @@ func cleanTextSpace(text string) string {
 	text = strings.TrimSpace(text)
 	text = regexp.MustCompile(`\s+`).ReplaceAllString(text, " ")
 	return text
+}
+
+var (
+	reVerPartido     = regexp.MustCompile(`(?i)\s*:?\s*VER PARTIDO\s*$`)
+	reMovistarParen  = regexp.MustCompile(`\s*\(M\d+ O\d+\)\s*$`)
+	reDaznVerDirecto = regexp.MustCompile(`(?i)\s*\(Ver en directo\)\s*$`)
+	reOrangeNumber   = regexp.MustCompile(`\s*\(\d+\)\s*$`)
+)
+
+func cleanChannelNameFutbolEnCasa(s string) string {
+	s = strings.TrimSpace(s)
+	s = reVerPartido.ReplaceAllString(s, "")
+	s = strings.TrimSpace(s)
+	s = reMovistarParen.ReplaceAllString(s, "")
+	s = strings.TrimSpace(s)
+	s = reDaznVerDirecto.ReplaceAllString(s, "")
+	s = strings.TrimSpace(s)
+	s = reOrangeNumber.ReplaceAllString(s, "")
+	s = strings.TrimSpace(s)
+	upper := strings.ToUpper(strings.TrimSpace(s))
+	switch upper {
+	case "LALIGA TV M2", "LALIGA TV M3":
+		return "LALIGA TV Hypermotion"
+	case "LALIGA TV M4":
+		return "LALIGA TV Hypermotion 2"
+	case "LALIGA TV M1":
+		return "LALIGA TV Hypermotion 3"
+	}
+	return strings.TrimSpace(s)
 }
 
 func isRelevant(competition string) bool {
