@@ -3,7 +3,7 @@ module main
 go 1.25.0
 
 require (
-	github.com/gofiber/fiber/v3 v3.5.0
+	github.com/gofiber/fiber/v2 v2.52.15
 	github.com/gofiber/fiber/v3 v3.5.0
 	github.com/gofiber/template/html/v2 v2.1.3
 	golang.org/x/net v0.58.0
@@ -30,7 +30,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.12.0
 	github.com/andybalholm/brotli v1.2.2 // indirect
 	// github.com/chromedp/chromedp v0.14.1
-	github.com/gofiber/template/html/v3 v3.0.7
+	github.com/gofiber/template/html/v3 v3.0.8
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grafov/m3u8 v0.12.1
 	github.com/klauspost/compress v1.19.2 // indirect
