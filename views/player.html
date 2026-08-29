@@ -365,17 +365,41 @@
 
     // }
 
-    function isInfohash(str) {
-        return /^[0-9a-fA-F]{40}$/.test(str);
+    const MAX_RETRIES = 2;
+
+    function buildHlsUrl(linkID, pid) {
+        const hostname = window.location.hostname
+        return `http://${hostname}:6878/ace/manifest.m3u8?id=${linkID}&pid=${pid}`;
     }
 
-    function buildHlsUrl(linkID, pid, useInfohash = false) {
-        const hostname = window.location.hostname
-        if (useInfohash) {
-            return `http://${hostname}:6878/ace/manifest.m3u8?infohash=${linkID}&pid=${pid}`;
-        } else {
-            return `http://${hostname}:6878/ace/manifest.m3u8?id=${linkID}&pid=${pid}`;
+    function isValidAceId(id) {
+        return /^[a-fA-F0-9]{40}$/.test(id);
+    }
+
+    function showErrorOverlay(message, subMessage) {
+        const videoContainer = document.querySelector('.video-container');
+        if (!videoContainer) return;
+        // no destruir el <video>, overlay absoluto
+        let overlay = document.getElementById('hlsErrorOverlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'hlsErrorOverlay';
+            overlay.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);color:#ff4444;z-index:10;padding:20px;text-align:center;';
+            videoContainer.style.position = 'relative';
+            videoContainer.appendChild(overlay);
         }
+        overlay.innerHTML = `
+            <div style="font-size:48px;margin-bottom:10px;">⚠️</div>
+            <h3>${message}</h3>
+            <p>${subMessage}</p>
+            <button onclick="hideErrorOverlay(); loadVideo();" class="settings-btn" style="margin-top:15px;">Reintentar</button>
+        `;
+        overlay.style.display = 'flex';
+    }
+
+    function hideErrorOverlay() {
+        const overlay = document.getElementById('hlsErrorOverlay');
+        if (overlay) overlay.style.display = 'none';
     }
 
     function loadVideo() {
@@ -386,8 +410,7 @@
             return;
         }
 
-        const initialUseInfohash = false; //isInfohash(linkID);
-        let hlsUrl = buildHlsUrl(linkID, pid, initialUseInfohash);
+        hideErrorOverlay();
 
         if (linkID.includes(";") === true) {
             const splitted = linkID.split(";")[1];
@@ -397,14 +420,25 @@
             } else {
                 hlsUrl = decoded;
             }
-            loadHlsVideo(hlsUrl);
+            loadHlsVideo(hlsUrl, linkID, pid, 0);
             return;
         }
-        loadHlsVideo(hlsUrl, initialUseInfohash, linkID, pid);
+        // validación solo para IDs AceStream puros (40 hex)
+        if (!isValidAceId(linkID)) {
+            console.error(`ID AceStream inválido: "${linkID}" (debe ser 40 hex). No se pide al engine.`);
+            showErrorOverlay('ID de stream inválido', `El identificador "${linkID}" no es un hash AceStream válido y no se puede cargar.`);
+            return;
+        }
+        loadHlsVideo(buildHlsUrl(linkID, "{{ .pid }}"), linkID, "{{ .pid }}", 0);
     }
 
-    function loadHlsVideo(hlsUrl, wasInfohash = false, linkID, pid) {
+    function loadHlsVideo(hlsUrl, linkID, pid, retryCount) {
         const video = document.getElementById('videoPlayer');
+        if (!video) {
+            console.warn("loadHlsVideo abortado: #videoPlayer no existe en el DOM");
+            return;
+        }
+        hideErrorOverlay();
 
         if (window.hlsPlayer) {
             window.hlsPlayer.detachMedia();
@@ -503,17 +537,14 @@
                         case Hls.ErrorTypes.NETWORK_ERROR:
                             console.error("HLS.js: Error de red fatal", data);
 
-                            // Si fue un intento con infohash, intentar con id
-                            if (wasInfohash) {
-                                console.log("Intentando con ?id= en lugar de ?infohash=");
-                                const alternateUrl = buildHlsUrl(linkID, pid, false);
-                                loadHlsVideo(alternateUrl, false, linkID, pid);
-                            }
-                            // Si fue un intento con id, intentar con infohash
-                            else {
-                                console.log("Intentando con ?infohash= en lugar de ?id=");
-                                const alternateUrl = buildHlsUrl(linkID, pid, true);
-                                loadHlsVideo(alternateUrl, true, linkID, pid);
+                            if (retryCount < MAX_RETRIES) {
+                                console.log(`Reintentando... (intento ${retryCount + 1}/${MAX_RETRIES})`);
+                                setTimeout(() => {
+                                    loadHlsVideo(hlsUrl, linkID, pid, retryCount + 1);
+                                }, 2000 * (retryCount + 1)); // backoff exponencial
+                            } else {
+                                console.error("Máximo de reintentos alcanzado. No se puede cargar el stream.");
+                                showErrorOverlay('No se puede cargar el stream', 'El canal no está disponible o el enlace ha expirado.');
                             }
                             break;
                         case Hls.ErrorTypes.MEDIA_ERROR:

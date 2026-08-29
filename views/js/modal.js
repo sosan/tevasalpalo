@@ -1,9 +1,19 @@
+if (typeof COMPETITIONS_STORAGE_KEY === 'undefined') {
+    var COMPETITIONS_STORAGE_KEY = "competitionsTop";
+}
+if (typeof COMPETITIONS_ORDER_KEY === 'undefined') {
+    var COMPETITIONS_ORDER_KEY = "competitionsOrder";
+}
+
 document.addEventListener("DOMContentLoaded", function () {
+    // evitar doble init si el script se carga 2 veces
+    if (window.__modalInitDone) return;
+    window.__modalInitDone = true;
     loadActivityModal();
     initCompetitionPrefs();
+    applyCompetitionOrderToGrid();
+    initCompetitionOrderSortable();
 });
-
-const COMPETITIONS_STORAGE_KEY = "competitionsTop";
 
 function loadCompetitionPrefs() {
     try {
@@ -90,11 +100,9 @@ function updateStars() {
         const path = star.querySelector("path");
         if (path) path.setAttribute("fill", isTopNow ? "#0071ea" : "none");
     });
-    // Grid Top con estrellas sin data-competition: usar texto
+    // Grid Top: preferir data-competition (clave real), fallback a texto
     document.querySelectorAll(".competitions-grid .sizebox-competition-grid").forEach((li) => {
-        const titleEl = li.querySelector(".style-text-competition-content");
-        if (!titleEl) return;
-        const compName = titleEl.textContent.trim();
+        const compName = (li.dataset.competition || li.querySelector(".style-text-competition-content")?.textContent.trim() || "");
         if (!compName) return;
         const star = li.querySelector(".icon-star");
         if (!star) return;
@@ -127,9 +135,7 @@ function initCompetitionPrefs() {
             e.preventDefault();
             const li = box.closest(".sizebox-competition-grid");
             if (!li) return;
-            const titleEl = li.querySelector(".style-text-competition-content");
-            if (!titleEl) return;
-            const compName = titleEl.textContent.trim();
+            const compName = li.dataset.competition || li.querySelector(".style-text-competition-content")?.textContent.trim();
             if (compName) toggleCompetition(compName);
         });
     });
@@ -147,10 +153,86 @@ function initCompetitionPrefs() {
     });
 }
 
+// --- Orden drag & drop ---
+function loadCompetitionOrder() {
+    try {
+        const raw = localStorage.getItem(COMPETITIONS_ORDER_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return null;
+        return parsed;
+    } catch (e) {
+        return null;
+    }
+}
+
+function saveCompetitionOrder() {
+    try {
+        const grid = document.querySelector('.competitions-grid');
+        if (!grid) return;
+        const order = [...grid.querySelectorAll('.sizebox-competition-grid')]
+            .map(li => li.dataset.competition)
+            .filter(Boolean);
+        localStorage.setItem(COMPETITIONS_ORDER_KEY, JSON.stringify(order));
+        window.dispatchEvent(new CustomEvent('competitionsOrderChanged', { detail: order }));
+    } catch (e) {
+        console.warn('No se pudo guardar competitionsOrder', e);
+    }
+}
+
+function applyCompetitionOrderToGrid() {
+    const saved = loadCompetitionOrder();
+    if (!saved || saved.length === 0) return;
+    const grid = document.querySelector('.competitions-grid');
+    if (!grid) return;
+    const map = new Map();
+    [...grid.children].forEach(li => {
+        const key = li.dataset.competition;
+        if (key) map.set(key, li);
+    });
+    // re-append en orden guardado
+    saved.forEach(name => {
+        const el = map.get(name);
+        if (el) {
+            grid.appendChild(el);
+            map.delete(name);
+        }
+    });
+    // competiciones nuevas (no estaban en el orden guardado) quedan al final
+    // ya están en map, se mantienen en su posición actual al final
+}
+
+function initCompetitionOrderSortable() {
+    const grid = document.querySelector('.competitions-grid');
+    if (!grid) return;
+    if (typeof Sortable === 'undefined') {
+        console.warn('SortableJS no cargado, drag desactivado');
+        return;
+    }
+    if (grid._sortable) return;
+    grid._sortable = new Sortable(grid, {
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        dragClass: 'sortable-drag',
+        handle: '.box-competition',
+        onEnd: function () {
+            saveCompetitionOrder();
+        }
+    });
+    // clicks en el grid no deben disparar drag imediatamente: Sortable maneja handle
+}
+
+function getCompetitionOrder() {
+    return loadCompetitionOrder();
+}
+
 // Exponer globalmente para index.js y debug
 window.getEffectiveTop = getEffectiveTop;
 window.toggleCompetition = toggleCompetition;
 window.updateStars = updateStars;
+window.getCompetitionOrder = getCompetitionOrder;
+window.applyCompetitionOrderToGrid = applyCompetitionOrderToGrid;
+window.saveCompetitionOrder = saveCompetitionOrder;
 
 function loadActivityModal() {
     const dialog = document.getElementById('config-menu');
@@ -186,6 +268,13 @@ function loadActivityModal() {
                 dialog.close();
             }
         });
+        // Al cerrar, guardar orden (por si arrastre sin onEnd) y reordenar parrilla
+        dialog.addEventListener('close', () => {
+            saveCompetitionOrder();
+            if (typeof days !== "undefined" && days && typeof renderFullSchedule === "function") {
+                renderFullSchedule(days);
+            }
+        });
     }
 
     // Botón Restablecer por defecto si existe
@@ -194,10 +283,14 @@ function loadActivityModal() {
         resetBtn.addEventListener('click', (e) => {
             e.preventDefault();
             localStorage.removeItem(COMPETITIONS_STORAGE_KEY);
+            localStorage.removeItem(COMPETITIONS_ORDER_KEY);
+            // restaurar orden del servidor recargando grid desde DOM original? simplificar: reload
             updateStars();
             if (typeof days !== "undefined" && days && typeof renderFullSchedule === "function") {
                 renderFullSchedule(days);
             }
+            // opcional: recargar para restaurar orden servidor
+            setTimeout(() => location.reload(), 300);
         });
     }
 }

@@ -288,7 +288,7 @@ func prepareMatchDay(body []byte) ([]DayView, error) {
 			}
 		}
 
-		var broadcasters []BroadcasterInfo
+		broadcasters := []BroadcasterInfo{}
 		row.Find("ul.listaCanales li").Each(func(j int, channel *goquery.Selection) {
 			channelName := ""
 			if title, exists := channel.Attr("title"); exists && title != "" {
@@ -309,10 +309,34 @@ func prepareMatchDay(body []byte) ([]DayView, error) {
 					competitionName = "Copa del Rey Hockey Patines"
 				}
 				broadcaster := findBroadcaster(channelName, competitionName, sport)
-				// links := findLinkForBroadcaster(channelName, competitionName)
+				// filtrar broadcasters vacíos/desconocidos (name == "" -> no se conoce mapeo)
+				if broadcaster.Name == "" {
+					return
+				}
 				broadcasters = append(broadcasters, broadcaster)
 			}
 		})
+
+		// dedup por nombre (case-insensitive): misma cadena Hypermotion aparece 2x en el HTML
+		if len(broadcasters) > 1 {
+			deduped := make(map[string]BroadcasterInfo)
+			order := make([]string, 0, len(broadcasters))
+			for _, b := range broadcasters {
+				key := strings.ToUpper(strings.TrimSpace(b.Name))
+				if existing, ok := deduped[key]; ok {
+					existing.Links = removeDuplicates(append(existing.Links, b.Links...))
+					deduped[key] = existing
+				} else {
+					deduped[key] = b
+					order = append(order, key)
+				}
+			}
+			tmp := make([]BroadcasterInfo, 0, len(deduped))
+			for _, k := range order {
+				tmp = append(tmp, deduped[k])
+			}
+			broadcasters = tmp
+		}
 
 		if timeStr != "" && competitionName != "" && eventName != "" {
 			match := Match{
@@ -564,7 +588,28 @@ func addCompetition(generalCompetition DayView, newCompetition []DayView) DayVie
 
 							// if generalCompetition.Competitions[compKey][o].Match.Event == match.Event {
 							if strings.Contains(generalCompetition.Competitions[compKey][o].Match.Event, match.Event) {
-								generalCompetition.Competitions[compKey][o].Broadcasters = append(generalCompetition.Competitions[compKey][o].Broadcasters, match.Broadcasters...)
+								merged := append(generalCompetition.Competitions[compKey][o].Broadcasters, match.Broadcasters...)
+								// dedup por nombre para no duplicar LALIGA HYPERMOTION desde distintas fuentes
+								deduped := make(map[string]BroadcasterInfo)
+								order := make([]string, 0, len(merged))
+								for _, b := range merged {
+									if b.Name == "" {
+										continue
+									}
+									key := strings.ToUpper(strings.TrimSpace(b.Name))
+									if existing, ok := deduped[key]; ok {
+										existing.Links = removeDuplicates(append(existing.Links, b.Links...))
+										deduped[key] = existing
+									} else {
+										deduped[key] = b
+										order = append(order, key)
+									}
+								}
+								tmp := make([]BroadcasterInfo, 0, len(deduped))
+								for _, k := range order {
+									tmp = append(tmp, deduped[k])
+								}
+								generalCompetition.Competitions[compKey][o].Broadcasters = tmp
 							}
 						}
 					}

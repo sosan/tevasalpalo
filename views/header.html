@@ -62,15 +62,15 @@
                                 </div>
                             </div>
                             <ul class="competitions-grid position-relative">
-                                {{ range $name, $details := .topCompetitions }}
-                                <li class="sizebox-competition-grid position-relative">
+                                {{ range $item := .topCompetitionsOrdered }}
+                                <li class="sizebox-competition-grid position-relative" data-competition="{{ $item.Name }}">
                                     <a href="#">
                                         <div class="box-competition position-relative">
                                             <div class="box-competition-content">
-                                                <img src="/images/logos-competitions/{{ $details.Icon }}" alt="{{ $details.Titulo }}"
+                                                <img src="/images/logos-competitions/{{ $item.Detail.Icon }}" alt="{{ $item.Detail.Titulo }}"
                                                     class="image-competition-content">
                                                 <div class="text-competition-content">
-                                                    <span class="style-text-competition-content">{{ $details.Titulo }}</span>
+                                                    <span class="style-text-competition-content">{{ $item.Detail.Titulo }}</span>
                                                 </div>
                                             </div>
                                             <div>
@@ -147,5 +147,13 @@
 </header>
 <script> let topCompetitions = {{ .topCompetitionsJSON }}; </script>
 <script> let days = {{ .DaysJSON }}; </script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script src="/js/modal.js" defer></script>
+<style>
+.competitions-grid .sortable-ghost { opacity: 0.4; background: #e0f2fe; border: 2px dashed #0ea5e9; border-radius: 8px; }
+.competitions-grid .sortable-drag { opacity: 0.9; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+.sizebox-competition-grid { cursor: grab; }
+.sizebox-competition-grid:active { cursor: grabbing; }
+.sizebox-competition-grid .box-competition { user-select: none; }
+</style>
 {{ end }}

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"io/fs"
 	"sort"
 
 	"strings"
@@ -19,16 +20,13 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/filesystem"
-	"github.com/gofiber/template/html/v2"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/cors"
+	"github.com/gofiber/fiber/v3/middleware/static"
+	"github.com/gofiber/template/html/v3"
 )
 
-//go:embed views/*
-//go:embed views/*/*
-//go:embed views/css/*.*
-//go:embed views/*.html
+//go:embed views
 var viewsFS embed.FS
 
 var (
@@ -38,13 +36,14 @@ var (
 )
 
 type CachedData struct {
-	Days                []DayView
-	DaysJSON            template.JS
-	TopCompetitionsJSON template.JS
-	AllCompetitions     AllCompetitions
-	TopCompetitions     map[string]CompetitionDetail
-	Broadcasters        map[string]BroadcasterInfo
-	BroadcastersOrdered []BroadcasterInfo
+	Days                     []DayView
+	DaysJSON                 template.JS
+	TopCompetitionsJSON      template.JS
+	AllCompetitions          AllCompetitions
+	TopCompetitions          map[string]CompetitionDetail
+	TopCompetitionsOrdered   []OrderedTopCompetition
+	Broadcasters             map[string]BroadcasterInfo
+	BroadcastersOrdered      []BroadcasterInfo
 }
 
 func preloadProgramationTVData() error {
@@ -74,15 +73,18 @@ func preloadProgramationTVData() error {
 		return broadcastersSlice[i].Order < broadcastersSlice[j].Order
 	})
 
+	topOrdered := getOrderedTopCompetitions(topCompetitions)
+
 	dataMutex.Lock()
 	cachedData = CachedData{
-		Days:                days,
-		DaysJSON:            *daysJSON,
-		TopCompetitionsJSON: *topCompetitionsJSON,
-		AllCompetitions:     allCompetitions,
-		TopCompetitions:     topCompetitions,
-		Broadcasters:        broadcasterToAcestream,
-		BroadcastersOrdered: broadcastersSlice,
+		Days:                   days,
+		DaysJSON:               *daysJSON,
+		TopCompetitionsJSON:    *topCompetitionsJSON,
+		AllCompetitions:        allCompetitions,
+		TopCompetitions:        topCompetitions,
+		TopCompetitionsOrdered: topOrdered,
+		Broadcasters:           broadcasterToAcestream,
+		BroadcastersOrdered:    broadcastersSlice,
 	}
 	lastDataUpdate = time.Now()
 	dataMutex.Unlock()
@@ -105,8 +107,18 @@ func startTVProgramationDataRefresh() {
 }
 
 func StartWebServer() (*fiber.App, error) {
-	engine := html.NewFileSystem(http.FS(viewsFS), ".html")
+	sub, err := fs.Sub(viewsFS, "views")
+	if err != nil {
+		log.Fatalf("failed to create sub FS: %v", err)
+	}
+	if sub == nil {
+		log.Fatal("sub FS is nil")
+	}
+	engine := html.NewFileSystem(http.FS(sub), ".html")
 	engine.AddFunc("b64", encodeContent)
+	if err := engine.Load(); err != nil {
+		log.Fatalf("failed to load views: %v", err)
+	}
 
 	app := fiber.New(fiber.Config{
 		Views: engine,
@@ -119,13 +131,13 @@ func StartWebServer() (*fiber.App, error) {
 	// }))
 
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "*",
-		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
-		AllowHeaders:     "Origin, Content-Type, Accept, Range",
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Range"},
 		AllowCredentials: false,
 	}))
 
-	app.Get("/ace/*", func(c *fiber.Ctx) error {
+	app.Get("/ace/*", func(c fiber.Ctx) error {
 		// Obtener la ruta completa después de /ace/
 		acePath := c.Params("*")
 
@@ -219,66 +231,83 @@ func StartWebServer() (*fiber.App, error) {
 		return nil
 	})
 
-	app.Use("/css", filesystem.New(filesystem.Config{
-		Root:       http.FS(viewsFS),
-		PathPrefix: "/views/css",
-		Browse:     false,
+	cssFS, err := fs.Sub(viewsFS, "views/css")
+	if err != nil {
+		log.Fatalf("failed to create css sub FS: %v", err)
+	}
+	imagesFS, err := fs.Sub(viewsFS, "views/images")
+	if err != nil {
+		log.Fatalf("failed to create images sub FS: %v", err)
+	}
+	jsFS, err := fs.Sub(viewsFS, "views/js")
+	if err != nil {
+		log.Fatalf("failed to create js sub FS: %v", err)
+	}
+
+	app.Use("/", static.New("", static.Config{
+		FS: viewsFS,
+		Browse: false,
+		IndexNames: []string{"index.html"},
 	}))
 
-	app.Use("/images", filesystem.New(filesystem.Config{
-		Root:       http.FS(viewsFS),
-		PathPrefix: "/views/images",
-		Browse:     false,
+	app.Use("/css", static.New("", static.Config{
+		FS: cssFS,
+		Browse: false,
+		// IndexNames: []string{"index.html"},
 	}))
 
-	app.Use("/player/js", filesystem.New(filesystem.Config{
-		Root:       http.FS(viewsFS),
-		PathPrefix: "/views/js",
-		Browse:     false,
+	app.Use("/images", static.New("", static.Config{
+		FS: imagesFS,
+		Browse: false,
 	}))
 
-	app.Use("/player/css", filesystem.New(filesystem.Config{
-		Root:       http.FS(viewsFS),
-		PathPrefix: "/views/css",
-		Browse:     false,
+	app.Use("/player/js", static.New("", static.Config{
+		FS: jsFS,
+		Browse: false,
 	}))
 
-	app.Use("/js", filesystem.New(filesystem.Config{
-		Root:       http.FS(viewsFS),
-		PathPrefix: "/views/js",
-		Browse:     false,
+	app.Use("/player/css", static.New("", static.Config{
+		FS: cssFS,
+		Browse: false,
 	}))
 
-	app.Get("/", func(c *fiber.Ctx) error {
+	app.Use("/js", static.New("", static.Config{
+		FS: jsFS,
+		Browse: false,
+	}))
+
+	app.Get("/", func(c fiber.Ctx) error {
 		dataMutex.RLock()
 		data := cachedData
 		dataMutex.RUnlock()
 		return c.Render("index", fiber.Map{
-			"Days":                data.Days,
-			"allCompetitions":     data.AllCompetitions,
-			"topCompetitions":     data.TopCompetitions,
-			"DaysJSON":            data.DaysJSON,
-			"topCompetitionsJSON": data.TopCompetitionsJSON,
+			"Days":                     data.Days,
+			"allCompetitions":          data.AllCompetitions,
+			"topCompetitions":          data.TopCompetitions,
+			"topCompetitionsOrdered":   data.TopCompetitionsOrdered,
+			"DaysJSON":                 data.DaysJSON,
+			"topCompetitionsJSON":      data.TopCompetitionsJSON,
 		})
 	})
 
-	app.Get("/broadcasters", func(c *fiber.Ctx) error {
+	app.Get("/broadcasters", func(c fiber.Ctx) error {
 		dataMutex.RLock()
 		data := cachedData
 		dataMutex.RUnlock()
 
-		return c.Render("views/broadcasters", fiber.Map{
+		return c.Render("broadcasters", fiber.Map{
 			//
-			"Broadcasters":        data.BroadcastersOrdered,
-			"DaysJSON":            data.DaysJSON,
-			"Days":                data.Days,
-			"allCompetitions":     data.AllCompetitions,
-			"topCompetitions":     data.TopCompetitions,
-			"topCompetitionsJSON": data.TopCompetitionsJSON,
+			"Broadcasters":           data.BroadcastersOrdered,
+			"DaysJSON":               data.DaysJSON,
+			"Days":                   data.Days,
+			"allCompetitions":        data.AllCompetitions,
+			"topCompetitions":        data.TopCompetitions,
+			"topCompetitionsOrdered": data.TopCompetitionsOrdered,
+			"topCompetitionsJSON":    data.TopCompetitionsJSON,
 		})
 	})
 
-	app.Get("/refresh-data", func(c *fiber.Ctx) error {
+	app.Get("/refresh-data", func(c fiber.Ctx) error {
 		if err := preloadProgramationTVData(); err != nil {
 			return c.Status(500).JSON(fiber.Map{
 				"error": err.Error(),
@@ -290,7 +319,7 @@ func StartWebServer() (*fiber.App, error) {
 		})
 	})
 
-	app.Get("/player/index.html", func(c *fiber.Ctx) error {
+	app.Get("/player/index.html", func(c fiber.Ctx) error {
 		link := c.Query("link")
 		content := c.Query("content")
 		pid := c.Query("pid")
@@ -303,7 +332,7 @@ func StartWebServer() (*fiber.App, error) {
 		}
 
 		if content == "" {
-			return c.Render("views/player", fiber.Map{
+			return c.Render("player", fiber.Map{
 				"linkid": link,
 				"error":  nil,
 			})
@@ -314,7 +343,7 @@ func StartWebServer() (*fiber.App, error) {
 			return c.Status(400).SendString("Error al decodificar el contenido")
 		}
 		splitted := strings.Split(string(decodedContent), ";")
-		return c.Render("views/player", fiber.Map{
+		return c.Render("player", fiber.Map{
 			"linkid":          link,
 			"broadcastername": splitted[0],
 			"eventname":       splitted[1],
@@ -324,7 +353,7 @@ func StartWebServer() (*fiber.App, error) {
 		})
 	})
 
-	app.Get("/update", func(c *fiber.Ctx) error {
+	app.Get("/update", func(c fiber.Ctx) error {
 		go func() {
 			err := update.ForceUpdate()
 			if err != nil {
@@ -340,7 +369,7 @@ func StartWebServer() (*fiber.App, error) {
 		})
 	})
 
-	app.Get("/healthz", func(c *fiber.Ctx) error {
+	app.Get("/healthz", func(c fiber.Ctx) error {
 		if update.Updated {
 			return c.JSON(fiber.Map{
 				"ok": true,
@@ -351,7 +380,7 @@ func StartWebServer() (*fiber.App, error) {
 		})
 	})
 
-	app.Get("/updateavailable", func(c *fiber.Ctx) error {
+	app.Get("/updateavailable", func(c fiber.Ctx) error {
 		needUpdate := update.GetNeedUpdate()
 		return c.JSON(fiber.Map{
 			"needUpdate": needUpdate,
@@ -359,13 +388,13 @@ func StartWebServer() (*fiber.App, error) {
 	})
 
 	// Endpoint de fallback para cualquier .ts
-	app.Get("/hls/:segment", func(c *fiber.Ctx) error {
+	app.Get("/hls/:segment", func(c fiber.Ctx) error {
 		segmentName := c.Params("segment")
 		log.Print(segmentName)
 		return c.SendStatus(200)
 	})
 
-	app.Get("/api/iptv/:channel", func(c *fiber.Ctx) error {
+	app.Get("/api/iptv/:channel", func(c fiber.Ctx) error {
 		channel := c.Params("channel")
 		var targetURL string
 		var err error
@@ -454,7 +483,7 @@ func fromBase64Url(str string) (string, error) {
 }
 
 // Copiar headers importantes de la respuesta
-func copyHeaders(c *fiber.Ctx, resp *http.Response) {
+func copyHeaders(c fiber.Ctx, resp *http.Response) {
 	// Headers comunes
 	if contentType := resp.Header.Get("Content-Type"); contentType != "" {
 		c.Set("Content-Type", contentType)
@@ -479,7 +508,7 @@ func copyHeaders(c *fiber.Ctx, resp *http.Response) {
 	c.Set("Access-Control-Expose-Headers", "Content-Length, Content-Range, Accept-Ranges")
 }
 
-func fetchAndProxy(c *fiber.Ctx, targetURL string) error {
+func fetchAndProxy(c fiber.Ctx, targetURL string) error {
 	client := &http.Client{
 		Timeout: 0,
 		Transport: &http.Transport{
@@ -592,7 +621,7 @@ func fetchAndProxy(c *fiber.Ctx, targetURL string) error {
 	return nil
 }
 
-func handleManifest(c *fiber.Ctx, resp *http.Response, finalManifestURL string) error {
+func handleManifest(c fiber.Ctx, resp *http.Response, finalManifestURL string) error {
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return c.Status(500).SendString("Failed to read manifest: " + err.Error())
@@ -670,7 +699,7 @@ func encodeContent(input string) string {
 	return base64.StdEncoding.EncodeToString([]byte(input))
 }
 
-func handleAceManifest(c *fiber.Ctx, resp *http.Response) error {
+func handleAceManifest(c fiber.Ctx, resp *http.Response) error {
 	// Leer el contenido del manifest
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

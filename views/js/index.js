@@ -170,8 +170,12 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log("competitionsUpdated → re-render con effectiveTop", getEffectiveTopForFilter());
         renderFullSchedule(days);
     });
+    window.addEventListener("competitionsOrderChanged", () => {
+        console.log("competitionsOrderChanged → re-render con nuevo orden");
+        renderFullSchedule(days);
+    });
     window.addEventListener("storage", (e) => {
-        if (e.key === "competitionsTop") {
+        if (e.key === "competitionsTop" || e.key === "competitionsOrder") {
             renderFullSchedule(days);
         }
     });
@@ -210,8 +214,26 @@ function renderFullSchedule(daysData) {
         const tableContent = document.createElement('ol');
         tableContent.className = 'table-content';
 
-        // Iterar por cada competición del día
-        for (const [competitionName, matches] of Object.entries(dayObj.Competitions)) {
+        // Ordenar competiciones según orden arrastrado + Order del servidor
+        let entries = Object.entries(dayObj.Competitions);
+        // Si hay orden personalizado en localStorage, respetarlo
+        const customOrder = (typeof window.getCompetitionOrder === 'function' && window.getCompetitionOrder()) || null;
+        entries.sort((a, b) => {
+            const nameA = a[0], nameB = b[0];
+            if (customOrder) {
+                const idxA = customOrder.indexOf(nameA);
+                const idxB = customOrder.indexOf(nameB);
+                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                if (idxA !== -1) return -1;
+                if (idxB !== -1) return 1;
+            }
+            const ordA = (effectiveTop[nameA] && effectiveTop[nameA].Order) || 999;
+            const ordB = (effectiveTop[nameB] && effectiveTop[nameB].Order) || 999;
+            if (ordA !== ordB) return ordA - ordB;
+            return nameA.localeCompare(nameB);
+        });
+        // Iterar por cada competición del día (ya ordenada)
+        for (const [competitionName, matches] of entries) {
 
             const competitionSection = document.createElement('li');
             competitionSection.className = 'competition-section';
@@ -237,18 +259,22 @@ function renderFullSchedule(daysData) {
                 const matchItem = document.createElement('li');
                 matchItem.className = 'dailyevent';
 
+                // channels puede venir null (partidos sin broadcasters mapeados) -> evitar crash
+                if (!matchData.channels || !Array.isArray(matchData.channels) || matchData.channels.length === 0) {
+                    return;
+                }
                 let atleastLink = false;
                 for (let j = 0; j < matchData.channels.length; j++) {
-                    if (matchData.channels[j].name === "APLAZADO") {
+                    const ch = matchData.channels[j];
+                    if (!ch) continue;
+                    if (ch.name === "APLAZADO") {
                         atleastLink = true;
                         continue;
                     }
-                    if (!matchData.channels[j].link || matchData.channels[j].link.length === 0) {
+                    if (!ch.link || ch.link.length === 0) {
                         continue;
                     }
-                    if (matchData.channels[j].link || matchData.channels[j].link.length > 0) {
-                        atleastLink = true;
-                    }
+                    atleastLink = true;
                 }
                 if (!atleastLink) {
                     return;
@@ -292,8 +318,26 @@ function renderFullSchedule(daysData) {
  */
 function formatBroadcasters(broadcasters, eventName, competitionName) {
     if (!broadcasters || broadcasters.length === 0) {
-        return;
+        return '';
     }
+    // dedup defensivo en frontend: si Go aún manda duplicados, colapsar por nombre
+    const seen = new Map();
+    const deduped = [];
+    for (const b of broadcasters) {
+        if (!b || !b.name || b.name.trim() === '') continue;
+        const key = b.name.trim().toUpperCase();
+        if (seen.has(key)) {
+            // merge links si ya existe
+            const existing = seen.get(key);
+            const merged = [...(existing.link || existing.Links || []), ...(b.link || b.Links || [])];
+            existing.link = [...new Set(merged)];
+        } else {
+            seen.set(key, b);
+            deduped.push(b);
+        }
+    }
+    broadcasters = deduped;
+    if (broadcasters.length === 0) return '';
 
     return broadcasters.map((broadcaster, broadcasterIndex) => {
         const links = broadcaster.link || broadcaster.Links;
@@ -304,7 +348,7 @@ function formatBroadcasters(broadcasters, eventName, competitionName) {
         let html = '';
 
         html += `<span class="broadcaster-links">`;
-        html += `<span class="broadcaster-name">${broadcaster.name} </span>`;
+        html += `<span class="broadcaster-name">${broadcaster.name.trim()} </span>`;
 
         if (links && Array.isArray(links) && links.length > 0) {
             const linksHtml = links.map((link, linkIndex) => {

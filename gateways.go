@@ -30,7 +30,7 @@ var broadcasterGatewayMap = map[string][]string{
 	"DAZN LA LIGA 1":                     {"DAZN LALIGA", "DAZN LALIGA TV"},
 	"DAZN LA LIGA 2":                     {"DAZN LALIGA 2", "DAZN LALIGA TV"},
 	"DAZN LaLiga 2 (FHD)":                {"DAZN LALIGA 2"},
-	"LaLiga Hypermotion (FHD)":           {"LALIGA HYPERMOTION", "LALIGA TV HYPERMOTION"},
+	"LaLiga Hypermotion (FHD)":           {"LALIGA HYPERMOTION"},
 	"LaLiga Hypermotion 2 (FHD)":         {"LALIGA HYPERMOTION 2"},
 	"LaLiga Hypermotion 3 (FHD)":         {"LALIGA HYPERMOTION 3"},
 	"LaLiga TV Hypermotion":              {"LALIGA HYPERMOTION"},
@@ -101,7 +101,7 @@ var broadcasterGatewayMap = map[string][]string{
 	"M.LaLiga2":                          {"M+ LALIGA 2", "LALIGA TV 2"},
 	"DAZNLaLiga":                         {"DAZN LALIGA", "DAZN LALIGA TV"},
 	"DAZNF1":                             {"DAZN F1"},
-	"LaLigaSmartbank":                    {"LALIGA HYPERMOTION", "LALIGA TV HYPERMOTION"},
+	"LaLigaSmartbank":                    {"LALIGA HYPERMOTION"},
 	"LaLigaSmartbank3":                   {"LALIGA HYPERMOTION 3"},
 	"Deporte2":                           {"M+ DEPORTES 2"},
 	"MovistarPlus":                       {"MOVISTAR PLUS", "MOVISTAR PLUS+", "M+"},
@@ -199,7 +199,7 @@ func updateBroadcasterMapWithGateway(existingMap map[string]BroadcasterInfo, new
 				info.Links = removeDuplicates(append(info.Links, links...))
 				existingMap[mappedKey] = info
 			} else {
-				existingMap[mappedKey] = BroadcasterInfo{Links: links}
+				existingMap[mappedKey] = BroadcasterInfo{Links: links, Name: mappedKey, ShowListChannels: false}
 			}
 		}
 	}
@@ -230,7 +230,7 @@ func updateBroadcasterMapWithGatewayTolerant(existingMap map[string]BroadcasterI
 				info.Links = removeDuplicates(append(info.Links, links...))
 				existingMap[mappedKey] = info
 			} else {
-				existingMap[mappedKey] = BroadcasterInfo{Links: links}
+				existingMap[mappedKey] = BroadcasterInfo{Links: links, Name: mappedKey, ShowListChannels: false}
 			}
 		}
 	}

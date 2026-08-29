@@ -43,7 +43,17 @@ func findBroadcaster(name string, competitionName, sport string) BroadcasterInfo
 		if competitionName == "Copa del Rey Baloncesto" {
 			nameUpper = "DAZN BALONCESTO"
 		}
-	} 
+	}
+
+	// Unificar variantes LaLiga Hypermotion al mismo canal
+	switch nameUpper {
+	case "LALIGA TV HYPERMOTION":
+		nameUpper = "LALIGA HYPERMOTION"
+	case "LALIGA TV HYPERMOTION 2":
+		nameUpper = "LALIGA HYPERMOTION 2"
+	case "LALIGA TV HYPERMOTION 3":
+		nameUpper = "LALIGA HYPERMOTION 3"
+	}
 
 	if dataAce, exists := broadcasterToAcestream[nameUpper]; exists {
 		return dataAce
