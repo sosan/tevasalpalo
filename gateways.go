@@ -88,6 +88,8 @@ var broadcasterGatewayMap = map[string][]string{
 	"M. Deportes 4":                {"M+ DEPORTES 4"},
 	"M. Deportes 5":                {"M+ DEPORTES 5"},
 	"M. Deportes 6":                {"M+ DEPORTES 6"},
+	"M DEPORTES":                   {"M+ DEPORTES"},
+	"LaLiga TV Hypermotion 10":     {"LALIGA HYPERMOTION"},
 	"M. Deportes 7":                {"M+ DEPORTES 7"},
 	"M. Deportes 8":                {"M+ DEPORTES 8"},
 	"MOVISTAR VAMOS":                     {"M+ VAMOS"},

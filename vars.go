@@ -1030,6 +1030,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Links: []string{
 			"p;http://181.78.106.127:9000/play/ca028/index.m3u8", //
 			"p;http://181.78.106.127:9000/play/ca030/index.m3u8", //
+			"p;http://45.5.117.57:8200/play/a050/index.m3u8",
+			"p;http://179.60.224.196:8000/play/a0i7/index.m3u8",
 		},
 		Name:             "SKY SPORTS MX",
 		ShowListChannels: true,
@@ -1046,7 +1048,10 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SKY SPORTS": {
 		Logo: "skysports.png",
 		Links: []string{
-			"p;http://179.60.224.196:8000/play/a0i7/index.m3u8",
+			"p;http://181.78.106.127:9000/play/ca028/index.m3u8", //
+		"p;http://181.78.106.127:9000/play/ca030/index.m3u8", //
+		"p;http://45.5.117.57:8200/play/a050/index.m3u8",
+		"p;http://179.60.224.196:8000/play/a0i7/index.m3u8",
 			"p;http://190.92.10.66:4000/play/a001/index.m3u8",
 		},
 		Name:             "SKY SPORTS LA LIGA",
@@ -1060,11 +1065,11 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "d58f619d860d29cd47720055b9bb842199971da1",
 			// "e9975d38aaa4475ac0b1fa0faa541bbadd85a662",
 			// "a9bddffdff085cdc18b34218d5dc1093b88e3c0a",
-			"p;http://179.60.224.196:8000/play/a0i7/index.m3u8",
+			"p;http://181.78.106.127:9000/play/ca028/index.m3u8", //
+		"p;http://181.78.106.127:9000/play/ca030/index.m3u8", //
+		"p;http://45.5.117.57:8200/play/a050/index.m3u8",
+		"p;http://179.60.224.196:8000/play/a0i7/index.m3u8",
 			"p;http://190.92.10.66:4000/play/a001/index.m3u8",
-			// "p;http://190.92.10.66:4000/play/a001/index.m3u8",
-			// "http://190.92.10.66:4000/play/a001/index.m3u8",
-			// "p;https://maldivesn.net/hilaytv/skysportslaliga",
 		},
 		Name:             "SKY SPORTS LA LIGA",
 		ShowListChannels: false,
@@ -1330,7 +1335,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN CALCIO": {
 		Logo: "dazn1.png",
 		Links: []string{
-			"1e045b7e16a5c2c3e5a8c0c0176efa26b63d7955",
+			"https://italiansport-solocalcio-samsung.amagi.tv/amRdirect/device[did]=%7bPSID%7d&device[dnt]=%7bTARGETOPT%7d&app_name=%7bAPP_NAME%7d&tc_string=%7bTC_STRING%7d&gdpr=%7bGDPR%7d/hls/amagi_hls_data_sportital-solocalcio-samsung-italy/CDN/playlist.m3u8",
+			// "1e045b7e16a5c2c3e5a8c0c0176efa26b63d7955",
 		},
 		Name:             "DAZN CALCIO",
 		ShowListChannels: true,

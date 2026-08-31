@@ -36,19 +36,23 @@ type Source struct {
 }
 
 const (
-	shickatWeb   = "https://shickat.me/"
-	elcanoWeb    = "https://ipfs.io/ipns/elcano.top"
-	listaplana   = "https://k2k4r8lm8tkmuxbc8lkmq1in3v0oya1p6pe9o5bu0hu30br5ko08k2gb.ipns.dweb.link/data/listas/listaplana.txt"
-	peticiones   = "https://raw.githubusercontent.com/Icastresana/lista1/refs/heads/main/peticiones"
-	platinsport  = "https://raw.githubusercontent.com/tutw/platinsport-m3u-updater/refs/heads/main/lista_scraper_acestream_api.m3u"
-	unificada    = "https://git.gay/a1975morales/ACESTREAM/raw/branch/main/lista_acestream_unificada.m3u"
+	shickatWeb         = "https://shickat.me/"
+	elcanoWeb          = "https://ipfs.io/ipns/elcano.top"
+	listaplana         = "https://k2k4r8lm8tkmuxbc8lkmq1in3v0oya1p6pe9o5bu0hu30br5ko08k2gb.ipns.dweb.link/data/listas/listaplana.txt"
+	peticiones         = "https://raw.githubusercontent.com/Icastresana/lista1/refs/heads/main/peticiones"
+	platinsport        = "https://raw.githubusercontent.com/tutw/platinsport-m3u-updater/refs/heads/main/lista_scraper_acestream_api.m3u"
+	platinsportCanales = "https://raw.githubusercontent.com/tutw/platinsport-m3u-updater/refs/heads/main/canales_acestream.m3u"
+	unificada          = "https://git.gay/a1975morales/ACESTREAM/raw/branch/main/lista_acestream_unificada.m3u"
+	tokyoHashes        = "https://git.gay/TokyoGhoulles/AceStream_IDs/raw/branch/main/hashes.txt"
 )
 
 var sources = []Source{
 	{Name: "listaplana", URL: listaplana, Type: SourceTxtRaw, Proxied: false},
 	{Name: "peticiones", URL: peticiones, Type: SourceM3U, Proxied: false},
 	{Name: "platinsport", URL: platinsport, Type: SourceM3U, Proxied: false},
+	{Name: "platinsport_canales", URL: platinsportCanales, Type: SourceM3U, Proxied: false},
 	{Name: "unificada", URL: unificada, Type: SourceM3U, Proxied: false},
+	{Name: "tokyo_hashes", URL: tokyoHashes, Type: SourceTxtRaw, Proxied: false},
 }
 
 func FetchUpdatedList() error {
@@ -252,7 +256,22 @@ func extractDataFromWebShitkat(body []byte) map[string][]string {
 
 func extractDataFromWebTxtRaw(body []byte) map[string][]string {
 	extractedData := make(map[string][]string)
-	lines := strings.Split(string(body), "\n")
+	rawLines := strings.Split(string(body), "\n")
+	// Filtrar cabeceras/ruido de tokyo_hashes y similares (===, AceStream IDs, Generated, Total, ====)
+	var lines []string
+	for _, l := range rawLines {
+		t := strings.TrimSpace(l)
+		if t == "" {
+			continue
+		}
+		if strings.HasPrefix(t, "AceStream") || strings.HasPrefix(t, "Generated:") || strings.HasPrefix(t, "Total:") || strings.HasPrefix(t, "===") || strings.HasPrefix(t, "===") || t == "========================================" {
+			continue
+		}
+		if t == "========================================" {
+			continue
+		}
+		lines = append(lines, l)
+	}
 	for i := 0; i < len(lines); i += 2 {
 		if i+1 >= len(lines) {
 			break

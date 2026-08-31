@@ -332,9 +332,12 @@ func StartWebServer() (*fiber.App, error) {
 		}
 
 		if content == "" {
+			btn := c.Query("btn")
 			return c.Render("player", fiber.Map{
-				"linkid": link,
-				"error":  nil,
+				"linkid":  link,
+				"btntext": btn,
+				"pid":     pid,
+				"error":   nil,
 			})
 		}
 
@@ -343,11 +346,13 @@ func StartWebServer() (*fiber.App, error) {
 			return c.Status(400).SendString("Error al decodificar el contenido")
 		}
 		splitted := strings.Split(string(decodedContent), ";")
+		btn := c.Query("btn")
 		return c.Render("player", fiber.Map{
 			"linkid":          link,
 			"broadcastername": splitted[0],
 			"eventname":       splitted[1],
 			"competitionname": splitted[2],
+			"btntext":         btn,
 			"pid":             pid,
 			"error":           nil,
 		})

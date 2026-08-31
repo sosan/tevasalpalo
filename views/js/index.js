@@ -354,8 +354,9 @@ function formatBroadcasters(broadcasters, eventName, competitionName) {
             const linksHtml = links.map((link, linkIndex) => {
                 if (link && typeof link === 'string') {
                     const encriptedContent = setEncriptedContent(broadcaster.name, eventName, competitionName);
+                    const btnText = `Link ${linkIndex + 1}`;
                     countPID++;
-                    return `<a href="/player/index.html?link=${link}&content=${encriptedContent}&pid=${countPID}" target="_blank" class="broadcaster-link">Link ${linkIndex + 1}</a>`;
+                    return `<a href="/player/index.html?link=${link}&content=${encriptedContent}&pid=${countPID}&btn=${encodeURIComponent(btnText)}" target="_blank" class="broadcaster-link">${btnText}</a>`;
                 } else if (link === undefined || link === null || link === '') {
                     if (broadcaster.name && (broadcaster.name.includes("APLAZADO") || broadcaster.name.includes("POS"))) {
                         return `<span>${broadcaster.name}</span>`;

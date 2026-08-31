@@ -8,6 +8,7 @@
         {{ if .competitionname }}🏆 {{ .competitionname }} |{{ end }}
         {{ if .eventname }}📺 {{ .eventname }} |{{ end }}
         {{ if .broadcastername }}🎙️ {{ .broadcastername }} {{ end }}
+        {{ if .btntext }}🔗 {{ .btntext }}{{ end }}
     </title>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <link rel="stylesheet" href="./css/player.css">
@@ -24,6 +25,7 @@
             {{ if .competitionname }}🏆 {{ .competitionname }} |{{ end }}
             {{ if .eventname }}📺 {{ .eventname }} |{{ end }}
             {{ if .broadcastername }}🎙️ {{ .broadcastername }} {{ end }}
+            {{ if .btntext }}🔗 {{ .btntext }}{{ end }}
         </span>
 
         <div class="video-container">
@@ -549,7 +551,33 @@
                             break;
                         case Hls.ErrorTypes.MEDIA_ERROR:
                             console.error("HLS.js: Error de medios fatal", data);
-                            hls.recoverMediaError();
+                            // HEVC/H.265 no soportado -> evita bucle infinito de Media attached
+                            const isHevcError = data.details === 'mediaSourceRequiresReset' || data.details === 'bufferAppendingError';
+                            if (isHevcError) {
+                                const hevcSupported = MediaSource.isTypeSupported('video/mp4; codecs="hvc1.1.6.L120.B0"') ||
+                                                      MediaSource.isTypeSupported('video/mp4; codecs="hev1.1.6.L120.B0"') ||
+                                                      MediaSource.isTypeSupported('video/mp4; codecs="hvc1.1.6.L93.B0"');
+                                if (!hevcSupported) {
+                                    console.warn('HEVC no soportado en este navegador');
+                                    showErrorOverlay('Codec no soportado (HEVC/H.265)',
+                                        `Este canal emite en HEVC y tu navegador no lo puede decodificar.<br><br>` +
+                                        `Prueba en <b>VLC</b> → Abrir red:<br><code style="font-size:12px;word-break:break-all">http://${window.location.hostname}:6878/ace/getstream?id=${linkID}</code><br><br>` +
+                                        `O usa Safari/Edge con extensión HEVC.`);
+                                    hls.destroy();
+                                    window.hlsPlayer = null;
+                                    break;
+                                }
+                            }
+                            // Limitar reintentos de mediaError para no ciclar "Media attached" infinito
+                            hls._mediaErrorCount = (hls._mediaErrorCount || 0) + 1;
+                            if (hls._mediaErrorCount > 3) {
+                                showErrorOverlay('Error de reproducción',
+                                    `Codec o stream incompatible (${data.details}). Prueba otro Link o ábrelo en VLC.`);
+                                hls.destroy();
+                                window.hlsPlayer = null;
+                                break;
+                            }
+                            try { hls.recoverMediaError(); } catch(e) { console.error(e); }
                             break;
                         default:
                             console.error("HLS.js: Error fatal", data);
