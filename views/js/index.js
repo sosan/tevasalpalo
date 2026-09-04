@@ -13,40 +13,44 @@ let countPID = 1;
 
 async function updateApp() {
     if (updating) return;
+    updating = true;
     try {
-        // updateBoton.ariaDisabled = "true";
-        // updateBoton.disabled = true;
-        updating = true;
-        const request = await fetch('/update', { method: 'GET' });
         dialogUpdating.showModal();
-        if (request.ok) {
-            contentUpdating.innerText = "Actualización iniciada. Por favor, espere...";
-            console.log("Actualización iniciada.");
-        } else {
-            // updateBoton.ariaDisabled = "false";
-            // updateBoton.disabled = false;
-            updating = false;
-            console.error("Error al iniciar la actualización:", request.statusText);
-            contentUpdating.innerText = `Error al iniciar la actualización`;
-            setTimeout(() => {
-                dialogUpdating.close();
-            }, 5000);
-            return;
-        }
+        contentUpdating.innerText = "Actualización iniciada. Por favor, espere...";
+        console.log("Actualización iniciada.");
 
-        const data = await request.json(); // dummy value
+        const request = await fetch('/update', { method: 'GET' });
+        if (!request.ok) {
+            throw new Error(`HTTP ${request.status} ${request.statusText}`);
+        }
+        await request.json(); // { sendedupdate: true } — dummy, solo confirma que el servidor aceptó
+
+        // Poll /healthz hasta que Updated==true. Antes el código hacía clearInterval
+        // incluso cuando data.ok==false (update aún en curso) y en catch abortaba
+        // el polling ante un error transitorio. Ahora solo cierra en éxito.
+        let attempts = 0;
+        const maxAttempts = 60; // ~2 min con intervalo 2s
+        const pollInterval = 2000;
+
         const intervalHealthz = setInterval(async () => {
+            attempts++;
             try {
-                const request = await fetch('/healthz', { method: 'GET' });
-                if (request.ok) {
-                    const data = await request.json();
-                    if (data.ok) {
+                const healthReq = await fetch('/healthz', { method: 'GET' });
+                if (!healthReq.ok) {
+                    // 5xx o 404 transitorio — seguir intentando
+                    if (attempts >= maxAttempts) {
+                        clearInterval(intervalHealthz);
                         updating = false;
-                        // updateBoton.ariaDisabled = "false";
-                        // updateBoton.disabled = false;
-                        contentUpdating.innerText = "Actualización terminada";
+                        contentUpdating.innerText = `Error en la actualización (healthz ${healthReq.status})`;
+                        setTimeout(() => dialogUpdating.close(), 5000);
                     }
+                    return;
+                }
+                const healthData = await healthReq.json();
+                if (healthData.ok) {
                     clearInterval(intervalHealthz);
+                    updating = false;
+                    contentUpdating.innerText = "Actualización terminada";
                     setTimeout(() => {
                         dialogUpdating.close();
                         if (messageWarn) {
@@ -54,26 +58,29 @@ async function updateApp() {
                             messageWarn.classList.remove("display-block");
                             messageWarn.classList.add("display-none");
                         }
-
                     }, 5000);
                     return;
                 }
+                // healthData.ok === false → aún actualizando, seguir poll
+                if (attempts >= maxAttempts) {
+                    clearInterval(intervalHealthz);
+                    updating = false;
+                    contentUpdating.innerText = "Tiempo de espera agotado. Recargue la página.";
+                    setTimeout(() => dialogUpdating.close(), 5000);
+                }
             } catch (error) {
-                updating = false;
-                // updateBoton.ariaDisabled = "false";
-                // updateBoton.disabled = false;
-                clearInterval(intervalHealthz);
-                // console.error("Error al verificar el estado de salud:", error);
-                // contentUpdating.innerText = `Error en la actualización`;
-                setTimeout(() => {
-                    dialogUpdating.close();
-                }, 5000);
+                // Error de red (servidor reiniciándose) — NO abortar, reintentar
+                console.warn(`healthz intento ${attempts} falló:`, error);
+                if (attempts >= maxAttempts) {
+                    clearInterval(intervalHealthz);
+                    updating = false;
+                    contentUpdating.innerText = `Error verificando actualización`;
+                    setTimeout(() => dialogUpdating.close(), 5000);
+                }
             }
-        }, 20_000);
+        }, pollInterval);
     } catch (error) {
         updating = false;
-        // updateBoton.ariaDisabled = "false";
-        // updateBoton.disabled = false;
         console.error("Error al enviar la solicitud de actualización:", error);
         contentUpdating.innerText = `Error al iniciar la actualización`;
         setTimeout(() => {
@@ -84,49 +91,47 @@ async function updateApp() {
 
 
 
+// Listener de actualización registrado una sola vez para evitar leak por setInterval
+let updateListenerBound = false;
+function bindUpdateListenerOnce() {
+    if (updateListenerBound) return;
+    const btn = document.getElementById("message-warn");
+    if (!btn) return;
+    btn.addEventListener("click", (event) => {
+        event.preventDefault();
+        updateApp();
+    });
+    updateListenerBound = true;
+}
+
 async function startCheckAppUpdate() {
+    if (updatingcheck) return; // evitar solapamiento si el intervalo dispara antes de terminar
+    if (!messageWarn) return;
+    updatingcheck = true;
     try {
-        if (!messageWarn) {
-            return;
-        }
         console.log("Verificando actualizaciones...");
-        updatingcheck = true;
         const request = await fetch('/updateavailable', { method: 'GET' });
         if (!request.ok) {
-            updatingcheck = false;
             console.error("Error verificando actualizaciones:", request.statusText);
             return;
         }
         const data = await request.json();
 
         if (data.needUpdate) {
-            updatingcheck = false;
-
             messageWarn.innerText = "¡Nueva versión disponible! Haz clic aquí para actualizar.";
             messageWarn.classList.remove("display-none");
             messageWarn.classList.add("display-block");
-
-            const messageWarnBoton = document.getElementById("message-warn");
-            if (messageWarnBoton) {
-                messageWarnBoton.addEventListener("click", (event) => {
-                    event.preventDefault();
-                    updateApp();
-
-                }, { once: true });
-            }
-
+            bindUpdateListenerOnce();
         } else {
-            updatingcheck = false;
             messageWarn.innerText = "";
             messageWarn.classList.remove("display-block");
             messageWarn.classList.add("display-none");
         }
-
     } catch (error) {
-        updatingcheck = false;
         console.error("Error verificando actualizaciones:", error);
+    } finally {
+        updatingcheck = false;
     }
-
 }
 
 function getEffectiveTopForFilter() {
@@ -382,25 +387,33 @@ function setEncriptedContent(broadcasterName, eventName, competitionName) {
 
 
 
+let updatingContent = false;
 async function updateContent(event) {
-    event.preventDefault();
-    dialogUpdating.showModal();
-    contentUpdating.innerText = "Actualización iniciada. Por favor, espere...";
-    const request = await fetch('/refresh-data', { method: 'GET' });
-    if (!request.ok) {
-        contentUpdating.innerText = `Error al iniciar la actualización`;
-        console.error("Error cannot update content:", request.statusText);
-        return;
+    if (event) event.preventDefault();
+    if (updatingContent) return;
+    updatingContent = true;
+    try {
+        dialogUpdating.showModal();
+        contentUpdating.innerText = "Actualización iniciada. Por favor, espere...";
+        const request = await fetch('/refresh-data', { method: 'GET' });
+        if (!request.ok) {
+            throw new Error(`HTTP ${request.status} ${request.statusText}`);
+        }
+        const data = await request.json();
+        if (!data.success) {
+            throw new Error(data.error || "success=false");
+        }
+        contentUpdating.innerText = "Actualización terminada. Recargando la página...";
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+    } catch (err) {
+        console.error("Error cannot update content:", err);
+        contentUpdating.innerText = `Error al actualizar contenido`;
+        setTimeout(() => {
+            dialogUpdating.close();
+        }, 4000);
+    } finally {
+        updatingContent = false;
     }
-    const data = await request.json();
-    if (!data.success) {
-        contentUpdating.innerText = `Error al iniciar la actualización`;
-        console.error("Error cannot update content:", request.statusText);
-        return;
-    }
-    contentUpdating.innerText = "Actualización terminada. Recargando la página...";
-    setTimeout(() => {
-        // reload
-        window.location.reload();
-    }, 5000);
 }
