@@ -45,6 +45,68 @@ func findBroadcaster(name string, competitionName, sport string) BroadcasterInfo
 		}
 	}
 
+	// UFC en Paramount+ (2026+) — normalizar variantes Paramount+ / CBS
+	// UFC dejó ESPN+ y pasó a Paramount+ en US/LatAm/Australia desde 01/01/2026
+	if strings.Contains(nameUpper, "PARAMOUNT") {
+		// Si el broadcaster ya contiene UFC, forzar al pool PARAMOUNT+ UFC / UFC
+		if strings.Contains(nameUpper, "UFC") {
+			if dataAce, exists := broadcasterToAcestream["PARAMOUNT+ UFC"]; exists && len(dataAce.Links) > 0 {
+				return dataAce
+			}
+			if dataAce, exists := broadcasterToAcestream["UFC"]; exists {
+				return dataAce
+			}
+		}
+		// Si competition es UFC, cualquier Paramount+ debe resolver a UFC
+		if competitionName == "UFC" {
+			if dataAce, exists := broadcasterToAcestream["UFC"]; exists {
+				return dataAce
+			}
+		}
+		// Alias genérico Paramount+ -> mapear a UFC si hay indicio UFC
+		nameUpper = "PARAMOUNT+ UFC"
+		if dataAce, exists := broadcasterToAcestream[nameUpper]; exists {
+			return dataAce
+		}
+		nameUpper = "PARAMOUNT+"
+		if dataAce, exists := broadcasterToAcestream[nameUpper]; exists {
+			return dataAce
+		}
+		// fallback a UFC
+		if dataAce, exists := broadcasterToAcestream["UFC"]; exists {
+			return dataAce
+		}
+	}
+	if strings.Contains(nameUpper, "CBS") && competitionName == "UFC" {
+		if dataAce, exists := broadcasterToAcestream["UFC"]; exists {
+			return dataAce
+		}
+	}
+
+	// LALIGA TV M1-M4 solo aplica a Hypermotion — evitar contaminación en Serie A Italiana
+	// Ej: futbolenlatv.es lista "LaLiga TV M3" para Genoa-Como (Serie A) que NO es Hypermotion
+	switch nameUpper {
+	case "LALIGA TV M2", "LALIGA TV M3":
+		if strings.Contains(strings.ToUpper(competitionName), "HYPERMOTION") {
+			nameUpper = "LALIGA HYPERMOTION"
+		} else {
+			// Para Serie A y otras competiciones, M3 es canal BAR sin acestream fiable -> filtrar
+			return BroadcasterInfo{}
+		}
+	case "LALIGA TV M4":
+		if strings.Contains(strings.ToUpper(competitionName), "HYPERMOTION") {
+			nameUpper = "LALIGA HYPERMOTION 2"
+		} else {
+			return BroadcasterInfo{}
+		}
+	case "LALIGA TV M1":
+		if strings.Contains(strings.ToUpper(competitionName), "HYPERMOTION") {
+			nameUpper = "LALIGA HYPERMOTION 3"
+		} else {
+			return BroadcasterInfo{}
+		}
+	}
+
 	// Unificar variantes LaLiga Hypermotion al mismo canal
 	switch nameUpper {
 	case "LALIGA TV HYPERMOTION":

@@ -1322,15 +1322,70 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"UFC": {
 		Logo: "ufc.png",
 		Links: []string{
-
 			"p;https://jmp2.uk/stvp-CA2900012S9",
 			"p;https://jmp2.uk/stvp-US2900017P2",
 			"p;https://jmp2.uk/plu-677d9adfa9a51b0008497fa0.m3u8",
 			"a3164546b984d41a662ee44ddc9ece5952f69d33",
+			// Paramount+ UFC — UFC ahora en Paramount+ (2026, $7.7B deal, reemplaza ESPN+)
+			// Hashes verificados desde platinsport / search-ace / elcano
+			"d2374e2375a4275738e0dbed2f47d0114ad1cb64", // UFC HD [RU] — canales_acestream
+			"72b8c093be3c3e3c434c723ee93af0d1d07a7cbf", // UFC HD [RU] — lista_scraper_acestream_api
+			"c9bd6dc0f30b3d0d9e550d1ad41b27116d307e71", // FOX PREMIUM UFC --> NEW ERA (feed Paramount+)
+			"7acb9c6b0dc61b944b3477c162a80d05dd4b8297", // UFC elcano.top
+			"6e1e7bb9534942d7de437638ce5f129af2ae7f0a", // UFC elcano.top alt
 		},
 		Name:             "UFC",
 		ShowListChannels: true,
 		Order:            362,
+	},
+	// Aliases Paramount+ para UFC — los eventos pueden venir como "Paramount+", "Paramount+ UFC", etc.
+	// Se mapean al mismo pool de acestreams. ShowListChannels=false para no duplicar en /broadcasters
+	"PARAMOUNT+": {
+		Logo: "ufc.png",
+		Links: []string{
+			"p;https://jmp2.uk/stvp-CA2900012S9",
+			"p;https://jmp2.uk/stvp-US2900017P2",
+			"p;https://jmp2.uk/plu-677d9adfa9a51b0008497fa0.m3u8",
+			"a3164546b984d41a662ee44ddc9ece5952f69d33",
+			"d2374e2375a4275738e0dbed2f47d0114ad1cb64",
+			"72b8c093be3c3e3c434c723ee93af0d1d07a7cbf",
+			"c9bd6dc0f30b3d0d9e550d1ad41b27116d307e71",
+			"7acb9c6b0dc61b944b3477c162a80d05dd4b8297",
+			"6e1e7bb9534942d7de437638ce5f129af2ae7f0a",
+		},
+		Name:             "PARAMOUNT+",
+		ShowListChannels: false,
+	},
+	"PARAMOUNT+ UFC": {
+		Logo: "ufc.png",
+		Links: []string{
+			"p;https://jmp2.uk/stvp-CA2900012S9",
+			"p;https://jmp2.uk/stvp-US2900017P2",
+			"p;https://jmp2.uk/plu-677d9adfa9a51b0008497fa0.m3u8",
+			"a3164546b984d41a662ee44ddc9ece5952f69d33",
+			"d2374e2375a4275738e0dbed2f47d0114ad1cb64",
+			"72b8c093be3c3e3c434c723ee93af0d1d07a7cbf",
+			"c9bd6dc0f30b3d0d9e550d1ad41b27116d307e71",
+			"7acb9c6b0dc61b944b3477c162a80d05dd4b8297",
+			"6e1e7bb9534942d7de437638ce5f129af2ae7f0a",
+		},
+		Name:             "PARAMOUNT+ UFC",
+		ShowListChannels: true,
+		Order:            363,
+	},
+	"PARAMOUNT PLUS UFC": {
+		Logo: "ufc.png",
+		Links: []string{
+			"p;https://jmp2.uk/stvp-CA2900012S9",
+			"p;https://jmp2.uk/stvp-US2900017P2",
+			"p;https://jmp2.uk/plu-677d9adfa9a51b0008497fa0.m3u8",
+			"a3164546b984d41a662ee44ddc9ece5952f69d33",
+			"d2374e2375a4275738e0dbed2f47d0114ad1cb64",
+			"72b8c093be3c3e3c434c723ee93af0d1d07a7cbf",
+			"c9bd6dc0f30b3d0d9e550d1ad41b27116d307e71",
+		},
+		Name:             "PARAMOUNT PLUS UFC",
+		ShowListChannels: false,
 	},
 	"DAZN CALCIO": {
 		Logo: "dazn1.png",

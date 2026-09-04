@@ -400,15 +400,9 @@ func cleanChannelNameFutbolEnCasa(s string) string {
 	s = strings.TrimSpace(s)
 	s = reOrangeNumber.ReplaceAllString(s, "")
 	s = strings.TrimSpace(s)
-	upper := strings.ToUpper(strings.TrimSpace(s))
-	switch upper {
-	case "LALIGA TV M2", "LALIGA TV M3":
-		return "LALIGA TV Hypermotion"
-	case "LALIGA TV M4":
-		return "LALIGA TV Hypermotion 2"
-	case "LALIGA TV M1":
-		return "LALIGA TV Hypermotion 3"
-	}
+	// Nota: el mapeo de LALIGA TV M1-M4 a Hypermotion se hace en findBroadcaster()
+	// con contexto de competitionName, para no contaminar Serie A Italiana
+	// con enlaces de Hypermotion (ej: Genoa-Como con "LaLiga TV M3" -> no es Hypermotion)
 	return strings.TrimSpace(s)
 }
 
