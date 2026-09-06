@@ -148,6 +148,7 @@ main {
   min-width: 179px;
   white-space: break-spaces;
   max-width: 179px;
+  text-transform: uppercase;
 }
 
 .dailyteams {

@@ -1354,7 +1354,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	// Aliases Paramount+ para UFC — los eventos pueden venir como "Paramount+", "Paramount+ UFC", etc.
 	// Se mapean al mismo pool de acestreams. ShowListChannels=false para no duplicar en /broadcasters
 	"PARAMOUNT+": {
-		Logo: "ufc.png",
+		Logo: "paramountufc.jpg",
 		Links: []string{
 			"p;https://jmp2.uk/stvp-CA2900012S9",
 			"p;https://jmp2.uk/stvp-US2900017P2",
@@ -1370,7 +1370,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: false,
 	},
 	"PARAMOUNT+ UFC": {
-		Logo: "ufc.png",
+		Logo: "paramountufc.jpg",
 		Links: []string{
 			"p;https://jmp2.uk/stvp-CA2900012S9",
 			"p;https://jmp2.uk/stvp-US2900017P2",
@@ -1387,7 +1387,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Order:            363,
 	},
 	"PARAMOUNT PLUS UFC": {
-		Logo: "ufc.png",
+		Logo: "paramountufc.jpg",
 		Links: []string{
 			"p;https://jmp2.uk/stvp-CA2900012S9",
 			"p;https://jmp2.uk/stvp-US2900017P2",
@@ -1401,7 +1401,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: false,
 	},
 	"DAZN CALCIO": {
-		Logo: "dazn1.png",
+		Logo: "dazncalcio.png",
 		Links: []string{
 			"https://italiansport-solocalcio-samsung.amagi.tv/amRdirect/device[did]=%7bPSID%7d&device[dnt]=%7bTARGETOPT%7d&app_name=%7bAPP_NAME%7d&tc_string=%7bTC_STRING%7d&gdpr=%7bGDPR%7d/hls/amagi_hls_data_sportital-solocalcio-samsung-italy/CDN/playlist.m3u8",
 			// "1e045b7e16a5c2c3e5a8c0c0176efa26b63d7955",
