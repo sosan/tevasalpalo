@@ -523,8 +523,9 @@ func extractDataFromM3U_Manual(body []byte, filterList []string) map[string][]st
 func transformUriSafeBroadcasters(broadcasterToAcestream map[string]BroadcasterInfo) map[string]BroadcasterInfo {
 	redirectClient := IinitializeRedirectClients()
 	for key := range broadcasterToAcestream {
-		newLinks := make([]string, 0, len(broadcasterToAcestream[key].Links))
-		for i := 0; i < len(broadcasterToAcestream[key].Links); i++ {
+		originalLen := len(broadcasterToAcestream[key].Links)
+		newLinks := make([]string, 0, originalLen)
+		for i := 0; i < originalLen; i++ {
 			link := broadcasterToAcestream[key].Links[i]
 			if strings.TrimSpace(link) == "" {
 				continue
@@ -553,9 +554,9 @@ func transformUriSafeBroadcasters(broadcasterToAcestream map[string]BroadcasterI
 		info := broadcasterToAcestream[key]
 		info.Links = removeDuplicates(newLinks)
 		broadcasterToAcestream[key] = info
-		if os.Getenv("ENV") == "dev" && len(newLinks) == 0 && len(broadcasterToAcestream[key].Links) == 0 {
-			// no links tras filtrado, log en dev
-			log.Printf("⚠️  [%s] quedó sin links válidos tras transformUriSafe", key)
+		// Solo avisar si tenía links y se quedó sin ninguno tras transformar (evita ruido de broadcasters que ya nacen vacíos como HYPERMOTION alias o DAZN LALIGA 3 recién creado)
+		if os.Getenv("ENV") == "dev" && originalLen > 0 && len(newLinks) == 0 {
+			log.Printf("⚠️  [%s] quedó sin links válidos tras transformUriSafe (tenía %d, ahora 0)", key, originalLen)
 		}
 	}
 	StopRedirectClient(redirectClient)

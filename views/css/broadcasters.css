@@ -45,14 +45,14 @@ h1 {
 }
 
 .link-list {
-    display: flex;
-    flex-direction: column;
-    gap: 25px;
+    display: grid;
+    grid-template-columns: auto max-content;
+    row-gap: 25px;
 }
 
-.link-list li {
+/* .link-list li {
     margin-bottom: 5px;
-}
+} */
 
 .link-a {
     color: #FFFFFF;
@@ -62,6 +62,7 @@ h1 {
     background-color: #0071ea;
     border-radius: 10px;
     text-decoration: none;
+    text-wrap-mode: nowrap;
 }
 
 /* ---------- */

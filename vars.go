@@ -21,7 +21,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "fe0614decc0bd6e703cc060628c9914c26815f65",
 		},
 		Name:             "DAZN",
-		ShowListChannels: true,
+		ShowListChannels: false,
 		Order:            10,
 	},
 
@@ -103,7 +103,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo:  "daznlaliga.png",
 		Links: []string{},
 		Name:             "DAZN LALIGA 3",
-		ShowListChannels: true,
+		ShowListChannels: false,
 		Order:            17,
 	},
 
@@ -175,23 +175,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: true,
 		Order:            18,
 	},
-	// "DAZN BALONCESTO": {
-	// 	Logo:             "dazn.png",
-	// 	Links:            []string{
-	// 		// "23bee556c002d0726c1f0cac98a1901cff0a9239",
-	// 		// "8faa686a99697b99261346e479ead172b1d9d5d2",
-	// 	},
-	// 	Name:             "DAZN BALONCESTO 1 cccc",
-	// 	ShowListChannels: true,
-	// 	Order:            18,
-	// },
-	// "DAZN Baloncesto 1": {
-	// 	Logo:             "dazn.png",
-	// 	Links:            []string{},
-	// 	Name:             "DAZN BALONCESTO 1 bbbb",
-	// 	ShowListChannels: false,
-	// 	Order:            18,
-	// },
+	
 	"DAZN BALONCESTO 1": {
 		Logo:  "daznbaloncesto.png",
 		Links: []string{
@@ -211,13 +195,6 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: true,
 		Order:            20,
 	},
-	// "DAZN Baloncesto 2": {
-	// 	Logo:             "dazn.png",
-	// 	Links:            []string{},
-	// 	Name:             "DAZN BALONCESTO 2 1111",
-	// 	ShowListChannels: false,
-	// 	Order:            19,
-	// },
 	"DAZN BALONCESTO 3": {
 		Logo:             "daznbaloncesto.png",
 		Links:            []string{},
@@ -225,13 +202,6 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: true,
 		Order:            21,
 	},
-	// "DAZN Baloncesto 3": {
-	// 	Logo:             "dazn.png",
-	// 	Links:            []string{},
-	// 	Name:             "DAZN BALONCESTO 3 222",
-	// 	ShowListChannels: true,
-	// 	Order:            19,
-	// },
 
 	"DS SPORT": {
 		Logo: "dsport.webp",
@@ -589,18 +559,6 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: false,
 		Order:            49,
 	},
-	// "LALIGA TV HYPERMOTION": {
-	// 	Logo:  "mlaligahyper.png",
-	// 	Links: []string{
-	// 		// "8ee52f6208e33706171856f99d2ed2dabd317f3a",
-	// 		// "70f22be1286ef224b5e4e9451d9a42468152cda4",
-	// 		// "f15f997f457e49ad9697e65cf2d78db26ee875b9",
-	// 		// "ff38b875b60074d60edb64cf10d09b32370a7135",
-	// 		// "778d2f60bb7207addedcca0b9aed98f41529724e",
-	// 	},
-	// 	Name: "LALIGA HYPERMOTION",
-	// 	ShowListChannels: true,
-	// },
 	"M+ LALIGA": {
 		Logo: "mlaliga.png",
 		Links: []string{
@@ -813,21 +771,21 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo:             "mligacampeones.png",
 		Links:            []string{},
 		Name:             "M+ LIGA DE CAMPEONES 10",
-		ShowListChannels: true,
+		ShowListChannels: false,
 		Order:            62,
 	},
 	"M+ LIGA DE CAMPEONES 11": {
 		Logo:             "mligacampeones.png",
 		Links:            []string{},
 		Name:             "M+ LIGA DE CAMPEONES 11",
-		ShowListChannels: true,
+		ShowListChannels: false,
 		Order:            63,
 	},
 	"M+ LIGA DE CAMPEONES 12": {
 		Logo:             "mligacampeones.png",
 		Links:            []string{},
 		Name:             "M+ LIGA DE CAMPEONES 12",
-		ShowListChannels: true,
+		ShowListChannels: false,
 		Order:            64,
 	},
 	"M+ DEPORTES": {
@@ -932,21 +890,20 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: true,
 		Order:            70,
 	},
-
-	// "M+ GOLF": {
-	// 	Logo:  "mgolf.png",
-	// 	Links: []string{
-	// 		// "76a69812c66bfc4899e89df498220588a56e6064",
-	// 		// "872608e734992db636eb79426802cd08f4029afb",
-	// 	},
-	// },
-	// "Movistar Golf": {
-	// 	Logo:  "mgolf.png",
-	// 	Links: []string{
-	// 		// "76a69812c66bfc4899e89df498220588a56e6064",
-	// 		// "872608e734992db636eb79426802cd08f4029afb",
-	// 	},
-	// },
+	"M+ BALONCESTO": {
+		Logo:  "movistarbaloncesto.jpg",
+		Links: []string{},
+		Name:             "M+ BALONCESTO",
+		ShowListChannels: true,
+		Order:            160,
+	},
+	"M+ BALONCESTO 2": {
+		Logo:  "movistarbaloncesto.jpg",
+		Links: []string{},
+		Name:             "M+ BALONCESTO 2",
+		ShowListChannels: true,
+		Order:            161,
+	},
 	"Primera Federacion": {
 		Logo: "primerafederacion.png",
 		Links: []string{
@@ -1635,6 +1592,46 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: true,
 		Order:            152,
 	},
+	"RALLY TV": {
+		Logo: "rallytv.png",
+		Links: []string{
+		},
+		Name:             "RALLY TV",
+		ShowListChannels: true,
+		Order:            163,
+	},
+	"DAZN FIFA 1": {
+		Logo: "fifa.png",
+		Links: []string{
+		},
+		Name:             "DAZN FIFA 1",
+		ShowListChannels: true,
+		Order:            164,
+	},
+	"DAZN FIFA 2": {
+		Logo: "fifa.png",
+		Links: []string{
+		},
+		Name:             "DAZN FIFA 2",
+		ShowListChannels: true,
+		Order:            165,
+	},
+	"DAZN FIFA 3": {
+		Logo: "fifa.png",
+		Links: []string{
+		},
+		Name:             "DAZN FIFA 3",
+		ShowListChannels: true,
+		Order:            166,
+	},
+	"DAZN FIFA 4": {
+		Logo: "fifa.png",
+		Links: []string{
+		},
+		Name:             "DAZN FIFA 4",
+		ShowListChannels: true,
+		Order:            167,
+	},
 }
 
 var allCompetitions = AllCompetitions{
@@ -1660,8 +1657,8 @@ var allCompetitions = AllCompetitions{
 		"Minicopa Endesa":         {Titulo: "Minicopa Endesa", Top: true, Icon: "endesa.png", Order: 17},
 		"Copa del Rey Baloncesto": {Titulo: "Copa del Rey Baloncesto", Top: true, Icon: "endesa.png", Order: 16},
 		"Primera FEB":             {Titulo: "Primera FEB", Top: false, Icon: "primerafeb.png"},
-		"Primera Federación":      {Titulo: "Primera Federación", Top: true, Icon: "primerafede.png", Order: 20},
-		// "Segunda Federación":            {Titulo: "Segunda Federación", Top: false, Icon: "segundafede.png"},
+		"Primera Federación":      {Titulo: "Primera Federación", Top: false, Icon: "primerafede.png", Order: 20},
+		"Segunda Federación":            {Titulo: "Segunda Federación", Top: false, Icon: "segundafede.png"},
 		"Copa del Rey":              {Titulo: "Copa del Rey", Top: true, Icon: "uefa.png", Order: 9},
 		"Supercopa de España":       {Titulo: "Supercopa de España", Top: true, Icon: "uefa.png", Order: 6},
 		"Liga F Moeve":              {Titulo: "Liga F Moeve", Top: false, Icon: "uefa.png"},
@@ -1669,8 +1666,8 @@ var allCompetitions = AllCompetitions{
 		"Supercopa Femenina":        {Titulo: "Supercopa Femenina", Top: false, Icon: "uefa.png"},
 		"Copa de SM La Reina":       {Titulo: "Copa de SM La Reina", Top: false, Icon: "uefa.png"},
 		"División de Honor Juvenil": {Titulo: "División de Honor Juvenil", Top: false, Icon: "uefa.png"},
-		// "Primera Federación Women":      {Titulo: "Primera Federacion Women", Top: false, Icon: "primerafede.png"},
-		// "Segunda Federación Femenina":   {Titulo: "Segunda Federación Femenina", Top: false, Icon: "segundafede.png"},
+		"Primera Federación Women":      {Titulo: "Primera Federacion Women", Top: false, Icon: "primerafede.png"},
+		"Segunda Federación Femenina":   {Titulo: "Segunda Federación Femenina", Top: false, Icon: "segundafede.png"},
 		"Spain U19 Cup":                 {Titulo: "Spain U19 Cup", Top: false, Icon: "uefa.png"},
 		"U19 Division de Honor Juvenil": {Titulo: "U19 Division de Honor Juvenil", Top: false, Icon: "uefa.png"},
 	},
@@ -1734,7 +1731,7 @@ var allCompetitions = AllCompetitions{
 		"Europa League":                             {Titulo: "UEFA Europa League", Top: true, Icon: "uefa.png", Order: 3},
 		"Conference League":                         {Titulo: "UEFA Conference League", Top: true, Icon: "conference.png", Order: 4},
 		"Super Cup":                                 {Titulo: "UEFA Super Cup", Top: false, Icon: "uefa.png"},
-		"Nations League":                            {Titulo: "UEFA Nations League", Top: false, Icon: "uefa.png"},
+		"Nations League":                            {Titulo: "UEFA Nations League", Top: true, Icon: "uefa.png"},
 		"Women's Nations League":                    {Titulo: "UEFA Women's Nations League", Top: false, Icon: "uefa.png"},
 		"Women's Euro":                              {Titulo: "Women's Euro", Top: false, Icon: "uefa.png"},
 		"Women's Euro, Qualification":               {Titulo: "Women's Euro, Qualification", Top: false, Icon: "uefa.png"},
@@ -1769,86 +1766,30 @@ var allCompetitions = AllCompetitions{
 	"Brasil": CountryCompetitions{
 		"Serie A":          {Titulo: "Serie A", Top: false, Icon: "uefa.png"},
 		"Copa do Brasil":   {Titulo: "Copa do Brasil", Top: false, Icon: "uefa.png"},
-		"Série B":          {Titulo: "Série B", Top: false, Icon: "uefa.png"},
-		"Internacional":    {Titulo: "Internacional", Top: false, Icon: "uefa.png"},
-		"Fortaleza SC":     {Titulo: "Fortaleza SC", Top: false, Icon: "uefa.png"},
-		"Sport Recife":     {Titulo: "Sport Recife", Top: false, Icon: "uefa.png"},
-		"Vasco da Gama":    {Titulo: "Vasco da Gama", Top: false, Icon: "uefa.png"},
-		"Grêmio":           {Titulo: "Grêmio", Top: false, Icon: "uefa.png"},
-		"Ceará":            {Titulo: "Ceará", Top: false, Icon: "uefa.png"},
-		"São Paulo":        {Titulo: "São Paulo", Top: false, Icon: "uefa.png"},
-		"Atlético Mineiro": {Titulo: "Atlético Mineiro", Top: false, Icon: "uefa.png"},
-		"Palmeiras":        {Titulo: "Palmeiras", Top: false, Icon: "uefa.png"},
 	},
 	"Argentina": CountryCompetitions{
 		"Primera División": {Titulo: "Primera División", Top: false, Icon: "uefa.png"},
 		"Copa Argentina":   {Titulo: "Copa Argentina", Top: false, Icon: "uefa.png"},
-
-		// "River Plate":       {Titulo: "River Plate", Top: false, Icon: "uefa.png" },
-		// "San Martín SJ":     {Titulo: "San Martín SJ", Top: false, Icon: "uefa.png" },
-		// "Racing Avellaneda": {Titulo: "Racing Avellaneda", Top: false, Icon: "uefa.png" },
-		// "Unión Santa Fe":    {Titulo: "Unión Santa Fe", Top: false, Icon: "uefa.png" },
-		// "Gimnasia LP":       {Titulo: "Gimnasia LP", Top: false, Icon: "uefa.png" },
-		// "Atlético Tucumán":  {Titulo: "Atlético Tucumán", Top: false, Icon: "uefa.png" },
-		// "Platense":          {Titulo: "Platense", Top: false, Icon: "uefa.png" },
-		// "Godoy Cruz":        {Titulo: "Godoy Cruz", Top: false, Icon: "uefa.png" },
-		// "Estudiantes LP":    {Titulo: "Estudiantes LP", Top: false, Icon: "uefa.png" },
-		// "Aldosivi":          {Titulo: "Aldosivi", Top: false},
-		// "Independiente":     {Titulo: "Independiente", Top: false},
-		// "Miramar Misiones":  {Titulo: "Miramar Misiones", Top: false},
-		// "Cerro Largo":       {Titulo: "Cerro Largo", Top: false},
 	},
 
 	"Colombia": CountryCompetitions{
 		"Primera A":                {Titulo: "Primera A", Top: false, Icon: "uefa.png"},
-		"Copa Colombia":            {Titulo: "Copa Colombia", Top: false, Icon: "uefa.png"},
-		"Santa Fe":                 {Titulo: "Santa Fe", Top: false, Icon: "uefa.png"},
-		"Once Caldas":              {Titulo: "Once Caldas", Top: false, Icon: "uefa.png"},
-		"Deportes Tolima":          {Titulo: "Deportes Tolima", Top: false, Icon: "uefa.png"},
-		"Bucaramanga":              {Titulo: "Bucaramanga", Top: false, Icon: "uefa.png"},
-		"Águilas Doradas Rionegro": {Titulo: "Águilas Doradas Rionegro", Top: false, Icon: "uefa.png"},
-		"Boyacá Chicó":             {Titulo: "Boyacá Chicó", Top: false, Icon: "uefa.png"},
-		"LDU Quito":                {Titulo: "LDU Quito", Top: false, Icon: "uefa.png"},
-		"El Nacional":              {Titulo: "El Nacional", Top: false, Icon: "uefa.png"},
 	},
 	"Venezuela": CountryCompetitions{
 		"Primera División": {Titulo: "Primera División", Top: false, Icon: "uefa.png"},
-		"Trujillanos":      {Titulo: "Trujillanos", Top: false, Icon: "uefa.png"},
-		"Héroes de Falcón": {Titulo: "Héroes de Falcón", Top: false, Icon: "uefa.png"},
 	},
 	"Ecuador": CountryCompetitions{
 		"Serie A":      {Titulo: "Serie A", Top: false, Icon: "uefa.png"},
-		"Barcelona SC": {Titulo: "Barcelona SC", Top: false, Icon: "uefa.png"},
-		"U. Católica":  {Titulo: "U. Católica", Top: false, Icon: "uefa.png"},
-		"Delfín SC":    {Titulo: "Delfín SC", Top: false, Icon: "uefa.png"},
-		"Libertad FC":  {Titulo: "Libertad FC", Top: false, Icon: "uefa.png"},
-		"LDU Quito":    {Titulo: "LDU Quito", Top: false, Icon: "uefa.png"},
-		"El Nacional":  {Titulo: "El Nacional", Top: false, Icon: "uefa.png"},
 	},
 	"Estados Unidos": CountryCompetitions{
 		"Major League Soccer (MLS)": {Titulo: "Major League Soccer (MLS)", Top: false, Icon: "uefa.png"},
 		"US Open Cup":               {Titulo: "US Open Cup", Top: false, Icon: "uefa.png"},
-		"Seattle Sounders":          {Titulo: "Seattle Sounders", Top: false, Icon: "uefa.png"},
-		"Inter Miami CF":            {Titulo: "Inter Miami CF", Top: false, Icon: "uefa.png"},
-		"Los Angeles FC":            {Titulo: "Los Angeles FC", Top: false, Icon: "uefa.png"},
-		"San Diego FC":              {Titulo: "San Diego FC", Top: false, Icon: "uefa.png"},
-		"Columbus Crew":             {Titulo: "Columbus Crew", Top: false, Icon: "uefa.png"},
-		"New England Revolution":    {Titulo: "New England Revolution", Top: false, Icon: "uefa.png"},
-		"FC Cincinnati":             {Titulo: "FC Cincinnati", Top: false, Icon: "uefa.png"},
-		"New York City":             {Titulo: "New York City", Top: false, Icon: "uefa.png"},
-		"Sporting KC":               {Titulo: "Sporting KC", Top: false, Icon: "uefa.png"},
 	},
 	"México": CountryCompetitions{
 		"Liga MX": {Titulo: "Liga MX", Top: false, Icon: "uefa.png"},
 		"Copa MX": {Titulo: "Copa MX", Top: false, Icon: "uefa.png"},
-
-		"Chivas Guadalajara": {Titulo: "Chivas Guadalajara", Top: false, Icon: "uefa.png"},
-		"Club América":       {Titulo: "Club América", Top: false, Icon: "uefa.png"},
 	},
 	"Arabia Saudita": CountryCompetitions{
 		"Saudi Professional League": {Titulo: "Saudi Professional League", Top: false, Icon: "uefa.png"},
-
-		"Al Nassr": {Titulo: "Al Nassr", Top: false, Icon: "uefa.png"},
-		"Al Hilal": {Titulo: "Al Hilal", Top: false, Icon: "uefa.png"},
 	},
 }

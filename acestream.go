@@ -129,8 +129,22 @@ func findBroadcaster(name string, competitionName, sport string) BroadcasterInfo
 		}
 	}
 
-	// M+ BALONCESTO / ACB -> DAZN BALONCESTO (nuevas incorporaciones)
+	// M+ BALONCESTO / DAZN BALONCESTO — respetar prefijo (usuario añadió M+ BALONCESTO)
 	if strings.Contains(nameUpper, "BALONCESTO") {
+		isMPlus := strings.Contains(nameUpper, "M+") || strings.Contains(nameUpper, "MOVISTAR")
+		if isMPlus {
+			if strings.Contains(nameUpper, "2") {
+				nameUpper = "M+ BALONCESTO 2"
+			} else if strings.Contains(nameUpper, "3") {
+				nameUpper = "M+ BALONCESTO 2" // no hay M+ 3, fallback a 2
+			} else {
+				nameUpper = "M+ BALONCESTO"
+			}
+			if dataAce, exists := broadcasterToAcestream[nameUpper]; exists && len(dataAce.Links) > 0 {
+				return dataAce
+			}
+			// fallback a DAZN si M+ aún está vacío
+		}
 		if strings.Contains(nameUpper, "2") {
 			nameUpper = "DAZN BALONCESTO 2"
 		} else if strings.Contains(nameUpper, "3") {
