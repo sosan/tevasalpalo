@@ -252,14 +252,24 @@ func prepareMatchDay(body []byte) ([]DayView, error) {
 	doc.Find("tr").Each(func(i int, row *goquery.Selection) {
 		if row.HasClass("cabeceraTabla") {
 			titleCompetitions := row.Text()
-			dateKey := cleanDate(titleCompetitions)
-			dateKey = strings.ReplaceAll(dateKey, "/", "-")
-			dateKey = strings.ReplaceAll(dateKey, ".", "-")
+			dateKeyRaw := cleanDate(titleCompetitions)
+			dateKeyRaw = strings.ReplaceAll(dateKeyRaw, "/", "-")
+			dateKeyRaw = strings.ReplaceAll(dateKeyRaw, ".", "-")
 
-			formattedDate, err := FormatDateDMYToSpanish(dateKey)
+			formattedDate, err := FormatDateDMYToSpanish(dateKeyRaw)
 			if err != nil {
-				fmt.Printf("Error formateando fecha %s: %v\n", dateKey, err)
-				formattedDate = dateKey
+				fmt.Printf("Error formateando fecha %s: %v\n", dateKeyRaw, err)
+				formattedDate = dateKeyRaw
+			}
+			// Normalizar DateKey a formato canónico con ceros para que general y argentina coincidan (6-9-2026 vs 06-09-2026)
+			dateKey := dateKeyRaw
+			var t time.Time
+			for _, layout := range []string{"02-01-2006", "2-01-2006", "02-1-2006", "2-1-2006"} {
+				t, err = time.Parse(layout, dateKeyRaw)
+				if err == nil {
+					dateKey = t.Format("02-01-2006")
+					break
+				}
 			}
 
 			newDayView := DayView{

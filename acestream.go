@@ -68,8 +68,8 @@ func findBroadcaster(name string, competitionName, sport string) BroadcasterInfo
 
 	// UFC en Paramount+ (2026+) — normalizar variantes Paramount+ / CBS
 	// UFC dejó ESPN+ y pasó a Paramount+ en US/LatAm/Australia desde 01/01/2026
+	// Solo mapear a UFC si hay indicio UFC (en nombre o en competición), si no filtrar (ej: Paramount+ en LaLiga no es Acestream)
 	if strings.Contains(nameUpper, "PARAMOUNT") {
-		// Si el broadcaster ya contiene UFC, forzar al pool PARAMOUNT+ UFC / UFC
 		if strings.Contains(nameUpper, "UFC") {
 			if dataAce, exists := broadcasterToAcestream["PARAMOUNT+ UFC"]; exists && len(dataAce.Links) > 0 {
 				return dataAce
@@ -78,25 +78,25 @@ func findBroadcaster(name string, competitionName, sport string) BroadcasterInfo
 				return dataAce
 			}
 		}
-		// Si competition es UFC, cualquier Paramount+ debe resolver a UFC
 		if competitionName == "UFC" {
 			if dataAce, exists := broadcasterToAcestream["UFC"]; exists {
 				return dataAce
 			}
+			// Alias genérico Paramount+ -> mapear a UFC solo si es UFC
+			nameUpper = "PARAMOUNT+ UFC"
+			if dataAce, exists := broadcasterToAcestream[nameUpper]; exists {
+				return dataAce
+			}
+			nameUpper = "PARAMOUNT+"
+			if dataAce, exists := broadcasterToAcestream[nameUpper]; exists {
+				return dataAce
+			}
+			if dataAce, exists := broadcasterToAcestream["UFC"]; exists {
+				return dataAce
+			}
 		}
-		// Alias genérico Paramount+ -> mapear a UFC si hay indicio UFC
-		nameUpper = "PARAMOUNT+ UFC"
-		if dataAce, exists := broadcasterToAcestream[nameUpper]; exists {
-			return dataAce
-		}
-		nameUpper = "PARAMOUNT+"
-		if dataAce, exists := broadcasterToAcestream[nameUpper]; exists {
-			return dataAce
-		}
-		// fallback a UFC
-		if dataAce, exists := broadcasterToAcestream["UFC"]; exists {
-			return dataAce
-		}
+		// Para LaLiga u otras competiciones, Paramount+ sin UFC no tiene pool Acestream → filtrar para no colar UFC en LaLiga
+		return BroadcasterInfo{}
 	}
 	if strings.Contains(nameUpper, "CBS") && competitionName == "UFC" {
 		if dataAce, exists := broadcasterToAcestream["UFC"]; exists {
