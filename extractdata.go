@@ -39,6 +39,7 @@ const (
 	shickatWeb         = "https://shickat.me/"
 	elcanoWeb          = "https://ipfs.io/ipns/elcano.top"
 	listaplana         = "https://k2k4r8lm8tkmuxbc8lkmq1in3v0oya1p6pe9o5bu0hu30br5ko08k2gb.ipns.dweb.link/data/listas/listaplana.txt"
+	fueraIPTV          = "https://k2k4r8lm8tkmuxbc8lkmq1in3v0oya1p6pe9o5bu0hu30br5ko08k2gb.ipns.dweb.link/data/listas/lista_fuera_iptv.m3u"
 	peticiones         = "https://raw.githubusercontent.com/Icastresana/lista1/refs/heads/main/peticiones"
 	platinsport        = "https://raw.githubusercontent.com/tutw/platinsport-m3u-updater/refs/heads/main/lista_scraper_acestream_api.m3u"
 	platinsportCanales = "https://raw.githubusercontent.com/tutw/platinsport-m3u-updater/refs/heads/main/canales_acestream.m3u"
@@ -48,6 +49,7 @@ const (
 
 var sources = []Source{
 	{Name: "listaplana", URL: listaplana, Type: SourceTxtRaw, Proxied: false},
+	{Name: "fuera_iptv", URL: fueraIPTV, Type: SourceM3U, Proxied: false},
 	{Name: "peticiones", URL: peticiones, Type: SourceM3U, Proxied: false},
 	{Name: "platinsport", URL: platinsport, Type: SourceM3U, Proxied: false},
 	{Name: "platinsport_canales", URL: platinsportCanales, Type: SourceM3U, Proxied: false},
@@ -390,6 +392,10 @@ func extractHashFromLink(link string) string {
 		h = strings.ToLower(strings.TrimSpace(h))
 		if reHash40.MatchString(h) {
 			return h
+		}
+		// fallback: buscar 40 hex embebido (tolerante a typos como 39+y)
+		if m := regexp.MustCompile(`[a-f0-9]{40}`).FindString(h); m != "" {
+			return m
 		}
 		return ""
 	}

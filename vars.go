@@ -99,6 +99,13 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: true,
 		Order:            16,
 	},
+	"DAZN LALIGA 3": {
+		Logo:  "daznlaliga.png",
+		Links: []string{},
+		Name:             "DAZN LALIGA 3",
+		ShowListChannels: true,
+		Order:            17,
+	},
 
 	// "DAZN 1 BAR": {
 	// 	Logo: "daznbar.png",
@@ -554,6 +561,34 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: false,
 		Order:            47,
 	},
+	"LALIGA HYPERMOTION 4": {
+		Logo:  "mlaligahyper.png",
+		Links: []string{},
+		Name:             "LALIGA HYPERMOTION 4",
+		ShowListChannels: true,
+		Order:            48,
+	},
+	"LALIGA HYPERMOTION 5": {
+		Logo:  "mlaligahyper.png",
+		Links: []string{},
+		Name:             "LALIGA HYPERMOTION 5",
+		ShowListChannels: true,
+		Order:            49,
+	},
+	"HYPERMOTION 4": {
+		Logo:             "mlaligahyper.png",
+		Links:            []string{},
+		Name:             "LALIGA HYPERMOTION 4",
+		ShowListChannels: false,
+		Order:            48,
+	},
+	"HYPERMOTION 5": {
+		Logo:             "mlaligahyper.png",
+		Links:            []string{},
+		Name:             "LALIGA HYPERMOTION 5",
+		ShowListChannels: false,
+		Order:            49,
+	},
 	// "LALIGA TV HYPERMOTION": {
 	// 	Logo:  "mlaligahyper.png",
 	// 	Links: []string{
@@ -773,6 +808,27 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Name:             "M+ LIGA DE CAMPEONES 9",
 		ShowListChannels: false,
 		Order:            61,
+	},
+	"M+ LIGA DE CAMPEONES 10": {
+		Logo:             "mligacampeones.png",
+		Links:            []string{},
+		Name:             "M+ LIGA DE CAMPEONES 10",
+		ShowListChannels: true,
+		Order:            62,
+	},
+	"M+ LIGA DE CAMPEONES 11": {
+		Logo:             "mligacampeones.png",
+		Links:            []string{},
+		Name:             "M+ LIGA DE CAMPEONES 11",
+		ShowListChannels: true,
+		Order:            63,
+	},
+	"M+ LIGA DE CAMPEONES 12": {
+		Logo:             "mligacampeones.png",
+		Links:            []string{},
+		Name:             "M+ LIGA DE CAMPEONES 12",
+		ShowListChannels: true,
+		Order:            64,
 	},
 	"M+ DEPORTES": {
 		Logo:  "mdeportes.png",

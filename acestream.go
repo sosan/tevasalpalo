@@ -29,7 +29,12 @@ const (
 func findBroadcaster(name string, competitionName, sport string) BroadcasterInfo {
 	// Coincidencia exacta
 	// quizas pasarlo a minisculas
-	nameUpper := strings.ToUpper(name)
+	nameUpper := strings.ToUpper(strings.TrimSpace(name))
+	// Normalizar abreviatura "M+ L." -> "M+ LIGA" (usuario solicita m+ l. de campeones)
+	nameUpper = strings.ReplaceAll(nameUpper, "M+ L.", "M+ LIGA")
+	nameUpper = strings.ReplaceAll(nameUpper, "M+L.", "M+ LIGA")
+	// Colapsar espacios dobles por si acaso
+	nameUpper = strings.Join(strings.Fields(nameUpper), " ")
 	if competitionName == "Bundesliga" && nameUpper == "SKY SPORTS" {
 		nameUpper = "SKY SPORTS BUNDESLIGA"
 	}
@@ -107,7 +112,7 @@ func findBroadcaster(name string, competitionName, sport string) BroadcasterInfo
 		}
 	}
 
-	// Unificar variantes LaLiga Hypermotion al mismo canal
+	// Unificar variantes LaLiga Hypermotion al mismo canal (incluye 4 y 5 nuevos)
 	switch nameUpper {
 	case "LALIGA TV HYPERMOTION":
 		nameUpper = "LALIGA HYPERMOTION"
@@ -115,6 +120,36 @@ func findBroadcaster(name string, competitionName, sport string) BroadcasterInfo
 		nameUpper = "LALIGA HYPERMOTION 2"
 	case "LALIGA TV HYPERMOTION 3":
 		nameUpper = "LALIGA HYPERMOTION 3"
+	case "LALIGA TV HYPERMOTION 4", "LALIGA TV HYPERMOTION 5", "LALIGA HYPERMOTION 4", "LALIGA HYPERMOTION 5", "HYPERMOTION 4", "HYPERMOTION 5":
+		// normalizar a LALIGA HYPERMOTION 4/5 según número
+		if strings.HasSuffix(nameUpper, "5") {
+			nameUpper = "LALIGA HYPERMOTION 5"
+		} else {
+			nameUpper = "LALIGA HYPERMOTION 4"
+		}
+	}
+
+	// M+ BALONCESTO / ACB -> DAZN BALONCESTO (nuevas incorporaciones)
+	if strings.Contains(nameUpper, "BALONCESTO") {
+		if strings.Contains(nameUpper, "2") {
+			nameUpper = "DAZN BALONCESTO 2"
+		} else if strings.Contains(nameUpper, "3") {
+			nameUpper = "DAZN BALONCESTO 3"
+		} else {
+			nameUpper = "DAZN BALONCESTO 1"
+		}
+		if dataAce, exists := broadcasterToAcestream[nameUpper]; exists {
+			return dataAce
+		}
+	}
+
+	// FOX UFC / UFC Fight Pass -> UFC (Paramount+ era)
+	if strings.Contains(nameUpper, "UFC") {
+		if strings.Contains(nameUpper, "FOX") || strings.Contains(nameUpper, "FIGHT PASS") || strings.Contains(nameUpper, "PREMIUM") {
+			if dataAce, exists := broadcasterToAcestream["UFC"]; exists {
+				return dataAce
+			}
+		}
 	}
 
 	if dataAce, exists := broadcasterToAcestream[nameUpper]; exists {
