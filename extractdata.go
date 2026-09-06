@@ -523,19 +523,39 @@ func extractDataFromM3U_Manual(body []byte, filterList []string) map[string][]st
 func transformUriSafeBroadcasters(broadcasterToAcestream map[string]BroadcasterInfo) map[string]BroadcasterInfo {
 	redirectClient := IinitializeRedirectClients()
 	for key := range broadcasterToAcestream {
+		newLinks := make([]string, 0, len(broadcasterToAcestream[key].Links))
 		for i := 0; i < len(broadcasterToAcestream[key].Links); i++ {
-			if strings.Contains(broadcasterToAcestream[key].Links[i], "p;") {
-				initialUri := strings.Split(broadcasterToAcestream[key].Links[i], "p;")[1]
-				finalURL, _, _, _ := resolveFinalManifestURL(initialUri, redirectClient)
-				// fmt.Println(string(manifestContent) + "...")
-				// fmt.Printf("%v", headers)
-				// fmt.Println(string(finalURL) + "...")
-				broadcasterToAcestream[key].Links[i] = finalURL
+			link := broadcasterToAcestream[key].Links[i]
+			if strings.TrimSpace(link) == "" {
+				continue
 			}
-			if strings.Contains(broadcasterToAcestream[key].Links[i], ":") {
-				encoded := changeLinkToUriSafe(broadcasterToAcestream[key].Links[i])
-				broadcasterToAcestream[key].Links[i] = fmt.Sprintf(";%s", encoded)
+			if strings.Contains(link, "p;") {
+				initialUri := strings.Split(link, "p;")[1]
+				finalURL, _, _, err := resolveFinalManifestURL(initialUri, redirectClient)
+				if err == nil && strings.TrimSpace(finalURL) != "" {
+					link = finalURL
+				} else {
+					log.Printf("⚠️  [%s] no se pudo resolver p; link %s (err=%v) - manteniendo original", key, initialUri, err)
+					link = initialUri
+				}
 			}
+			if strings.TrimSpace(link) == "" {
+				continue
+			}
+			if strings.Contains(link, ":") {
+				encoded := changeLinkToUriSafe(link)
+				link = fmt.Sprintf(";%s", encoded)
+			}
+			if strings.TrimSpace(link) != "" {
+				newLinks = append(newLinks, link)
+			}
+		}
+		info := broadcasterToAcestream[key]
+		info.Links = removeDuplicates(newLinks)
+		broadcasterToAcestream[key] = info
+		if os.Getenv("ENV") == "dev" && len(newLinks) == 0 && len(broadcasterToAcestream[key].Links) == 0 {
+			// no links tras filtrado, log en dev
+			log.Printf("⚠️  [%s] quedó sin links válidos tras transformUriSafe", key)
 		}
 	}
 	StopRedirectClient(redirectClient)
