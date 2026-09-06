@@ -163,6 +163,7 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 		{"https://www.futebolnatv.pt/campeonato/calcio-serie-a", true, "calcioPT"},
 		{"https://www.futbolenlatv.es/deporte/mma", true, "mma"},
 		{"https://www.footballtv.pl/rozgrywki/calcio-serie-a", true, "calcioPL"},
+		{"https://www.futbolenvivoargentina.com/deporte", false, "argentina"},
 		// {"https://www.futbolenlatv.es/deporte/baloncesto", true, "baloncesto"},
 	}
 
@@ -177,6 +178,7 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 	eventsFromCalcioToPl := results["calcioPL"]
 	eventsFromBundesligaToPl := results["bundesligaPL"]
 	eventsmma := results["mma"]
+	eventsArgentina := results["argentina"]
 	// eventsbaloncesto := results["baloncesto"]
 
 	// Ajustes de nombres de canales de Bundesliga
@@ -193,6 +195,31 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 	// Sobrescribir y mezclar resultados
 	// generalEvents = overrideCompetition(generalEvents, eventsFromBundesligaToPt)
 	generalEvents = mixCompetitions(generalEvents, eventsFromLigaToMx, eventsFromLigue1ToPt, eventsFromCalcioToPt, eventsFromCalcioToPl, eventsmma, eventsFromBundesligaToPt, eventsFromBundesligaToPl)
+
+	// Argentina (DSports / ESPN Argentina / TNT Sports) — https://www.futbolenvivoargentina.com/deporte
+	if len(eventsArgentina) > 0 {
+		for i := range generalEvents {
+			generalEvents[i] = addCompetition(generalEvents[i], eventsArgentina)
+		}
+		// si general aún vacío (primer arranque) pero argentina tiene días, usarlos directamente
+		if len(generalEvents) == 0 {
+			generalEvents = eventsArgentina
+		} else {
+			// añadir días que solo existen en argentina (fechas nuevas)
+			for _, argDay := range eventsArgentina {
+				found := false
+				for _, gDay := range generalEvents {
+					if gDay.DateKey == argDay.DateKey {
+						found = true
+						break
+					}
+				}
+				if !found {
+					generalEvents = append(generalEvents, argDay)
+				}
+			}
+		}
+	}
 
 	return generalEvents, nil
 
@@ -572,16 +599,27 @@ func addNewBroadcaster(days []DayView, broadcasterNameDestination, competitionNa
 	return days
 }
 
+func normalizeEventForComparison(s string) string {
+	s = strings.ToUpper(strings.TrimSpace(s))
+	s = strings.Join(strings.Fields(s), " ")
+	// Quitar sufijos comunes que causan mismatch Valencia CF vs Valencia
+	// Mantener simple: si contiene " - ", normalizar ambos lados
+	return s
+}
+
 func addCompetition(generalCompetition DayView, newCompetition []DayView) DayView {
 	for j := range newCompetition {
 		if newCompetition[j].DateKey == generalCompetition.DateKey {
 			for compKey, matches := range newCompetition[j].Competitions {
 				if generalCompetition.Competitions[compKey] != nil {
 					for _, match := range matches {
+						found := false
 						for o := range generalCompetition.Competitions[compKey] {
-
-							// if generalCompetition.Competitions[compKey][o].Match.Event == match.Event {
-							if strings.Contains(generalCompetition.Competitions[compKey][o].Match.Event, match.Event) {
+							normGeneral := normalizeEventForComparison(generalCompetition.Competitions[compKey][o].Match.Event)
+							normNew := normalizeEventForComparison(match.Event)
+							// match si son iguales o uno contiene al otro (Valencia - Barcelona vs Valencia CF - FC Barcelona)
+							if normGeneral == normNew || strings.Contains(normGeneral, normNew) || strings.Contains(normNew, normGeneral) {
+								found = true
 								merged := append(generalCompetition.Competitions[compKey][o].Broadcasters, match.Broadcasters...)
 								// dedup por nombre para no duplicar LALIGA HYPERMOTION desde distintas fuentes
 								deduped := make(map[string]BroadcasterInfo)
@@ -604,7 +642,16 @@ func addCompetition(generalCompetition DayView, newCompetition []DayView) DayVie
 									tmp = append(tmp, deduped[k])
 								}
 								generalCompetition.Competitions[compKey][o].Broadcasters = tmp
+								break
 							}
+						}
+						if !found {
+							// evento nuevo que no existía en general (ej: Valencia CF - FC Barcelona solo en argentina) → añadirlo
+							generalCompetition.Competitions[compKey] = append(generalCompetition.Competitions[compKey], MatchView{
+								Match: match.Match,
+								Icon:  match.Icon,
+								Sport: match.Sport,
+							})
 						}
 					}
 				} else {

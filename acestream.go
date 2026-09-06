@@ -35,6 +35,22 @@ func findBroadcaster(name string, competitionName, sport string) BroadcasterInfo
 	nameUpper = strings.ReplaceAll(nameUpper, "M+L.", "M+ LIGA")
 	// Colapsar espacios dobles por si acaso
 	nameUpper = strings.Join(strings.Fields(nameUpper), " ")
+	// Normalización para futbolenvivoargentina.com (DSports / ESPN Argentina / TNT)
+	if strings.Contains(nameUpper, "DSPORTS") {
+		nameUpper = "DS SPORT"
+	} else if strings.Contains(nameUpper, "ESPN PREMIUM") {
+		nameUpper = "ESPN ARGENTINA"
+	} else if nameUpper == "ESPN 4" || strings.Contains(nameUpper, "ESPN 4") {
+		nameUpper = "ESPN ARGENTINA 4"
+	} else if nameUpper == "ESPN 3" || strings.Contains(nameUpper, "ESPN 3") {
+		nameUpper = "ESPN ARGENTINA 3"
+	} else if nameUpper == "ESPN 2" || strings.Contains(nameUpper, "ESPN 2") {
+		nameUpper = "ESPN ARGENTINA 2"
+	} else if strings.Contains(nameUpper, "TNT SPORTS PREMIUM") {
+		nameUpper = "TNT SPORTS"
+	} else if strings.Contains(nameUpper, "TNT SPORTS") {
+		nameUpper = "TNT SPORTS"
+	}
 	if competitionName == "Bundesliga" && nameUpper == "SKY SPORTS" {
 		nameUpper = "SKY SPORTS BUNDESLIGA"
 	}
