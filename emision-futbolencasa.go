@@ -513,9 +513,16 @@ func GetSportInfo(typeSport string) (icon string, sport string) {
 
 // FormatDateDMYToSpanish convierte una fecha DD-MM-YYYY a texto español
 func FormatDateDMYToSpanish(dateStr string) (string, error) {
-	// AQUÍ: dateStr es "DD-MM-YYYY"
-	layout := "02-01-2006"
-	t, err := time.Parse(layout, dateStr)
+	// Soporta tanto "06-09-2026" como "6-9-2026" (futbolenlatv / futbolenvivoargentina devuelven sin ceros a la izquierda)
+	layouts := []string{"02-01-2006", "2-01-2006", "02-1-2006", "2-1-2006"}
+	var t time.Time
+	var err error
+	for _, layout := range layouts {
+		t, err = time.Parse(layout, strings.TrimSpace(dateStr))
+		if err == nil {
+			break
+		}
+	}
 	if err != nil {
 		return "", fmt.Errorf("error parseando fecha %s: %w", dateStr, err)
 	}
