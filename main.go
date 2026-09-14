@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -46,15 +47,21 @@ func main() {
 
 	log.Println("🌐 Servidor web iniciando en http://localhost:3000")
 	time.Sleep(10 * time.Second)
-	var cmdAcestream *exec.Cmd
+	var (
+		cmdAcestream   *exec.Cmd
+		cmdAcestreamMu sync.Mutex
+	)
 
 	env := os.Getenv("ENV")
 	if env != "dev" {
 		go func() {
-			cmdAcestream, err = RunAceStream()
+			cmd, err := RunAceStream()
 			if err != nil {
 				log.Fatal("❌ Error al iniciar AceStream: ", err)
 			}
+			cmdAcestreamMu.Lock()
+			cmdAcestream = cmd
+			cmdAcestreamMu.Unlock()
 			// log.Println("🎉 Lista Canales TV lista. Abriendo interfaz...")
 			openBrowser(fmt.Sprintf("http://localhost:%d", httpWebServerPort))
 		}()
@@ -79,16 +86,16 @@ func main() {
 		log.Println("✅ Cerrado webserver correctamente")
 	}
 
-	err = StopTor(cmdTor)
-	if err != nil {
+	if err := StopTor(cmdTor); err != nil {
 		log.Printf("❌ Error al detener TOR: %v %v", err, cmdTor)
 	}
 
-	if cmdAcestream != nil && cmdAcestream.Process != nil {
-		if err := cmdAcestream.Process.Kill(); err != nil {
-			log.Printf("❌ Error al cerrar: %v", err)
-		} else {
-			log.Println("✅ Cerrado ace correctamente")
-		}
+	cmdAcestreamMu.Lock()
+	aceCmd := cmdAcestream
+	cmdAcestreamMu.Unlock()
+	if err := StopAceStream(aceCmd); err != nil {
+		log.Printf("❌ Error al cerrar Acestream: %v", err)
+	} else if aceCmd != nil {
+		log.Println("✅ Cerrado ace correctamente")
 	}
 }

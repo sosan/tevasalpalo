@@ -10,7 +10,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -247,6 +249,7 @@ func RunAceStream() (*exec.Cmd, error) {
 	}
 	cmd := exec.Command(engineAcePath, args...)
 	cmd.Dir = filepath.Join(runtimePath, "engine")
+	setSysProcAttr(cmd)
 
 	if err := cmd.Start(); err != nil {
 		log.Fatal("No se pudo iniciar: ", err)
@@ -260,6 +263,30 @@ func RunAceStream() (*exec.Cmd, error) {
 	log.Println("✅ Todo listo. ¡A relajarse y disfrutar del contenido! 🍿")
 
 	return cmd, err
+}
+
+func StopAceStream(cmd *exec.Cmd) error {
+	if cmd == nil || cmd.Process == nil {
+		return nil
+	}
+	if runtime.GOOS == "windows" {
+		return exec.Command("taskkill", "/F", "/T", "/PID", fmt.Sprint(cmd.Process.Pid)).Run()
+	}
+	pgid, err := syscall.Getpgid(cmd.Process.Pid)
+	if err != nil {
+		// fallback si ya no tiene pgid (proceso ya salió)
+		_ = cmd.Process.Signal(syscall.SIGTERM)
+		time.Sleep(time.Second)
+		_ = cmd.Process.Kill()
+		_ = cmd.Wait()
+		return err
+	}
+	_ = syscall.Kill(-pgid, syscall.SIGTERM)
+	time.Sleep(time.Second)
+	_ = syscall.Kill(-pgid, syscall.SIGKILL)
+	_ = cmd.Wait()
+	log.Println("✅ Acestream cerrado (grupo de procesos terminado)")
+	return nil
 }
 
 // extractRuntime extrae el ZIP embebido en el directorio runtime

@@ -17,15 +17,19 @@ func StopTor(cmdTor *exec.Cmd) error {
 
 	pgid, err := syscall.Getpgid(cmdTor.Process.Pid)
 	if err != nil {
-		log.Printf("❌ No se pudo obtener PGID: %v", err)
+		log.Printf("⚠️  No se pudo obtener PGID (%v), intentando kill directo PID %d", err, cmdTor.Process.Pid)
+		_ = cmdTor.Process.Signal(syscall.SIGTERM)
+		time.Sleep(time.Second)
+		_ = cmdTor.Process.Kill()
+		_ = cmdTor.Wait()
 		return err
 	}
 
-	syscall.Kill(-pgid, syscall.SIGTERM)
+	_ = syscall.Kill(-pgid, syscall.SIGTERM)
 	time.Sleep(1 * time.Second)
-	syscall.Kill(-pgid, syscall.SIGKILL)
+	_ = syscall.Kill(-pgid, syscall.SIGKILL)
 
-	cmdTor.Wait()
+	_ = cmdTor.Wait()
 	log.Println("✅ TOR cerrado (grupo de procesos terminado)")
 	return nil
 }
