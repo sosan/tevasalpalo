@@ -36,7 +36,7 @@
                         {{ if $link }}
                         <li>
                             <a class="link-a" href="/player/index.html?link={{ $link }}&content={{ b64 (printf "%s;%s;%s" $info.Name "" "" ) }}" target="_blank">
-                                Ver canal
+                                Ver canal {{ add $i 1 }}
                             </a>
                         </li>
                         {{ end }}

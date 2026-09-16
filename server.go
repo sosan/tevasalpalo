@@ -116,6 +116,7 @@ func StartWebServer() (*fiber.App, error) {
 	}
 	engine := html.NewFileSystem(http.FS(sub), ".html")
 	engine.AddFunc("b64", encodeContent)
+	engine.AddFunc("add", func(a, b int) int { return a + b })
 	if err := engine.Load(); err != nil {
 		log.Fatalf("failed to load views: %v", err)
 	}
