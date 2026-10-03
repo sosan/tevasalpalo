@@ -142,8 +142,10 @@ func StartWebServer() (*fiber.App, error) {
 		// Obtener la ruta completa después de /ace/
 		acePath := c.Params("*")
 
-		// Construir la URL de destino (Ace Stream)
-		targetURL := "http://127.0.0.1:6878/ace/" + acePath
+		// Motor AceStream: local por defecto, remoto vía ACESTREAM_API.
+		// En remoto el tráfico va por la cadena proxy (xray/Tor); en local,
+		// directo como siempre (ver aceproxy.go).
+		targetURL := acestreamAPI() + "/ace/" + acePath
 
 		// 🔥 SOLO añadir query string si realmente existe y no está vacío
 		queryString := string(c.Request().URI().QueryString())
@@ -152,11 +154,6 @@ func StartWebServer() (*fiber.App, error) {
 		}
 
 		log.Printf("🔄 Proxy ACE: %s -> %s", c.Path(), targetURL)
-
-		// Crear cliente HTTP
-		client := &http.Client{
-			Timeout: 30 * time.Second,
-		}
 
 		// Crear la petición
 		req, err := http.NewRequest("GET", targetURL, nil)
@@ -176,17 +173,23 @@ func StartWebServer() (*fiber.App, error) {
 			req.Header.Set("Range", rangeHeader)
 		}
 
-		// Hacer la petición
-		resp, err := client.Do(req)
+		// Hacer la petición (directa a loopback; a remoto, cadena proxy
+		// solo con el interruptor proxy-media ON)
+		resp, via, err := aceDo(targetURL, proxyMediaEnabled(), func(client *http.Client) (*http.Response, error) {
+			return client.Do(req)
+		})
 		if err != nil {
 			log.Printf("❌ Error en petición a Ace Stream: %v", err)
 			return c.Status(502).SendString("Error conectando con Ace Stream: " + err.Error())
 		}
 		defer resp.Body.Close()
+		if via != "direct" {
+			log.Printf("🔄 ACE %s vía %s", c.Path(), via)
+		}
 
 		// 🔥 SI ES UN MANIFEST M3U8, MODIFICAR LAS URLs
 		if strings.HasSuffix(acePath, ".m3u8") {
-			return handleAceManifest(c, resp)
+			return handleAceManifest(c, resp, acestreamEngineHosts())
 		}
 
 		// Para archivos .ts y otros
@@ -317,6 +320,30 @@ func StartWebServer() (*fiber.App, error) {
 		return c.JSON(fiber.Map{
 			"success": true,
 			"message": "Datos actualizados correctamente",
+		})
+	})
+
+	// Interruptor proxy multimedia (ver aceproxy.go): OFF = streams directos
+	// (comportamiento actual); ON = /api/iptv/* y /ace/* remoto por Tor/xray.
+	app.Get("/api/proxy-media", func(c fiber.Ctx) error {
+		return c.JSON(fiber.Map{
+			"enabled": proxyMediaEnabled(),
+		})
+	})
+
+	app.Post("/api/proxy-media", func(c fiber.Ctx) error {
+		var body struct {
+			Enabled *bool `json:"enabled"`
+		}
+		if err := json.Unmarshal(c.Body(), &body); err != nil || body.Enabled == nil {
+			return c.Status(400).JSON(fiber.Map{
+				"error": "JSON {enabled: bool} requerido",
+			})
+		}
+		setProxyMedia(*body.Enabled)
+		log.Printf("🎚️  proxy multimedia: %v", *body.Enabled)
+		return c.JSON(fiber.Map{
+			"enabled": proxyMediaEnabled(),
 		})
 	})
 
@@ -515,82 +542,23 @@ func copyHeaders(c fiber.Ctx, resp *http.Response) {
 }
 
 func fetchAndProxy(c fiber.Ctx, targetURL string) error {
-	client := &http.Client{
-		Timeout: 0,
-		Transport: &http.Transport{
-			MaxIdleConns:        100,
-			MaxIdleConnsPerHost: 10,
-			IdleConnTimeout:     90 * time.Second,
-		},
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-	}
-
-	req, err := http.NewRequest("GET", targetURL, nil)
+	resp, finalURL, err := openUpstream(targetURL, c.Get("Range"), mediaTransports())
 	if err != nil {
-		return c.Status(500).SendString("Failed to create request: " + err.Error())
-	}
-
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-	req.Header.Set("Accept", "*/*")
-	req.Header.Set("Connection", "keep-alive")
-
-	if rangeHeader := c.Get("Range"); rangeHeader != "" {
-		req.Header.Set("Range", rangeHeader)
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
+		if proxyMediaEnabled() {
+			return c.Status(502).SendString("Sin transporte multimedia (ni proxies ni directa): " + err.Error())
+		}
 		return c.Status(500).SendString("Failed to connect to stream: " + err.Error())
 	}
-
-	for resp.StatusCode >= 300 && resp.StatusCode < 400 {
-		location := resp.Header.Get("Location")
-		if location == "" {
-			break // No hay dónde redirigir
-		}
-		resp.Body.Close() // Cerrar el cuerpo de la respuesta de redirección
-
-		// Resolver la nueva URL con base en la anterior (por si la Location es relativa)
-		baseURL, err := url.Parse(targetURL) // targetURL es la URL de la solicitud original o la última redirección
-		if err != nil {
-			return c.Status(500).SendString("Failed to parse base URL for redirect: " + err.Error())
-		}
-		newURL, err := baseURL.Parse(location)
-		if err != nil {
-			return c.Status(500).SendString("Failed to parse redirect location: " + err.Error())
-		}
-
-		// fmt.Printf("Following redirect from '%s' to '%s'\n", targetURL, newURL.String())
-		targetURL = newURL.String()
-
-		// Crear una nueva solicitud para la URL redirigida
-		req, err = http.NewRequest("GET", targetURL, nil)
-		if err != nil {
-			return c.Status(500).SendString("Failed to create redirect request: " + err.Error())
-		}
-		// Copiar headers importantes nuevamente
-		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-		req.Header.Set("Accept", "*/*")
-		req.Header.Set("Connection", "keep-alive")
-		if rangeHeader := c.Get("Range"); rangeHeader != "" {
-			req.Header.Set("Range", rangeHeader)
-		}
-
-		// Hacer la nueva petición
-		resp, err = client.Do(req)
-		if err != nil {
-			return c.Status(500).SendString("Failed to connect to redirected stream: " + err.Error())
-		}
-	}
-
 	defer resp.Body.Close()
 
+	return serveUpstream(c, resp, finalURL, targetURL)
+}
+
+func serveUpstream(c fiber.Ctx, resp *http.Response, finalURL, targetURL string) error {
 	// Verificar si la respuesta es un manifiesto M3U8
 	contentType := resp.Header.Get("Content-Type")
-	if strings.Contains(contentType, "mpegurl") || strings.Contains(contentType, "m3u") || strings.HasSuffix(strings.ToLower(targetURL), ".m3u8") {
-		return handleManifest(c, resp, req.URL.String()) // Pasar la URL final después de redirecciones
+	if strings.Contains(contentType, "mpegurl") || strings.Contains(contentType, "m3u") || strings.HasSuffix(strings.ToLower(finalURL), ".m3u8") {
+		return handleManifest(c, resp, finalURL) // Pasar la URL final después de redirecciones
 	}
 
 	// // Para cualquier otro contenido (segmentos .ts, etc.)
@@ -616,7 +584,7 @@ func fetchAndProxy(c fiber.Ctx, targetURL string) error {
 	copyBuf := make([]byte, bufferSize)
 
 	// fmt.Printf("📡 Iniciando transmisión buffered de %s\n", targetURL)
-	_, err = io.CopyBuffer(fiberWriter, bufferedReader, copyBuf)
+	_, err := io.CopyBuffer(fiberWriter, bufferedReader, copyBuf)
 	if err != nil {
 		fmt.Printf("⚠️ Error en transmisión buffered de %s: %v\n", targetURL, err)
 		// No devolvemos error HTTP porque la escritura ya pudo haber comenzado
@@ -705,7 +673,7 @@ func encodeContent(input string) string {
 	return base64.StdEncoding.EncodeToString([]byte(input))
 }
 
-func handleAceManifest(c fiber.Ctx, resp *http.Response) error {
+func handleAceManifest(c fiber.Ctx, resp *http.Response, engineHosts []string) error {
 	// Leer el contenido del manifest
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -729,57 +697,10 @@ func handleAceManifest(c fiber.Ctx, resp *http.Response) error {
 
 	log.Printf("📝 Reescribiendo URLs del manifest con origen: %s", serverOrigin)
 
-	// Reescribir las URLs en el manifest
+	// Reescribir las URLs en el manifest (hosts del engine -> origen local)
 	lines := strings.Split(manifestContent, "\n")
 	for i, line := range lines {
-		line = strings.TrimSpace(line)
-
-		// Saltar líneas vacías y comentarios
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-
-		// Si la línea contiene una URL (segmentos .ts o sub-manifests .m3u8)
-		// if strings.Contains(line, "http://") {
-		// 	// Parsear la URL original
-		// 	originalURL, err := url.Parse(line)
-		// 	if err != nil {
-		// 		log.Printf("⚠️ No se pudo parsear URL: %s", line)
-		// 		continue
-		// 	}
-
-		// 	// Construir la nueva URL a través del proxy
-		// 	// De: http://127.0.0.1:6878/ace/c/xxx/0.ts
-		// 	// A:  http://127.0.0.1:3000/ace/c/xxx/0.ts
-		// 	newPath := strings.TrimPrefix(originalURL.Path, "/")
-		// 	if originalURL.RawQuery != "" {
-		// 		newPath += "?" + originalURL.RawQuery
-		// 	}
-
-		// 	newURL := fmt.Sprintf("%s/%s", serverOrigin, newPath)
-		// 	lines[i] = newURL
-
-		// 	log.Printf("🔄 URL reescrita: %s -> %s", line, newURL)
-		// } else if strings.HasSuffix(line, ".ts") || strings.HasSuffix(line, ".m3u8") {
-		// 	// Si es una URL relativa, convertirla en absoluta a través del proxy
-		// 	newURL := fmt.Sprintf("%s/ace/%s", serverOrigin, line)
-		// 	lines[i] = newURL
-		// 	log.Printf("🔄 URL relativa convertida: %s -> %s", line, newURL)
-		// }
-		if strings.Contains(line, "127.0.0.1:6878") {
-			// De: http://127.0.0.1:6878/ace/c/xxx/0.ts
-			// A:  http://127.0.0.1:3000/ace/c/xxx/0.ts
-			newLine := strings.Replace(line, "127.0.0.1:6878", host, 1)
-			lines[i] = newLine
-			log.Printf("🔄 URL reescrita: %s -> %s", line, newLine)
-		} else if strings.HasSuffix(line, ".ts") || strings.HasSuffix(line, ".m3u8") {
-			// Si es una URL relativa, convertirla en absoluta
-			if !strings.HasPrefix(line, "http://") && !strings.HasPrefix(line, "https://") {
-				newURL := fmt.Sprintf("%s/ace/%s", serverOrigin, strings.TrimPrefix(line, "/"))
-				lines[i] = newURL
-				log.Printf("🔄 URL relativa convertida: %s -> %s", line, newURL)
-			}
-		}
+		lines[i] = rewriteAceManifestLine(line, serverOrigin, host, engineHosts)
 	}
 
 	modifiedManifest := strings.Join(lines, "\n")

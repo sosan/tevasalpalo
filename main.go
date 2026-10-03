@@ -34,7 +34,25 @@ func main() {
 		log.Fatal("❌ Error al iniciar TOR: ", err)
 	}
 
-	
+	// xray en-proceso opcional en segundo plano: con la sub hardcodeada puede
+	// tardar (prueba endpoints con tráfico); no bloquea el arranque — la
+	// cadena usa Tor mientras tanto y cambia sola a xray cuando esté listo.
+	var xh *xrayHandle
+	var xhMu sync.Mutex
+	go func() {
+		h, err := MaybeRunXray()
+		if err != nil {
+			log.Printf("⚠️  xray no disponible, se usará Tor: %v", err)
+			return
+		}
+		if h == nil {
+			return
+		}
+		xhMu.Lock()
+		xh = h
+		xhMu.Unlock()
+	}()
+
 	err = FetchUpdatedList()
 	if err != nil {
 		log.Printf("Error al obtener la programación")
@@ -88,6 +106,15 @@ func main() {
 
 	if err := StopTor(cmdTor); err != nil {
 		log.Printf("❌ Error al detener TOR: %v %v", err, cmdTor)
+	}
+
+	xhMu.Lock()
+	xhStopped := xh
+	xhMu.Unlock()
+	if err := StopXray(xhStopped); err != nil {
+		log.Printf("❌ Error al cerrar xray: %v", err)
+	} else if xhStopped != nil {
+		log.Println("✅ Cerrado xray correctamente")
 	}
 
 	cmdAcestreamMu.Lock()

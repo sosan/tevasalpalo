@@ -33,28 +33,90 @@ type Source struct {
 	URL     string
 	Type    SourceType
 	Proxied bool
+	// Resolve opcional: si no es nil, se llama antes de cada fetch para obtener
+	// la URL real. Necesario en fuentes cuyo path cambia en cada publicación
+	// (el subdirectorio del worker de elcano rota al republicar).
+	Resolve func(string) (string, error)
 }
 
 const (
-	shickatWeb         = "https://shickat.me/"
-	elcanoWeb          = "https://ipfs.io/ipns/elcano.top"
-	listaplana         = "https://k2k4r8lm8tkmuxbc8lkmq1in3v0oya1p6pe9o5bu0hu30br5ko08k2gb.ipns.dweb.link/data/listas/listaplana.txt"
-	fueraIPTV          = "https://k2k4r8lm8tkmuxbc8lkmq1in3v0oya1p6pe9o5bu0hu30br5ko08k2gb.ipns.dweb.link/data/listas/lista_fuera_iptv.m3u"
+	shickatWeb         = "https://shickat.online/"
+	elcanoWeb          = "https://tokyo.elcano-ipfs.workers.dev/k51qzi5uqu5dh5qej4b9wlcr5i6vhc7rcfkekhrxqek5c9lk6gdaiik820fecs/"
 	peticiones         = "https://raw.githubusercontent.com/Icastresana/lista1/refs/heads/main/peticiones"
 	platinsport        = "https://raw.githubusercontent.com/tutw/platinsport-m3u-updater/refs/heads/main/lista_scraper_acestream_api.m3u"
 	platinsportCanales = "https://raw.githubusercontent.com/tutw/platinsport-m3u-updater/refs/heads/main/canales_acestream.m3u"
-	unificada          = "https://git.gay/a1975morales/ACESTREAM/raw/branch/main/lista_acestream_unificada.m3u"
-	tokyoHashes        = "https://git.gay/TokyoGhoulles/AceStream_IDs/raw/branch/main/hashes.txt"
+	// Renombre de la fuente "unificada": el repo a1975morales/ACESTREAM ya no
+	// tiene lista_acestream_unificada.m3u (404 desde 2026-10), pero publica estos tres:
+	//   - hashes_acestream.m3u: enlaces acestream://<hash>  <- se usa esta
+	//   - hashes.m3u:            mismos 126 hashes con ?id= (contenido idéntico)
+	//   - canales_acestream.m3u: byte-idéntico a platinsportCanales (md5 igual)
+	gitgayHashes = "https://git.gay/a1975morales/ACESTREAM/raw/branch/main/hashes_acestream.m3u"
+	// Gateway IPFS que SIGUE hablando HTTP plano. Las gateways grandes
+	// (dweb.link, w3s.link, ipfs.io, inbrowser.link) son ya service-worker-only
+	// y devuelven 403 o un bootstrap de 11684 bytes. Filebase resuelve el IPNS
+	// completo y devuelve el fichero. Aporta 93 hashes que ninguna otra fuente da.
+	ipfsGateway = "https://ipfs.filebase.io/ipns/k2k4r8lm8tkmuxbc8lkmq1in3v0oya1p6pe9o5bu0hu30br5ko08k2gb"
+	listaplana  = ipfsGateway + "/data/listas/listaplana.txt"
+	// lista_fuera_iptv.m3u (mismo repo) tiene EXACTAMENTE los mismos 400 hashes
+	// y los mismos nombres: no añadirlo, es un fetch de 83 KB sin ganancia.
+	// Si se cayera el IPNS, el mismo contenido está fijado en el CID bloque
+	// bafybeihgs5jmggjt7i6vul2sg37lkfs66ko5bmpod7o54zhimywcohttdm.
+	// elcano publica tras un IPNS cuyo <base href> apunta a un subdirectorio
+	// con CID que ROTA en cada republicación. Hay que resolverlo en cada fetch:
+	// con el subdirectorio viejo el worker responde 403 "Forbidden", y sin
+	// subdirectorio también 403. Solo la raíz del IPNS responde.
+	tokyoElcanoIndex = "https://tokyo.elcano-ipfs.workers.dev/k51qzi5uqu5dh5qej4b9wlcr5i6vhc7rcfkekhrxqek5c9lk6gdaiik820fecs/"
 )
 
 var sources = []Source{
 	{Name: "listaplana", URL: listaplana, Type: SourceTxtRaw, Proxied: false},
-	{Name: "fuera_iptv", URL: fueraIPTV, Type: SourceM3U, Proxied: false},
 	{Name: "peticiones", URL: peticiones, Type: SourceM3U, Proxied: false},
 	{Name: "platinsport", URL: platinsport, Type: SourceM3U, Proxied: false},
 	{Name: "platinsport_canales", URL: platinsportCanales, Type: SourceM3U, Proxied: false},
-	{Name: "unificada", URL: unificada, Type: SourceM3U, Proxied: false},
-	{Name: "tokyo_hashes", URL: tokyoHashes, Type: SourceTxtRaw, Proxied: false},
+	{Name: "tokyo_elcano", URL: tokyoElcanoIndex, Type: SourceTxtRaw, Proxied: false, Resolve: resolveElcanoFileURL("hashes.txt")},
+	// Espejo de git.gay: mismo operador que elcano, pero en otro host. Aporta
+	// 6 hashes que ninguna otra fuente da y cubre una caída de raw.githubusercontent.
+	{Name: "gitgay_hashes", URL: gitgayHashes, Type: SourceM3U, Proxied: false},
+	// Fuentes que NO deben volver:
+	//
+	// - fuera_iptv: mismo repo y mismo contenido que listaplana (400 hashes
+	//   idénticos, mismos nombres). Duplicaría el fetch sin ganancia.
+	// - unificada (git.gay/…/lista_acestream_unificada.m3u): 404, el fichero
+	//   se borró del repo. La sustituye gitgay_hashes.
+	// - tokyo_hashes (git.gay/TokyoGhoulles/…): 404. La sustituye tokyo_elcano.
+	// - hashes.m3u: mismos 126 hashes que hashes_acestream.m3u.
+	// - canales_acestream.m3u: byte-idéntico a platinsportCanales.
+	// - cualquier URL de gateway IPFS que no sea ipfs.filebase.io: dweb.link,
+	//   w3s.link, ipfs.io e inbrowser.link ya no sirven contenido por HTTP.
+}
+
+var reElcanoBaseHref = regexp.MustCompile(`(?i)<base\s[^>]*href\s*=\s*["']([^"']+)["']`)
+
+// resolveElcanoFileURL devuelve un resolver que traduce la raíz del IPNS de
+// elcano en la URL real de un fichero publicado. El index es HTML con
+// <base href=".../<cid-actual>/"> y los enlaces son relativos a ese base, así
+// que hay que leer el index primero: el subdirectorio cambia en cada
+// publicación y fijarlo en el código lo deja muerto (403) en la siguiente.
+func resolveElcanoFileURL(file string) func(string) (string, error) {
+	return func(index string) (string, error) {
+		body, err := FetchWebDataTimeout(index, false, timeTimeout)
+		if err != nil {
+			return "", fmt.Errorf("no se pudo leer el índice %s: %w", index, err)
+		}
+		m := reElcanoBaseHref.FindSubmatch(body)
+		if m == nil {
+			return "", fmt.Errorf("no se encontró <base href> en el índice de %s", index)
+		}
+		base := strings.TrimSpace(string(m[1]))
+		if base == "" {
+			return "", fmt.Errorf("<base href> vacío en el índice de %s", index)
+		}
+		if !strings.HasSuffix(base, "/") {
+			base += "/"
+		}
+		log.Printf("🔗 elcano: subdirectorio actual %s", base)
+		return base + file, nil
+	}
 }
 
 func FetchUpdatedList() error {
@@ -71,35 +133,49 @@ func FetchUpdatedList() error {
 	for _, src := range sources {
 		wg.Add(1)
 		go func(s Source) {
-			defer wg.Done()
-			var body []byte
-			var err error
-			var success bool
-			for attempt := 1; attempt <= 10; attempt++ {
-				if isDev {
-					log.Printf("📡 [%s] intento %d/10 %s (proxied=%v)", s.Name, attempt, s.URL, s.Proxied)
-				} else if attempt == 1 {
-					log.Printf("📡 Obteniendo [%s] %s", s.Name, s.URL)
+		defer wg.Done()
+		var body []byte
+		var err error
+		var success bool
+		fatal4xx := false
+		// URL efectiva: si la fuente tiene resolver, secalcula en cada
+		// intento (el path puede rotar entre reintentos).
+		fetchURL := s.URL
+		for attempt := 1; attempt <= 10; attempt++ {
+				if s.Resolve != nil {
+					resolved, rErr := s.Resolve(s.URL)
+					if rErr != nil {
+						log.Printf("❌ [%s] no se pudo resolver la URL: %v", s.Name, rErr)
+						fatal4xx = true
+						break
+					}
+					fetchURL = resolved
 				}
-				body, err = FetchWebData(s.URL, s.Proxied)
+				if isDev {
+					log.Printf("📡 [%s] intento %d/10 %s (proxied=%v)", s.Name, attempt, fetchURL, s.Proxied)
+				} else if attempt == 1 {
+					log.Printf("📡 Obteniendo [%s] %s", s.Name, fetchURL)
+				}
+				body, err = FetchWebData(fetchURL, s.Proxied)
 				if err == nil && len(body) != 0 {
 					success = true
 					break
 				}
-				if err != nil {
-					is4xx := strings.Contains(err.Error(), "status code error: 4")
-					if is4xx {
-						if isDev {
-							log.Printf("❌ [%s] 4xx no reintenta: %v", s.Name, err)
-						} else {
-							log.Printf("❌ [%s] error 4xx: %v", s.Name, err)
-						}
-						break
-					}
+			if err != nil {
+				// 429 (rate limit) SÍ reintenta con backoff; el resto de 4xx no.
+				if isFatalFetchErr(err) {
+					fatal4xx = true
 					if isDev {
-						log.Printf("⚠️  [%s] intento %d fallo: %v", s.Name, attempt, err)
+						log.Printf("❌ [%s] 4xx no reintenta: %v", s.Name, err)
+					} else {
+						log.Printf("❌ [%s] error 4xx: %v", s.Name, err)
 					}
-				} else if len(body) == 0 {
+					break
+				}
+				if isDev {
+					log.Printf("⚠️  [%s] intento %d fallo (reintentable): %v", s.Name, attempt, err)
+				}
+			} else if len(body) == 0 {
 					if isDev {
 						log.Printf("⚠️  [%s] intento %d body vacío", s.Name, attempt)
 					}
@@ -111,8 +187,30 @@ func FetchUpdatedList() error {
 					}
 					time.Sleep(backoff)
 				}
+		}
+		if shouldProxyFallback(s, success, fatal4xx) {
+			// Último recurso: la IP directa puede estar limitada (429
+			// persistente); otra salida vía proxy (Tor/xray) lo salva.
+			log.Printf("🔄 [%s] directa agotada, último recurso vía proxy...", s.Name)
+			for pAttempt := 1; pAttempt <= 3 && !success; pAttempt++ {
+				if s.Resolve != nil {
+					if resolved, rErr := s.Resolve(s.URL); rErr == nil {
+						fetchURL = resolved
+					}
+				}
+				body, err = FetchWebData(fetchURL, true)
+				if err == nil && len(body) != 0 {
+					success = true
+					log.Printf("✅ [%s] recuperada vía proxy (intento %d/3)", s.Name, pAttempt)
+					break
+				}
+				if isDev {
+					log.Printf("⚠️  [%s] proxy intento %d/3 fallo: %v", s.Name, pAttempt, err)
+				}
+				time.Sleep(time.Duration(pAttempt) * 5 * time.Second)
 			}
-			if !success {
+		}
+		if !success {
 				log.Printf("❌ [%s] no se pudo obtener tras 10 intentos", s.Name)
 				if err != nil {
 					firstErrMu.Lock()
@@ -140,8 +238,8 @@ func FetchUpdatedList() error {
 				log.Printf("❌ [%s] tipo desconocido %q", s.Name, s.Type)
 				return
 			}
-			mu.Lock()
-			broadcasterToAcestream = updateBroadcasterMapWithGatewayTolerant(broadcasterToAcestream, extracted)
+		mu.Lock()
+		broadcasterToAcestream = updateBroadcasterMapWithGatewayTolerant(broadcasterToAcestream, extracted, s.Name)
 			fetchedCount++
 			mu.Unlock()
 		}(src)
@@ -259,26 +357,30 @@ func extractDataFromWebShitkat(body []byte) map[string][]string {
 func extractDataFromWebTxtRaw(body []byte) map[string][]string {
 	extractedData := make(map[string][]string)
 	rawLines := strings.Split(string(body), "\n")
-	// Filtrar cabeceras/ruido de tokyo_hashes y similares (===, AceStream IDs, Generated, Total, ====)
+	// Filtrar cabeceras/ruido de tokyo_elcano y similares. El fichero mezcla
+	// español e inglés y algunas cabeceras no empiezan por "===", así que se
+	// compara en minúsculas y por prefijo para no arrastrar basura al emparejado.
 	var lines []string
 	for _, l := range rawLines {
 		t := strings.TrimSpace(l)
 		if t == "" {
 			continue
 		}
-		if strings.HasPrefix(t, "AceStream") || strings.HasPrefix(t, "Generated:") || strings.HasPrefix(t, "Total:") || strings.HasPrefix(t, "===") || strings.HasPrefix(t, "===") || t == "========================================" {
-			continue
-		}
-		if t == "========================================" {
+		lower := strings.ToLower(t)
+		if strings.HasPrefix(t, "===") ||
+			strings.HasPrefix(lower, "identificadores") ||
+			strings.HasPrefix(lower, "acestream ids") ||
+			strings.HasPrefix(lower, "generated:") ||
+			strings.HasPrefix(lower, "generado:") ||
+			strings.HasPrefix(lower, "total:") {
 			continue
 		}
 		lines = append(lines, l)
 	}
-	for i := 0; i < len(lines); i += 2 {
-		if i+1 >= len(lines) {
-			break
-		}
-		
+	// Emparejado nombre/enlace con resincronización: si la línea de enlace no
+	// aporta nada usable se avanza de uno en uno, para que un desajuste no se
+	// arrastre al resto del fichero (cabeceras filtradas, pares incompletos...).
+	for i := 0; i+1 < len(lines); i++ {
 		nombre := normalizeChannelName(lines[i])
 		if nombre == "ACB EVENTO 01" {
 			nombre = "DAZN BALONCESTO 1"
@@ -290,12 +392,22 @@ func extractDataFromWebTxtRaw(body []byte) map[string][]string {
 			nombre = "DAZN BALONCESTO 3"
 		}
 		acestreamLink := strings.TrimSpace(lines[i+1])
-
-		if nombre == "" || acestreamLink == "" {
+		if nombre == "" {
+			continue
+		}
+		// tokyo_elcano entrega "acestream://<hash>"; el player solo acepta hash
+		// 40 hex puro, así que se normaliza igual que en las fuentes M3U.
+		if hash := extractHashFromLink(acestreamLink); hash != "" {
+			acestreamLink = hash
+		} else if !strings.Contains(acestreamLink, "://") && !strings.HasPrefix(acestreamLink, "p;") {
+			if os.Getenv("ENV") == "dev" {
+				log.Printf("⚠️  txtRaw skip línea sin enlace: name %q -> %q", nombre, acestreamLink)
+			}
 			continue
 		}
 
 		extractedData[nombre] = append(extractedData[nombre], acestreamLink)
+		i++ // par consumido: saltar la línea del enlace
 	}
 
 	return extractedData
@@ -310,6 +422,9 @@ var (
 	reMultiSpace = regexp.MustCompile(`\s+`)
 	reDotsuffix  = regexp.MustCompile(`\s*\.\.\.[a-f0-9]{2,}$`)
 	reHash40     = regexp.MustCompile(`^[a-f0-9]{40}$`)
+	// reHash40Anywhere: búsqueda no anclada para hashes embebidos (evita
+	// compilar la regex en cada llamada a extractHashFromLink).
+	reHash40Anywhere = regexp.MustCompile(`[a-f0-9]{40}`)
 )
 
 // NormalizeChannelName limpia y normaliza el nombre del canal
@@ -394,7 +509,7 @@ func extractHashFromLink(link string) string {
 			return h
 		}
 		// fallback: buscar 40 hex embebido (tolerante a typos como 39+y)
-		if m := regexp.MustCompile(`[a-f0-9]{40}`).FindString(h); m != "" {
+		if m := reHash40Anywhere.FindString(h); m != "" {
 			return m
 		}
 		return ""
@@ -419,14 +534,14 @@ func extractHashFromLink(link string) string {
 				if reHash40.MatchString(h) {
 					return h
 				}
-				if m := regexp.MustCompile(`[a-f0-9]{40}`).FindString(strings.ToLower(candidate)); m != "" {
+				if m := reHash40Anywhere.FindString(strings.ToLower(candidate)); m != "" {
 					return m
 				}
 				return ""
 			}
 		}
 		// fallback: buscar 40 hex en toda la URL (cubre variantes no contempladas)
-		if m := regexp.MustCompile(`[a-f0-9]{40}`).FindString(strings.ToLower(s)); m != "" {
+		if m := reHash40Anywhere.FindString(strings.ToLower(s)); m != "" {
 			return m
 		}
 		return ""
@@ -437,7 +552,7 @@ func extractHashFromLink(link string) string {
 		return h
 	}
 	// buscar 40 hex embebido
-	if m := regexp.MustCompile(`[a-f0-9]{40}`).FindString(h); m != "" {
+	if m := reHash40Anywhere.FindString(h); m != "" {
 		return m
 	}
 	return ""

@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"sort"
 )
 
 var broadcasterGatewayMap = map[string][]string{
@@ -213,6 +214,55 @@ var broadcasterGatewayMap = map[string][]string{
 	"DAZN FIFA 2":                        {"DAZN FIFA 2"},
 	"DAZN FIFA 3":                        {"DAZN FIFA 3"},
 	"DAZN FIFA 4":                        {"DAZN FIFA 4"},
+	// Variantes validadas offline con TypeSafe (juicios Choice, sin runtime).
+	// Solo se hornearon mapeos confiados (p>=0.8) con destino canónico existente
+	// y seguros sin contexto de competición. Ver gateway_static_test.go.
+	// Descartados expresamente: "La Liga TV M3" (depende de Hypermotion vs Serie A),
+	// "Paramount Plus" sin UFC (sin pool), "DAZN Bar 1" y "GOL TV Play" (ambiguos),
+	// "Vamos por M+" (eslogan inventado), "Eurosport 360 4" (sin pool).
+	"M+ L. Campeones":    {"M+ LIGA DE CAMPEONES"},
+	"Movistar Deporte 2": {"M+ DEPORTES 2"},
+	"Dazen 1":            {"DAZN 1"},
+	"LaLiga Smartbank":   {"LALIGA HYPERMOTION"},
+	"ESPN Premium":       {"ESPN ARGENTINA"},
+	"TNT Sports Premium": {"TNT SPORTS"},
+	"D Sports":           {"DS SPORT"},
+	"UFC FightPass":      {"UFC"},
+	"Primera RFEF":       {"Primera Federacion"},
+	// Ronda 2 (2026-09, top-miss reales de platinsport* en producción).
+	// Solo variantes mecánicas (prefijo M+, espaciado) con precedente directo
+	// en este mapa. "M+ Deportes*" NO hizo falta: colisiona con "M. Deportes*".
+	// Sin mapear a propósito: "M+ VAMOS 2/3", "M+ Golf 2" (sin pool claro),
+	// generalistas/rusas/sudacas sin pool (TVE, RTL, NTV, HBO...).
+	"M+ Vamos":              {"M+ VAMOS"},
+	"M+ Liga de Campeones":  {"M+ LIGA DE CAMPEONES"},
+	"M+ Liga de Campeones 2": {"M+ LIGA DE CAMPEONES 2"},
+	"M+ Liga de Campeones 3": {"M+ LIGA DE CAMPEONES 3"},
+	"M+ Liga de Campeones 4": {"M+ LIGA DE CAMPEONES 4"},
+	"M+ Liga de Campeones 5": {"M+ LIGA DE CAMPEONES 5"},
+	"M+ Liga de Campeones 6": {"M+ LIGA DE CAMPEONES 6"},
+	"M+ Liga de Campeones 7": {"M+ LIGA DE CAMPEONES 7"},
+	"M+ Liga de Campeones 8": {"M+ LIGA DE CAMPEONES 8"},
+	"M+ Golf":               {"M+ GOLF"},
+	"Eurosport 360 2":       {"EUROSPORT 2"},
+	"Red Bull TV":           {"REDBULL TV"},
+	// Ronda 3 (2026-10): broadcasters de vars.go que NO Tenian ninguna entrada
+	// y por tanto ninguna fuente viva podia rellenar nunca. Medido sobre las 6
+	// fuentes activas: +6 enlaces en total.
+	//
+	// Solo match EXACTO contra el nombre que las fuentes emiten hoy. Descartado
+	// a propósito el matcher por prefijo: las fuentes filtran fragmentos de hash
+	// en el nombre ("ESPN 3 e63", "TNT Sport 2 1080 c5b", "Canal+ Sports 1 b4b")
+	// que CAMBIAN en cada republicación, igual que el subdir de elcano, así que
+	// una clave con ese sufijo caduca sola. Medido: el prefijo añadiría +4
+	// enlaces y abriría 2 claves, por un 0,4% del total, a cambio de lógica
+	// nueva con riesgo de que un canal reciba el stream de otro.
+	"Eleven Sports 2": {"ELEVEN SPORTS 2"},
+	"Eleven Sports 3": {"ELEVEN SPORTS 3"},
+	"Eleven Sports 4": {"ELEVEN SPORTS 4"},
+	// "TNT" a secas es lo que emiten las fuentes; en vars.go el canal 1 es
+	// "TNT SPORTS 1" (el atajo "TNT" de vars.go es alias suyo).
+	"TNT": {"TNT SPORTS 1"},
 }
 
 func updateBroadcasterMapWithGateway(existingMap map[string]BroadcasterInfo, newData map[string][]string) map[string]BroadcasterInfo {
@@ -237,19 +287,18 @@ func updateBroadcasterMapWithGateway(existingMap map[string]BroadcasterInfo, new
 	return existingMap
 }
 
-func updateBroadcasterMapWithGatewayTolerant(existingMap map[string]BroadcasterInfo, newData map[string][]string) map[string]BroadcasterInfo {
+func updateBroadcasterMapWithGatewayTolerant(existingMap map[string]BroadcasterInfo, newData map[string][]string, source string) map[string]BroadcasterInfo {
 	ensureNormGateway()
 	isDev := os.Getenv("ENV") == "dev"
 	hits := 0
 	miss := 0
+	missHashes := make(map[string]int)
 	for extractedName, links := range newData {
 		nk := normalizeTolerant(extractedName)
 		mappedKeys, exists := normGateway[nk]
 		if !exists {
 			miss++
-			if isDev {
-				log.Printf("🔍 gateway miss: %q (norm %q) hashes %d", extractedName, nk, len(links))
-			}
+			missHashes[extractedName] += len(links)
 			continue
 		}
 		hits++
@@ -266,9 +315,33 @@ func updateBroadcasterMapWithGatewayTolerant(existingMap map[string]BroadcasterI
 		}
 	}
 	if isDev && len(newData) > 0 {
-		log.Printf("🔧 gateway tolerant: %d hits, %d miss de %d entradas", hits, miss, len(newData))
+		log.Printf("🔧 [%s] gateway tolerant: %d hits, %d miss de %d entradas", source, hits, miss, len(newData))
+		logTopGatewayMisses(source, missHashes, 15)
 	}
 	return existingMap
+}
+
+// logTopGatewayMisses agrega los misses por nº de hashes para curar el mapa
+// (pega esta salida para hornear nuevas variantes; no mapear a ciegas).
+func logTopGatewayMisses(source string, missHashes map[string]int, top int) {
+	if len(missHashes) == 0 {
+		return
+	}
+	type missStat struct {
+		name   string
+		hashes int
+	}
+	stats := make([]missStat, 0, len(missHashes))
+	for name, n := range missHashes {
+		stats = append(stats, missStat{name, n})
+	}
+	sort.Slice(stats, func(i, j int) bool { return stats[i].hashes > stats[j].hashes })
+	if len(stats) < top {
+		top = len(stats)
+	}
+	for _, ms := range stats[:top] {
+		log.Printf("   miss [%s]: %q (%d hashes)", source, ms.name, ms.hashes)
+	}
 }
 
 func removeDuplicates(slice []string) []string {

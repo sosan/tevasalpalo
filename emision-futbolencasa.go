@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 	"unicode"
@@ -154,17 +155,19 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 
 	// ---------------
 
+	// Proxied=true usa la cadena xray/Tor como RESERVA (getCompetition va
+	// directo primero). Timeout por source: futbolenvivoargentina tarda ~25s+.
 	requests := []CompetitionRequest{
-		{"https://www.futbolenlatv.es/deporte", true, "general"},
-		{"https://www.futbolenvivomexico.com/competicion/la-liga", true, "laligaMX"},
-		{"https://www.futebolnatv.pt/campeonato/bundesliga", true, "bundesligaPT"},
-		{"https://www.footballtv.pl/rozgrywki/bundesliga", true, "bundesligaPL"},
-		{"https://www.futebolnatv.pt/campeonato/ligue-1", true, "ligue1PT"},
-		{"https://www.futebolnatv.pt/campeonato/calcio-serie-a", true, "calcioPT"},
-		{"https://www.futbolenlatv.es/deporte/mma", true, "mma"},
-		{"https://www.footballtv.pl/rozgrywki/calcio-serie-a", true, "calcioPL"},
-		{"https://www.futbolenvivoargentina.com/deporte", false, "argentina"},
-		// {"https://www.futbolenlatv.es/deporte/baloncesto", true, "baloncesto"},
+		{"https://www.futbolenlatv.es/deporte", true, "general", 0},
+		{"https://www.futbolenvivomexico.com/competicion/la-liga", true, "laligaMX", 0},
+		{"https://www.futebolnatv.pt/campeonato/bundesliga", true, "bundesligaPT", 0},
+		{"https://www.footballtv.pl/rozgrywki/bundesliga", true, "bundesligaPL", 0},
+		{"https://www.futebolnatv.pt/campeonato/ligue-1", true, "ligue1PT", 0},
+		{"https://www.futebolnatv.pt/campeonato/calcio-serie-a", true, "calcioPT", 0},
+		{"https://www.futbolenlatv.es/deporte/mma", true, "mma", 0},
+		{"https://www.footballtv.pl/rozgrywki/calcio-serie-a", true, "calcioPL", 0},
+		{"https://www.futbolenvivoargentina.com/deporte", true, "argentina", 45 * time.Second},
+		// {"https://www.futbolenlatv.es/deporte/baloncesto", true, "baloncesto", 0},
 	}
 
 	results := FetchCompetitionsParallel(requests, getCompetition)
@@ -225,15 +228,36 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 
 }
 
-func getCompetition(uri string, proxied bool) ([]DayView, error) {
+func getCompetition(req CompetitionRequest) ([]DayView, error) {
+	// Las webs de horarios son públicas y en directo responden mucho antes que
+	// por la cadena xray/Tor, así que se prueban directo primero y el proxy
+	// queda como reserva (por si el directo está bloqueado desde tu IP).
+	// Cada transporte reintenta 10 veces antes de pasar al siguiente.
+	type attempt struct {
+		proxied bool
+		label   string
+	}
+	attempts := []attempt{{false, "direct"}}
+	if req.Proxied {
+		attempts = append(attempts, attempt{true, "proxy"})
+	}
+
 	var body []byte
-	var err error
-	for i := range 10 {
-		body, err = FetchWebData(uri, proxied)
-		if err == nil {
+	for _, a := range attempts {
+		var err error
+		for i := 1; i <= 10; i++ {
+			body, err = FetchWebDataTimeout(req.URL, a.proxied, req.Timeout)
+			if err == nil && len(body) != 0 {
+				if a.label != "direct" {
+					log.Printf("🔄 [%s] directo falló, recuperado vía %s", req.Name, a.label)
+				}
+				break
+			}
+			log.Printf("Intento FALLIDO %d [%s/%s]: Obteniendo datos de %s (proxied=%v) error=%v", i, req.Name, a.label, req.URL, a.proxied, err)
+		}
+		if len(body) != 0 {
 			break
 		}
-		log.Printf("Intento FALLIDO %d: Obteniendo datos de %s (proxied=%v) error=%v", i+1, uri, proxied, err)
 	}
 
 	dayviews, err := prepareMatchDay(body)
@@ -410,13 +434,14 @@ func cleanDate(input string) string {
 		return splittedDate
 
 	}
+	log.Printf("⚠️  cleanDate: cabecera sin fecha %q, usando hoy (revisar selector)", input)
 	return time.Now().Format("02-01-2006")
 }
 
 func cleanTextSpace(text string) string {
 	// Remover espacios extra y limpiar texto
 	text = strings.TrimSpace(text)
-	text = regexp.MustCompile(`\s+`).ReplaceAllString(text, " ")
+	text = reCleanSpaces.ReplaceAllString(text, " ")
 	return text
 }
 
@@ -425,6 +450,7 @@ var (
 	reMovistarParen  = regexp.MustCompile(`\s*\(M\d+ O\d+\)\s*$`)
 	reDaznVerDirecto = regexp.MustCompile(`(?i)\s*\(Ver en directo\)\s*$`)
 	reOrangeNumber   = regexp.MustCompile(`\s*\(\d+\)\s*$`)
+	reCleanSpaces    = regexp.MustCompile(`\s+`)
 )
 
 func cleanChannelNameFutbolEnCasa(s string) string {
@@ -616,12 +642,94 @@ func addNewBroadcaster(days []DayView, broadcasterNameDestination, competitionNa
 	return days
 }
 
-func normalizeEventForComparison(s string) string {
-	s = strings.ToUpper(strings.TrimSpace(s))
+// Afijos habituales en nombres de equipos que no cambian la identidad del club.
+// Se comparan con espacio de borde para no recortar palabras ("CA " no toca "CÁDIZ").
+// NOTA: no se recortan UNITED/CITY a propósito: "Manchester City" y
+// "Manchester United" deben seguir siendo distintos.
+var matchTeamPrefixes = []string{
+	"REAL ", "FC ", "CF ", "RCD ", "RC ", "CD ", "UD ", "SD ", "AD ",
+	"AC ", "AS ", "SC ", "CA ", "CLUB ",
+}
+
+var matchTeamSuffixes = []string{
+	" CF", " FC", " CD", " SD", " UD", " RCD", " RC", " SC", " AC", " AS", " CA", " CLUB",
+}
+
+var matchAccentReplacer = strings.NewReplacer(
+	"Á", "A", "À", "A", "Ä", "A", "Â", "A",
+	"É", "E", "È", "E", "Ë", "E", "Ê", "E",
+	"Í", "I", "Ì", "I", "Ï", "I", "Î", "I",
+	"Ó", "O", "Ò", "O", "Ö", "O", "Ô", "O",
+	"Ú", "U", "Ù", "U", "Ü", "U", "Û", "U",
+	"Ñ", "N", "Ç", "C",
+	"á", "a", "à", "a", "ä", "a", "â", "a",
+	"é", "e", "è", "e", "ë", "e", "ê", "e",
+	"í", "i", "ì", "i", "ï", "i", "î", "i",
+	"ó", "o", "ò", "o", "ö", "o", "ô", "o",
+	"ú", "u", "ù", "u", "ü", "u", "û", "u",
+	"ñ", "n", "ç", "c",
+)
+
+// normTeamName normaliza un nombre de equipo para comparar: mayúsculas,
+// sin tildes, espacios colapsados y sin afijos de club (CF/FC/Real/...).
+func normTeamName(s string) string {
+	s = matchAccentReplacer.Replace(strings.ToUpper(strings.TrimSpace(s)))
 	s = strings.Join(strings.Fields(s), " ")
-	// Quitar sufijos comunes que causan mismatch Valencia CF vs Valencia
-	// Mantener simple: si contiene " - ", normalizar ambos lados
+	for i := 0; i < 3; i++ {
+		prev := s
+		for _, p := range matchTeamPrefixes {
+			s = strings.TrimPrefix(s, p)
+		}
+		for _, suf := range matchTeamSuffixes {
+			s = strings.TrimSuffix(s, suf)
+		}
+		s = strings.TrimSpace(s)
+		if s == prev {
+			break
+		}
+	}
 	return s
+}
+
+// splitMatchTeams divide "Local - Visitante" (separador con espacios para no
+// romper equipos con guion como Paris Saint-Germain). ok=false si no hay par.
+func splitMatchTeams(event string) (teams [2]string, ok bool) {
+	parts := strings.Split(event, " - ")
+	if len(parts) != 2 {
+		return teams, false
+	}
+	teams[0] = strings.TrimSpace(parts[0])
+	teams[1] = strings.TrimSpace(parts[1])
+	if teams[0] == "" || teams[1] == "" {
+		return teams, false
+	}
+	return teams, true
+}
+
+// sameFootballMatch decide si dos cadenas describen el mismo partido.
+// Compara los dos equipos como conjunto (insensible al orden local/visitante,
+// que varía entre fuentes) tras normalizar cada equipo. Sin formato "A - B"
+// recurre a igualdad exacta normalizada.
+//
+// Sustituye a la comparación por Contains, que fallaba su propio caso
+// publicitado ("Valencia - Barcelona" vs "Valencia CF - FC Barcelona" no
+// mergeaba) y solo se usa dentro del mismo DateKey, así que el orden no
+// distingue partidos distintos. Validado offline contra 13 juicios TypeSafe
+// (ver event_match_test.go). Limitación conocida: "Leeds" vs "Leeds United"
+// no mergea (conservador frente a City/United).
+func sameFootballMatch(a, b string) bool {
+	ta, oka := splitMatchTeams(a)
+	tb, okb := splitMatchTeams(b)
+	if !oka || !okb {
+		na := matchAccentReplacer.Replace(strings.ToLower(strings.Join(strings.Fields(a), "")))
+		nb := matchAccentReplacer.Replace(strings.ToLower(strings.Join(strings.Fields(b), "")))
+		return na != "" && na == nb
+	}
+	na := []string{normTeamName(ta[0]), normTeamName(ta[1])}
+	nb := []string{normTeamName(tb[0]), normTeamName(tb[1])}
+	sort.Strings(na)
+	sort.Strings(nb)
+	return na[0] == nb[0] && na[1] == nb[1] && na[0] != ""
 }
 
 func addCompetition(generalCompetition DayView, newCompetition []DayView) DayView {
@@ -632,10 +740,8 @@ func addCompetition(generalCompetition DayView, newCompetition []DayView) DayVie
 					for _, match := range matches {
 						found := false
 						for o := range generalCompetition.Competitions[compKey] {
-							normGeneral := normalizeEventForComparison(generalCompetition.Competitions[compKey][o].Match.Event)
-							normNew := normalizeEventForComparison(match.Event)
-							// match si son iguales o uno contiene al otro (Valencia - Barcelona vs Valencia CF - FC Barcelona)
-							if normGeneral == normNew || strings.Contains(normGeneral, normNew) || strings.Contains(normNew, normGeneral) {
+							// match insensible a orden/afijos ("Valencia - Barcelona" == "Valencia CF - FC Barcelona")
+							if sameFootballMatch(generalCompetition.Competitions[compKey][o].Match.Event, match.Event) {
 								found = true
 								merged := append(generalCompetition.Competitions[compKey][o].Broadcasters, match.Broadcasters...)
 								// dedup por nombre para no duplicar LALIGA HYPERMOTION desde distintas fuentes
