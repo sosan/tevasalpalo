@@ -119,6 +119,146 @@ func resolveElcanoFileURL(file string) func(string) (string, error) {
 	}
 }
 
+// fetchResult es el desenlace de descargar una fuente: cuerpo, error y si el
+// fallo fue un 4xx hopeless (no reintentable ni proxiable).
+type fetchResult struct {
+	body     []byte
+	err      error
+	attempts int
+	fatal4xx bool
+}
+
+func (r fetchResult) success() bool { return r.err == nil && len(r.body) != 0 }
+
+// resolveAndFetch resuelve la URL efectiva de la fuente (si tiene resolver) y
+// descarga el cuerpo en un solo intento. El resolver se llama en cada intento
+// porque el path puede rotar entre reintentos.
+func resolveAndFetch(s Source) ([]byte, error) {
+	fetchURL := s.URL
+	if s.Resolve != nil {
+		resolved, err := s.Resolve(s.URL)
+		if err != nil {
+			// Se propaga como error normal (no como fatal) para que la política
+			// de reintentos sea la misma que en el fetch.
+			return nil, fmt.Errorf("no se pudo resolver la URL: %w", err)
+		}
+		fetchURL = resolved
+	}
+	return FetchWebData(fetchURL, s.Proxied)
+}
+
+// fetchSourceBody descarga una fuente con reintentos y, como último recurso, vía
+// proxy. La política de reintento NO depende de si el fallo vino del resolver o
+// del fetch: un 429 del worker de elcano es tan reintentable como un 429 al
+// descargar la lista, y un error de red lo arregla cambiar de transporte. Antes
+// el resolver marcaba fatal4xx siempre, así que un 429 en el índice de elcano
+// mataba la fuente en el intento 1 sin reintentar ni probar el proxy.
+func fetchSourceBody(s Source, isDev bool) fetchResult {
+	return fetchSourceBodyConPolitica(s, isDev, maxFetchAttempts, defaultFetchBackoff)
+}
+
+// maxFetchAttempts: intentos contra la misma salida antes de rendirse.
+const maxFetchAttempts = 10
+
+// fetchBackoff: espera tras un intento fallido. Inyectable para no dormir en
+// los tests.
+type fetchBackoff func(attempt int) time.Duration
+
+func defaultFetchBackoff(attempt int) time.Duration {
+	backoff := time.Duration(1<<uint(attempt-1)) * time.Second
+	if backoff > 4*time.Second {
+		backoff = 4 * time.Second
+	}
+	return backoff
+}
+
+func fetchSourceBodyConPolitica(s Source, isDev bool, maxAttempts int, backoff fetchBackoff) fetchResult {
+	var res fetchResult
+	netErrs := 0
+	fetchURL := s.URL
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		res.attempts = attempt
+
+		if isDev {
+			log.Printf("📡 [%s] intento %d/%d %s (proxied=%v)", s.Name, attempt, maxAttempts, fetchURL, s.Proxied)
+		} else if attempt == 1 {
+			log.Printf("📡 Obteniendo [%s] %s", s.Name, fetchURL)
+		}
+
+		body, err := resolveAndFetch(s)
+		if err == nil && len(body) != 0 {
+			return fetchResult{body: body, attempts: attempt}
+		}
+		res.err = err
+
+		// Fallo de DNS/conexión: reintentar contra la MISMA salida no lo
+		// arregla (el resolver local sigue roto). Tras unos pocos intentos se
+		// deja pasar al fallback por proxy, que resuelve el DNS por su cuenta
+		// (no se marca fatal: el proxy sí puede resolverlo).
+		if isNetworkErr(err) {
+			netErrs++
+			if netErrs >= maxNetworkRetries {
+				if isDev {
+					log.Printf("🔄 [%s] %d fallos de red seguidos, paso al proxy: %v", s.Name, netErrs, err)
+				}
+				break
+			}
+		} else {
+			netErrs = 0
+		}
+
+		// 429 (rate limit) SÍ reintenta con backoff; el resto de 4xx no.
+		if isFatalFetchErr(err) {
+			res.fatal4xx = true
+			if isDev {
+				log.Printf("❌ [%s] 4xx no reintenta: %v", s.Name, err)
+			} else {
+				log.Printf("❌ [%s] error 4xx: %v", s.Name, err)
+			}
+			break
+		}
+
+		if isDev {
+			switch {
+			case err != nil:
+				log.Printf("⚠️  [%s] intento %d fallo (reintentable): %v", s.Name, attempt, err)
+			default:
+				log.Printf("⚠️  [%s] intento %d body vacío", s.Name, attempt)
+			}
+		}
+
+		if attempt < maxAttempts {
+			time.Sleep(backoff(attempt))
+		}
+	}
+
+	if shouldProxyFallback(s, res.success(), res.fatal4xx) {
+		// Último recurso: la IP directa puede estar limitada (429
+		// persistente); otra salida vía proxy (Tor/xray) lo salva.
+		log.Printf("🔄 [%s] directa agotada, último recurso vía proxy...", s.Name)
+		for pAttempt := 1; pAttempt <= 3; pAttempt++ {
+			if s.Resolve != nil {
+				if resolved, rErr := s.Resolve(s.URL); rErr == nil {
+					fetchURL = resolved
+				}
+			}
+			body, err := FetchWebData(fetchURL, true)
+			if err == nil && len(body) != 0 {
+				log.Printf("✅ [%s] recuperada vía proxy (intento %d/3)", s.Name, pAttempt)
+				return fetchResult{body: body, attempts: res.attempts}
+			}
+			res.err = err
+			if isDev {
+				log.Printf("⚠️  [%s] proxy intento %d/3 fallo: %v", s.Name, pAttempt, err)
+			}
+			time.Sleep(time.Duration(pAttempt) * 5 * time.Second)
+		}
+	}
+
+	return res
+}
+
 func FetchUpdatedList() error {
 	ensureNormGateway()
 	isDev := os.Getenv("ENV") == "dev"
@@ -133,94 +273,21 @@ func FetchUpdatedList() error {
 	for _, src := range sources {
 		wg.Add(1)
 		go func(s Source) {
-		defer wg.Done()
-		var body []byte
-		var err error
-		var success bool
-		fatal4xx := false
-		// URL efectiva: si la fuente tiene resolver, secalcula en cada
-		// intento (el path puede rotar entre reintentos).
-		fetchURL := s.URL
-		for attempt := 1; attempt <= 10; attempt++ {
-				if s.Resolve != nil {
-					resolved, rErr := s.Resolve(s.URL)
-					if rErr != nil {
-						log.Printf("❌ [%s] no se pudo resolver la URL: %v", s.Name, rErr)
-						fatal4xx = true
-						break
-					}
-					fetchURL = resolved
-				}
-				if isDev {
-					log.Printf("📡 [%s] intento %d/10 %s (proxied=%v)", s.Name, attempt, fetchURL, s.Proxied)
-				} else if attempt == 1 {
-					log.Printf("📡 Obteniendo [%s] %s", s.Name, fetchURL)
-				}
-				body, err = FetchWebData(fetchURL, s.Proxied)
-				if err == nil && len(body) != 0 {
-					success = true
-					break
-				}
-			if err != nil {
-				// 429 (rate limit) SÍ reintenta con backoff; el resto de 4xx no.
-				if isFatalFetchErr(err) {
-					fatal4xx = true
-					if isDev {
-						log.Printf("❌ [%s] 4xx no reintenta: %v", s.Name, err)
-					} else {
-						log.Printf("❌ [%s] error 4xx: %v", s.Name, err)
-					}
-					break
-				}
-				if isDev {
-					log.Printf("⚠️  [%s] intento %d fallo (reintentable): %v", s.Name, attempt, err)
-				}
-			} else if len(body) == 0 {
-					if isDev {
-						log.Printf("⚠️  [%s] intento %d body vacío", s.Name, attempt)
-					}
-				}
-				if attempt < 10 {
-					backoff := time.Duration(1<<uint(attempt-1)) * time.Second
-					if backoff > 4*time.Second {
-						backoff = 4 * time.Second
-					}
-					time.Sleep(backoff)
-				}
-		}
-		if shouldProxyFallback(s, success, fatal4xx) {
-			// Último recurso: la IP directa puede estar limitada (429
-			// persistente); otra salida vía proxy (Tor/xray) lo salva.
-			log.Printf("🔄 [%s] directa agotada, último recurso vía proxy...", s.Name)
-			for pAttempt := 1; pAttempt <= 3 && !success; pAttempt++ {
-				if s.Resolve != nil {
-					if resolved, rErr := s.Resolve(s.URL); rErr == nil {
-						fetchURL = resolved
-					}
-				}
-				body, err = FetchWebData(fetchURL, true)
-				if err == nil && len(body) != 0 {
-					success = true
-					log.Printf("✅ [%s] recuperada vía proxy (intento %d/3)", s.Name, pAttempt)
-					break
-				}
-				if isDev {
-					log.Printf("⚠️  [%s] proxy intento %d/3 fallo: %v", s.Name, pAttempt, err)
-				}
-				time.Sleep(time.Duration(pAttempt) * 5 * time.Second)
-			}
-		}
-		if !success {
-				log.Printf("❌ [%s] no se pudo obtener tras 10 intentos", s.Name)
-				if err != nil {
+			defer wg.Done()
+			res := fetchSourceBody(s, isDev)
+
+			if !res.success() {
+				log.Printf("❌ [%s] no se pudo obtener tras %d intentos", s.Name, res.attempts)
+				if res.err != nil {
 					firstErrMu.Lock()
 					if firstErr == nil {
-						firstErr = err
+						firstErr = res.err
 					}
 					firstErrMu.Unlock()
 				}
 				return
 			}
+			body := res.body
 			var extracted map[string][]string
 			switch s.Type {
 			case SourceTxtRaw:
@@ -238,8 +305,8 @@ func FetchUpdatedList() error {
 				log.Printf("❌ [%s] tipo desconocido %q", s.Name, s.Type)
 				return
 			}
-		mu.Lock()
-		broadcasterToAcestream = updateBroadcasterMapWithGatewayTolerant(broadcasterToAcestream, extracted, s.Name)
+			mu.Lock()
+			broadcasterToAcestream = updateBroadcasterMapWithGatewayTolerant(broadcasterToAcestream, extracted, s.Name)
 			fetchedCount++
 			mu.Unlock()
 		}(src)
@@ -354,12 +421,55 @@ func extractDataFromWebShitkat(body []byte) map[string][]string {
 	return extractedData
 }
 
+// reHashCorrupto: un token que parece un hash de AceStream pero no lo es:
+// 40 caracteres de los cuales 39 son hex y el último es cualquier letra o
+// dígito. Es lo que publica listaplana cuando un hash se trunca o se le
+// pega un carácter ("d4ff041287a43e3114d411d671c4b4e92e21f33y"). Se distingue
+// de un nombre de canal porque no contiene espacios ni más de 42 caracteres.
+var reHashCorrupto = regexp.MustCompile(`^[a-f0-9]{30,41}[^a-f0-9\s]$|^[a-f0-9]{42,}$`)
+
+// esHashCorrupto dice si la línea es un hash mal formado y no un nombre de
+// canal ni un enlace válido.
+func esHashCorrupto(line string) bool {
+	t := strings.TrimSpace(line)
+	if t == "" {
+		return false
+	}
+	// Si extractHashFromLink lo reconoce como enlace, no es basura.
+	if extractHashFromLink(t) != "" || strings.Contains(t, "://") || strings.HasPrefix(t, "p;") {
+		return false
+	}
+	return reHashCorrupto.MatchString(t)
+}
+
+// normalizarNombreACB renombra los eventos ACB a los nombres de DAZN que usan
+// el resto del mapa (vars.go).
+func normalizarNombreACB(nombre string) string {
+	switch nombre {
+	case "ACB EVENTO 01":
+		return "DAZN BALONCESTO 1"
+	case "ACB EVENTO 02":
+		return "DAZN BALONCESTO 2"
+	case "ACB EVENTO 03":
+		return "DAZN BALONCESTO 3"
+	}
+	return nombre
+}
+
 func extractDataFromWebTxtRaw(body []byte) map[string][]string {
 	extractedData := make(map[string][]string)
 	rawLines := strings.Split(string(body), "\n")
-	// Filtrar cabeceras/ruido de tokyo_elcano y similares. El fichero mezcla
-	// español e inglés y algunas cabeceras no empiezan por "===", así que se
-	// compara en minúsculas y por prefijo para no arrastrar basura al emparejado.
+	// Una pasada de limpieza: cabeceras/ruido de tokyo_elcano y similares (el
+	// fichero mezcla español e inglés y algunas cabeceras no empiezan por
+	// "===", así que se compara en minúsculas y por prefijo) más los hashes
+	// corruptos que el publicador dejó sueltos.
+	//
+	// Los hashes corruptos ("d4ff...33y": 39 hex + una letra) se descartan
+	// ANTES del emparejado. Si no, la resincronización los toma como nombre y
+	// el nombre real de al lado como enlace, y el log emite dos avisos que
+	// parecen una pérdida ("M+ LALIGA" -> hash, hash -> "M+ LALIGA FHD") cuando
+	// el par bueno se recupera igual. El aviso que queda es el que importa: el
+	// canal al que le faltaba su hash.
 	var lines []string
 	for _, l := range rawLines {
 		t := strings.TrimSpace(l)
@@ -375,26 +485,25 @@ func extractDataFromWebTxtRaw(body []byte) map[string][]string {
 			strings.HasPrefix(lower, "total:") {
 			continue
 		}
+		if esHashCorrupto(t) {
+			if os.Getenv("ENV") == "dev" {
+				log.Printf("⚠️  txtRaw hash corrupto descartado: %q", t)
+			}
+			continue
+		}
 		lines = append(lines, l)
 	}
+
 	// Emparejado nombre/enlace con resincronización: si la línea de enlace no
 	// aporta nada usable se avanza de uno en uno, para que un desajuste no se
 	// arrastre al resto del fichero (cabeceras filtradas, pares incompletos...).
 	for i := 0; i+1 < len(lines); i++ {
 		nombre := normalizeChannelName(lines[i])
-		if nombre == "ACB EVENTO 01" {
-			nombre = "DAZN BALONCESTO 1"
-		}
-		if nombre == "ACB EVENTO 02" {
-			nombre = "DAZN BALONCESTO 2"
-		}
-		if nombre == "ACB EVENTO 03" {
-			nombre = "DAZN BALONCESTO 3"
-		}
-		acestreamLink := strings.TrimSpace(lines[i+1])
 		if nombre == "" {
 			continue
 		}
+		nombre = normalizarNombreACB(nombre)
+		acestreamLink := strings.TrimSpace(lines[i+1])
 		// tokyo_elcano entrega "acestream://<hash>"; el player solo acepta hash
 		// 40 hex puro, así que se normaliza igual que en las fuentes M3U.
 		if hash := extractHashFromLink(acestreamLink); hash != "" {
@@ -635,24 +744,134 @@ func extractDataFromM3U_Manual(body []byte, filterList []string) map[string][]st
 	return extractedData
 }
 
+// hostMuerto recuerda los hosts cuyos enlaces "p;" no resuelven, para que N
+// enlaces del mismo servidor muerto costen un solo timeout en vez de N. Log de
+// arranque: dos servidores directos muertos (181.78.106.127:9000 con
+// "connection refused" y 190.92.10.66:4000 sin headers) costaban 20 s cada uno
+// porque se recorrían en serie.
+type hostMuerto struct {
+	mu    sync.Mutex
+	hosts map[string]bool
+}
+
+func newHostMuerto() *hostMuerto {
+	return &hostMuerto{hosts: make(map[string]bool)}
+}
+
+func (h *hostMuerto) markDead(host string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.hosts[host] = true
+}
+
+func (h *hostMuerto) isDead(host string) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.hosts[host]
+}
+
+// pLink es un enlace "p;" pendiente de resolver: el broadcaster al que
+// pertenece y la URL inicial.
+type pLink struct {
+	broacasterKey string
+	linkIndex     int
+	initialURI    string
+}
+
+// transformUriSafeBroadcasters resuelve los enlaces "p;" y codifica todos los
+// enlaces en base64 URI-safe.
+//
+// La resolución va en paralelo (pLinkWorkers) y con un timeout menor que el
+// global, porque aquí no hace falta el manifiesto entero: solo la URL final
+// tras las redirecciones. Además, cuando un host falla se marca como muerto
+// para el resto de la pasada, así que N enlaces del mismo servidor muerto
+// cuestan un solo timeout en vez de N.
 func transformUriSafeBroadcasters(broadcasterToAcestream map[string]BroadcasterInfo) map[string]BroadcasterInfo {
-	redirectClient := IinitializeRedirectClients()
-	for key := range broadcasterToAcestream {
-		originalLen := len(broadcasterToAcestream[key].Links)
-		newLinks := make([]string, 0, originalLen)
-		for i := 0; i < originalLen; i++ {
-			link := broadcasterToAcestream[key].Links[i]
+	isDev := os.Getenv("ENV") == "dev"
+
+	// Fase 1: recoger los enlaces "p;" sin tocar la red.
+	type broadcasterJob struct {
+		key      string
+		original []string
+		indices  []int
+		initial  []string
+	}
+	var jobs []broadcasterJob
+	for key, info := range broadcasterToAcestream {
+		job := broadcasterJob{key: key}
+		for i, link := range info.Links {
 			if strings.TrimSpace(link) == "" {
 				continue
 			}
 			if strings.Contains(link, "p;") {
-				initialUri := strings.Split(link, "p;")[1]
-				finalURL, _, _, err := resolveFinalManifestURL(initialUri, redirectClient)
-				if err == nil && strings.TrimSpace(finalURL) != "" {
+				job.indices = append(job.indices, i)
+				job.initial = append(job.initial, strings.Split(link, "p;")[1])
+			}
+		}
+		job.original = info.Links
+		jobs = append(jobs, job)
+	}
+
+	// Fase 2: resolver en paralelo.
+	resolved := map[pLink]string{}
+	var pending []pLink
+	for _, job := range jobs {
+		for idx, initial := range job.initial {
+			pending = append(pending, pLink{broacasterKey: job.key, linkIndex: job.indices[idx], initialURI: initial})
+		}
+	}
+	if len(pending) > 0 {
+		muertos := newHostMuerto()
+		var muResolved sync.Mutex
+		sem := make(chan struct{}, pLinkWorkers)
+		var wg sync.WaitGroup
+		for _, p := range pending {
+			wg.Add(1)
+			sem <- struct{}{}
+			go func(p pLink) {
+				defer wg.Done()
+				defer func() { <-sem }()
+
+				host := hostDeURL(p.initialURI)
+				if host != "" && muertos.isDead(host) {
+					if isDev {
+						log.Printf("⏭️  [%s] host ya caído, se mantiene p; original %s", p.broacasterKey, p.initialURI)
+					}
+					return
+				}
+
+				client := IinitializeRedirectClients()
+				finalURL, _, _, err := resolveFinalManifestURL(p.initialURI, client)
+				StopRedirectClient(client)
+
+				if err != nil || strings.TrimSpace(finalURL) == "" {
+					if host != "" {
+						muertos.markDead(host)
+					}
+					log.Printf("⚠️  [%s] no se pudo resolver p; link %s (err=%v) - manteniendo original", p.broacasterKey, p.initialURI, err)
+					return
+				}
+				muResolved.Lock()
+				resolved[p] = finalURL
+				muResolved.Unlock()
+			}(p)
+		}
+		wg.Wait()
+	}
+
+	// Fase 3: ensamblar los enlaces finales por broadcaster.
+	for _, job := range jobs {
+		newLinks := make([]string, 0, len(job.original))
+		for i, link := range job.original {
+			if strings.TrimSpace(link) == "" {
+				continue
+			}
+			if strings.Contains(link, "p;") {
+				initialURI := strings.Split(link, "p;")[1]
+				if finalURL, ok := resolved[pLink{broacasterKey: job.key, linkIndex: i, initialURI: initialURI}]; ok && strings.TrimSpace(finalURL) != "" {
 					link = finalURL
 				} else {
-					log.Printf("⚠️  [%s] no se pudo resolver p; link %s (err=%v) - manteniendo original", key, initialUri, err)
-					link = initialUri
+					link = initialURI
 				}
 			}
 			if strings.TrimSpace(link) == "" {
@@ -666,16 +885,33 @@ func transformUriSafeBroadcasters(broadcasterToAcestream map[string]BroadcasterI
 				newLinks = append(newLinks, link)
 			}
 		}
-		info := broadcasterToAcestream[key]
+		info := broadcasterToAcestream[job.key]
 		info.Links = removeDuplicates(newLinks)
-		broadcasterToAcestream[key] = info
+		broadcasterToAcestream[job.key] = info
 		// Solo avisar si tenía links y se quedó sin ninguno tras transformar (evita ruido de broadcasters que ya nacen vacíos como HYPERMOTION alias o DAZN LALIGA 3 recién creado)
-		if os.Getenv("ENV") == "dev" && originalLen > 0 && len(newLinks) == 0 {
-			log.Printf("⚠️  [%s] quedó sin links válidos tras transformUriSafe (tenía %d, ahora 0)", key, originalLen)
+		if isDev && len(job.original) > 0 && len(newLinks) == 0 {
+			log.Printf("⚠️  [%s] quedó sin links válidos tras transformUriSafe (tenía %d, ahora 0)", job.key, len(job.original))
 		}
 	}
-	StopRedirectClient(redirectClient)
 	return broadcasterToAcestream
+}
+
+// pLinkWorkers: nº de resoluciones "p;" simultáneas. Acota los conexiones a
+// los servidores directos sin arrastrar una lluvia de peticiones.
+const pLinkWorkers = 8
+
+// pLinkTimeout: timeout para resolver una URL "p;". Solo interesa la URL final
+// tras redirecciones, así que no hace falta esperar el manifiesto entero ni
+// pagar los 20 s de timeTimeout por cada servidor caído.
+const pLinkTimeout = 6 * time.Second
+
+// hostDeURL extrae host:port de una URL para la cache de hosts caídos.
+func hostDeURL(u string) string {
+	parsed, err := url.Parse(strings.TrimSpace(u))
+	if err != nil {
+		return ""
+	}
+	return parsed.Host
 }
 
 func changeLinkToUriSafe(url string) string {

@@ -1,10 +1,14 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 )
 
 // El worker de elcano publica detrás de un IPNS cuyo subdirectorio (CID) rota
@@ -196,6 +200,261 @@ func contains(s []string, v string) bool {
 		}
 	}
 	return false
+}
+
+// Un fallo de DNS o de conexión no se arregla reintentando contra la misma
+// salida: hay que cambiar de transporte. Con filebase se midió 32 s de
+// reintentos por directa frente a 1 s por proxy.
+func TestIsNetworkErr(t *testing.T) {
+	red := []error{
+		errors.New(`Get "https://ipfs.filebase.io/x": dial tcp: lookup ipfs.filebase.io: no such host`),
+		errors.New(`dial tcp 127.0.0.1:9050: connect: connection refused`),
+		errors.New("read tcp: connection reset by peer"),
+		errors.New("dial tcp: no route to host"),
+		errors.New("dial tcp: network is unreachable"),
+		errors.New("context deadline exceeded (Client.Timeout exceeded while awaiting headers)"),
+		errors.New("unexpected EOF"),
+		errors.New("lookup server misbehaving"),
+	}
+	for _, err := range red {
+		if !isNetworkErr(err) {
+			t.Errorf("debería detectarse como error de red: %v", err)
+		}
+	}
+	otros := []error{
+		nil,
+		errors.New("status code error: 403 Forbidden"),
+		errors.New("status code error: 429 Too Many Requests"),
+		errors.New("error al parsear el HTML: EOF inesperado"),
+	}
+	for _, err := range otros {
+		if isNetworkErr(err) {
+			t.Errorf("no debería detectarse como error de red: %v", err)
+		}
+	}
+}
+
+// Un 4xx sigue siendo fatal (no fallback), pero un error de red debe dejar
+// paso al fallback por proxy: fatal4xx se queda en false a propósito.
+func TestShouldProxyFallbackConErrorDeRed(t *testing.T) {
+	src := Source{Name: "x", Proxied: false}
+	if !shouldProxyFallback(src, false, false) {
+		t.Error("con error de red (fatal=false) debe entrar el fallback por proxy")
+	}
+	if shouldProxyFallback(src, false, true) {
+		t.Error("un 4xx fatal no debe entrar al fallback")
+	}
+	if shouldProxyFallback(src, true, false) {
+		t.Error("si ya tuvo éxito no debe entrar al fallback")
+	}
+	proxied := Source{Name: "x", Proxied: true}
+	if shouldProxyFallback(proxied, false, false) {
+		t.Error("una fuente ya proxied no necesita fallback")
+	}
+	if maxNetworkRetries >= 10 {
+		t.Errorf("maxNetworkRetries=%d anula el ahorro: el bucle tiene 10 intentos", maxNetworkRetries)
+	}
+}
+
+// Una fuente con resolver cuyo índice devuelve 429 NO es un 4xx hopeless: se
+// reintenta y, si no sale, entra el fallback por proxy. Antes el resolver
+// marcaba fatal4xx siempre, así que un 429 del worker de elcano mataba la
+// fuente en el primer intento y se perdía entera.
+func TestFetchSourceBodyCon429EnResolverReintenta(t *testing.T) {
+	var resolves int32
+	src := Source{
+		Name: "tokyo_elcano",
+		URL:  "http://127.0.0.1:1/nunca-se-usa",
+		Type: SourceTxtRaw,
+		// Proxied: evita el fallback por proxy, que en test cuesta ~30 s de
+		// timeouts contra SOCKS inexistentes. La decisión de entrar al proxy se
+		// verifica en TestShouldProxyFallbackTras429DeResolver.
+		Proxied: true,
+		Resolve: func(index string) (string, error) {
+			atomic.AddInt32(&resolves, 1)
+			return "", fmt.Errorf("no se pudo leer el índice %s: status code error: 429 429 Too Many Requests", index)
+		},
+	}
+
+	res := fetchSourceBodyConPolitica(src, false, 3, func(int) time.Duration { return 0 })
+
+	if atomic.LoadInt32(&resolves) < 2 {
+		t.Errorf("un 429 debe reintentarse: el resolver se llamó %d vez/veces", resolves)
+	}
+	if res.attempts < 2 {
+		t.Errorf("un 429 debe reintentarse: solo hubo %d intento(s)", res.attempts)
+	}
+	if res.fatal4xx {
+		t.Error("un 429 no debe marcarse fatal4xx (deja pasar el fallback por proxy)")
+	}
+	if res.success() {
+		t.Error("nunca respondió bien: no debe darse por buena")
+	}
+}
+
+// Con un 429 (fatal4xx=false) una fuente directa tiene que entrar al fallback
+// por proxy: es justo lo que se perdía cuando el resolver marcaba fatal.
+func TestShouldProxyFallbackTras429DeResolver(t *testing.T) {
+	src := Source{
+		Name: "tokyo_elcano",
+		Type: SourceTxtRaw,
+		Resolve: func(string) (string, error) {
+			return "", fmt.Errorf("no se pudo leer el índice: status code error: 429 429 Too Many Requests")
+		},
+	}
+	// Un 429 no es fatal: la fuente directa agotada debe poder entrar al proxy.
+	if !shouldProxyFallback(src, false, false) {
+		t.Error("tras un 429 la fuente debe poder reintentarse vía proxy")
+	}
+}
+
+// El 4xx hopeless (403) sí es fatal y sí corta: no tiene sentido reintentar un
+// 10 veces ni pedirle al proxy algo que va a seguir dando Forbidden.
+func TestFetchSourceBodyCon403EnResolverEsFatal(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+	}))
+	defer srv.Close()
+
+	src := Source{
+		Name: "tokyo_elcano",
+		URL:  srv.URL,
+		Type: SourceTxtRaw,
+		Resolve: func(index string) (string, error) {
+			return "", fmt.Errorf("no se pudo leer el índice %s: status code error: 403 Forbidden", index)
+		},
+	}
+
+	res := fetchSourceBody(src, false)
+
+	if !res.fatal4xx {
+		t.Error("un 403 sí debe marcarse fatal4xx")
+	}
+	if res.attempts != 1 {
+		t.Errorf("un 403 debe cortar en el intento 1, hizo %d", res.attempts)
+	}
+}
+
+// Una fuente sin resolver que responde bien tiene que devolver el cuerpo tal
+// cual, sin pasar por el fallback ni perderlo.
+func TestFetchSourceBodySinResolverOK(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("cuerpo"))
+	}))
+	defer srv.Close()
+
+	res := fetchSourceBody(Source{Name: "x", URL: srv.URL, Type: SourceTxtRaw}, false)
+
+	if !res.success() || string(res.body) != "cuerpo" {
+		t.Fatalf("res = %+v, se esperaba el cuerpo \"cuerpo\"", res)
+	}
+	if res.attempts != 1 {
+		t.Errorf("un acierto debe gastar un intento, gastó %d", res.attempts)
+	}
+}
+
+// Un hash mal publicado (39 hex + una letra) no puede quedarse como nombre de
+// canal ni contaminar el emparejado del par bueno de al lado. Antes producía
+// dos avisos en cascada que parecían una pérdida de entrada.
+func TestTxtRawDescartaHashCorrupto(t *testing.T) {
+	body := []byte(strings.Join([]string{
+		"CANAL ROTO",
+		"d4ff041287a43e3114d411d671c4b4e92e21f33y", // corrupto: 39 hex + "y"
+		"M+ LALIGA FHD --> NEW ERA VI",
+		"acestream://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		"LA 1",
+		"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+	}, "\n"))
+
+	got := extractDataFromWebTxtRaw(body)
+
+	if _, ok := got["d4ff041287a43e3114d411d671c4b4e92e21f33y"]; ok {
+		t.Error("el hash corrupto acabó siendo nombre de canal")
+	}
+	if _, ok := got["CANAL ROTO"]; ok {
+		t.Error("un nombre sin hash no debe crear entrada: se emparejó con el hash corrupto")
+	}
+	// "M+ LALIGA FHD --> NEW ERA VI" se normaliza a "M+ LALIGA" (se recorta
+	// tras --> y la etiqueta de calidad).
+	if h := got["M+ LALIGA"]; len(h) != 1 || h[0] != "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" {
+		t.Errorf("el par bueno no se recuperó: %v", got)
+	}
+	if h := got["LA 1"]; len(h) != 1 || h[0] != "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" {
+		t.Errorf("el par siguiente se vio afectado: %v", got["LA 1"])
+	}
+}
+
+// Un hash válido (40 hex) NUNCA se descarta, ni pelado ni con acestream://.
+func TestTxtRawNoDescartaHashesValidos(t *testing.T) {
+	validos := []string{
+		"0123456789abcdef0123456789abcdef01234567",
+		"acestream://0123456789abcdef0123456789abcdef01234567",
+	}
+	for _, h := range validos {
+		if esHashCorrupto(h) {
+			t.Errorf("hash válido descartado por esHashCorrupto: %q", h)
+		}
+	}
+	// Un nombre de canal con espacios y letras no puede ser un hash roto.
+	if esHashCorrupto("M+ LALIGA") {
+		t.Error("un nombre de canal no es un hash corrupto")
+	}
+	if esHashCorrupto("") {
+		t.Error("línea vacía no es un hash corrupto")
+	}
+}
+
+// Los nombres largos en cirílico/ruso de listaplana (НТВ, КХЛ ТВ) deben
+// sobrevivir al filtro de ruido: tienen espacios y van más allá de 42
+// caracteres cuando llevan coletilla.
+func TestTxtRawConservaNombresNoASCII(t *testing.T) {
+	body := []byte("НТВ\n0123456789abcdef0123456789abcdef01234567\nКХЛ ТВ\nfedcba9876543210fedcba9876543210fedcba98\n")
+	got := extractDataFromWebTxtRaw(body)
+	if len(got["НТВ"]) != 1 {
+		t.Errorf("НТВ perdido: %v", got)
+	}
+	if len(got["КХЛ ТВ"]) != 1 {
+		t.Errorf("КХЛ ТВ perdido: %v", got)
+	}
+}
+
+// La resolución de enlaces "p;" no puede dejar el arranque en manos de un
+// único servidor caído: el timeout tiene que ser menor que el global.
+func TestPLinkTimeoutMenorQueGlobal(t *testing.T) {
+	if pLinkTimeout >= timeTimeout {
+		t.Errorf("pLinkTimeout=%s debe ser menor que timeTimeout=%s: aquí solo se busca la URL final", pLinkTimeout, timeTimeout)
+	}
+	if pLinkWorkers < 2 {
+		t.Errorf("pLinkWorkers=%d deja la resolución en serie", pLinkWorkers)
+	}
+}
+
+// Un host caído se recuerda: dos enlaces del mismo servidor muerto no pueden
+// costar dos timeouts.
+func TestHostMuerto(t *testing.T) {
+	h := newHostMuerto()
+	if h.isDead("181.78.106.127:9000") {
+		t.Error("un host recién creado no puede estar muerto")
+	}
+	h.markDead("181.78.106.127:9000")
+	if !h.isDead("181.78.106.127:9000") {
+		t.Error("el host marcado debe recordarse")
+	}
+	if h.isDead("190.92.10.66:4000") {
+		t.Error("un host distinto no debe marcarse")
+	}
+	if host := hostDeURL("http://181.78.106.127:9000/play/ca028/index.m3u8"); host != "181.78.106.127:9000" {
+		t.Errorf("hostDeURL = %q", host)
+	}
+}
+
+// Los nombres de evento ACB se renombran a los de DAZN en el mapa de broadcasters.
+func TestTxtRawRenombraEventosACB(t *testing.T) {
+	body := []byte("ACB EVENTO 01\n0123456789abcdef0123456789abcdef01234567\n")
+	got := extractDataFromWebTxtRaw(body)
+	if len(got["DAZN BALONCESTO 1"]) != 1 {
+		t.Errorf("ACB EVENTO 01 no se renombró: %v", got)
+	}
 }
 
 // Toda fuente sin resolver debe usar un tipo que el parser soporta.

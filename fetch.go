@@ -27,19 +27,20 @@ const (
 	timeTimeout = 20 * time.Second
 )
 
+// IinitializeRedirectClients devuelve el cliente para resolver URLs "p;".
+// El timeout es corto a propósito: aquí solo se busca la URL final tras las
+// redirecciones, no el manifiesto. Con timeTimeout (20 s) cada servidor
+// directo caído costaba 20 s de arranque.
 func IinitializeRedirectClients() *http.Client {
-	client := &http.Client{
+	return &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			if len(via) >= 10 {
 				return fmt.Errorf("stopped after 10 redirects")
 			}
-			
 			return http.ErrUseLastResponse
 		},
-		Timeout: timeTimeout,
+		Timeout: pLinkTimeout,
 	}
-
-	return client
 }
 
 func StopRedirectClient(client *http.Client) {
@@ -179,6 +180,41 @@ func isFatalFetchErr(err error) bool {
 	msg := err.Error()
 	return strings.Contains(msg, "status code error: 4") &&
 		!strings.Contains(msg, "status code error: 429")
+}
+
+// maxNetworkRetries: intentos contra la misma salida cuando el fallo es de
+// red (DNS/conexión) antes de rotating de transporte.
+const maxNetworkRetries = 3
+
+// isNetworkErr detecta fallos de transporte: el resolver local no encuentra el
+// host, o no hay quien acepte la conexión. Reintentar 10 veces contra la MISMA
+// salida no lo arregla (el resolver local sigue roto), pero cambiar de
+// transporte sí: el proxy resuelve el DNS por su cuenta. Medido con
+// ipfs.filebase.io: 32 s de reintentos por directa y 1 s por proxy.
+func isNetworkErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	for _, s := range []string{
+		"no such host",
+		"server misbehaving",
+		"connection refused",
+		"connection reset",
+		"no route to host",
+		"network is unreachable",
+		"i/o timeout",
+		"Client.Timeout exceeded",
+		// Solo "unexpected EOF", no un "EOF" a secas: casa con errores de
+		// parseo propios ("error al parsear el HTML: EOF inesperado") que no
+		// son de red.
+		"unexpected EOF",
+	} {
+		if strings.Contains(msg, s) {
+			return true
+		}
+	}
+	return false
 }
 
 // shouldProxyFallback decide el último recurso para fuentes directas
