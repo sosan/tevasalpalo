@@ -1,17 +1,17 @@
 module main
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/gofiber/fiber/v3 v3.5.0
-	github.com/gofiber/template/html/v2 v2.1.3
+	github.com/gofiber/template/html/v3 v3.0.10
 	golang.org/x/net v0.58.0
 )
 
 require (
 	github.com/gofiber/schema v1.8.3 // indirect
-	github.com/gofiber/template/v2 v2.1.1 // indirect
-	github.com/gofiber/utils/v2 v2.4.2 // indirect
+	github.com/gofiber/template/v2 v2.1.3 // indirect
+	github.com/gofiber/utils/v2 v2.6.1 // indirect
 	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/tinylib/msgp v1.6.4 // indirect
 	golang.org/x/text v0.41.0 // indirect
@@ -37,8 +37,6 @@ require (
 require (
 	github.com/PuerkitoBio/goquery v1.13.0
 	github.com/andybalholm/brotli v1.2.3 // indirect
-	// github.com/chromedp/chromedp v0.14.1
-	github.com/gofiber/template/html/v3 v3.0.8
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grafov/m3u8 v0.12.1
 	github.com/klauspost/compress v1.19.2 // indirect
@@ -49,5 +47,5 @@ require (
 	// github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.73.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
 )
