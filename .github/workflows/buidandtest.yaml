@@ -181,6 +181,54 @@ jobs:
             ./build/${{ matrix.artifact_name }}
             date_build_${{ matrix.artifact_name }}.txt
 
+  # Build de linux/amd64 con el motor de Linux (tar.gz con acestreamengine ELF).
+  # Sube artefacto de workflow, no al release, para no competir con el job de
+  # Windows por la release "latest".
+  build-linux:
+    name: Build linux/amd64
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v7
+      - name: Cache and Install apt (.deb) Packages
+        uses: eth-pkg/apt-deb-cache@v0.2.7
+        with:
+          packages: 'megatools'
+
+      - name: Descargar assets
+        run: |
+          megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_ACE_LINUX_TARBALL }}
+          megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_TOR_WINDOWS_ZIPPED }}
+          megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_TOR_LINUX_ZIPPED }}
+          # go:embed exige el nombre exacto y el fichero de Mega puede venir con
+          # otro (p. ej. acestream_3.2.11_ubuntu_22.04_x86_64_py3.10.tar.gz).
+          if [ ! -f ./assets/acestream-runtime-linux-x86_64.tar.gz ]; then
+            mv ./assets/*.tar.gz ./assets/acestream-runtime-linux-x86_64.tar.gz
+          fi
+          ls -la ./assets/
+
+      - name: Build
+        run: |
+          export VERSION_BUILD=$(date -u "+%Y-%m-%dT%H:%M:%SZ")
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-X 'main/update.VersionBuild=${VERSION_BUILD}'" -o ./build/portable .
+
+      - name: Unit tests
+        run: |
+          # El módulo se llama "main", que no es importable, así que go test
+          # sobre el paquete raíz falla con "cannot import main". Se prueba en
+          # una copia con el módulo renombrado.
+          cp -r . /tmp/t && cd /tmp/t
+          sed -i 's|^module main$|module acestreamtest|' go.mod
+          sed -i 's|"main/update"|"acestreamtest/update"|' main.go server.go
+          go test ./...
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portable-linux-amd64
+          path: ./build/portable
+
 # shasum -a 256 ${{ matrix.artifact_name }} | cut -d' ' -f1 > checksum_${{ matrix.artifact_name }}.txt
 # echo "VERSION_BUILD=${date}" >> "$GITHUB_OUTPUT"
 # docker run --rm ghcr.io/${{ github.actor }}/${{ github.event.repository.name }}:${{ github.run_id }} echo "lanzar comando para test npm run tests"

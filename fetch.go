@@ -136,7 +136,11 @@ func createSOCKS5Client() (*http.Client, error) {
 //   - "socks5": SOCKS5 genérico en SOCKS5_ADDR (defecto si hay XRAY_LINK o
 //     XRAY_SUB: xray en-proceso gestionado por la app, ver xray.go).
 //     Primario xray, reserva Tor por la rotación automática.
-// XRAY_SUB: URL de subscripción (lista vless/trojan/ss/wireguard, texto o base64).
+// XRAY_FILE: ruta de un fichero local con los enlaces. Si no se pone nada,
+//   se autodetecta "xray-links.txt" junto al ejecutable: pega ahí el volcado
+//   de tu canal de Telegram tal cual (deduplica y descarta el ruido) y la app
+//   lo usa sin configurar nada.
+// XRAY_SUB: URL de subscripción (lista vless/vmess/trojan/ss/socks/wireguard, texto o base64).
 //   Se prueba con tráfico real y se usa el primer endpoint vivo; XRAY_LINK
 //   queda como reserva. Los enlaces nunca se guardan en el repo.
 //   - "socks5": SOCKS5 genérico en SOCKS5_ADDR (p. ej. xray-core local con
@@ -145,6 +149,11 @@ func createSOCKS5Client() (*http.Client, error) {
 //       ./xray run -c xray-client.json   # inbound socks 127.0.0.1:10808
 //     y exporta PROXY_MODE=socks5 SOCKS5_ADDR=127.0.0.1:10808
 //     (verificado con un trojan+ws público: 200 en <1s).
+//   - "warp"   (defecto si WARP=1): SOCKS5 del túnel Cloudflare WARP en
+//     WARP_SOCKS_ADDR (defecto 127.0.0.1:10809). Lo publica xray-core con
+//     outbound wireguard, on-demand: se levanta al entrar un stream y para a
+//     los 60 s sin reproducción (ver warp.go). Entra el primero en la cadena
+//     de medios (proxyChainWithDirectFallback), nunca en la de listados.
 //   - "off"/"direct": ignora el flag proxied, conexión directa.
 //   - Rotación automática: si el primario falla, FetchWebData prueba el otro
 //     SOCKS (tor<->socks5) y luego "direct" antes de dar error. "direct" entra
@@ -269,6 +278,11 @@ func clientForTransportTimeout(name string, timeout time.Duration) (*http.Client
 		return &http.Client{Timeout: timeout}, nil
 	case "socks5":
 		return newSOCKS5ClientTimeout(socks5Addr(), timeout)
+	case "warp":
+		// El SOCKS lo publica el outbound wireguard de xray-core levantado por
+		// WarpStreamStart (warp.go). Si no está, el dial falla y la rotación
+		// de proxyChain sigue con el siguiente transporte.
+		return newSOCKS5ClientTimeout(warpSocksAddr(), timeout)
 	default: // "tor" y desconocidos: comportamiento anterior
 		return newSOCKS5ClientTimeout("localhost:"+portTor, timeout)
 	}
@@ -401,14 +415,13 @@ func FetchCompetitionsParallel(requests []CompetitionRequest, getFunc func(req C
 	return results
 }
 
-
 // func fetchWithRedirects(initialURL string, proxified bool) (finalURL string, finalHeaders http.Header, manifestBody []byte, err error) {
 // 	client := &http.Client{
 // 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 // 			if len(via) >= 10 {
 // 				return fmt.Errorf("stopped after 10 redirects")
 // 			}
-			
+
 // 			return http.ErrUseLastResponse
 // 		},
 // 		Timeout: timeTimeout,
@@ -444,7 +457,7 @@ func FetchCompetitionsParallel(requests []CompetitionRequest, getFunc func(req C
 // 			return "", nil, nil, fmt.Errorf("failed to fetch %s: %w", currentURL, err)
 // 		}
 
-// 		defer resp.Body.Close() 
+// 		defer resp.Body.Close()
 
 // 		if resp.StatusCode >= 300 && resp.StatusCode < 400 {
 // 			redirectCount++

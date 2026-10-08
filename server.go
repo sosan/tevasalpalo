@@ -153,6 +153,14 @@ func StartWebServer() (*fiber.App, error) {
 			targetURL += "?" + queryString
 		}
 
+		// WARP on-demand: /ace/* con datos de stream es justo el caso que
+		// activa el túnel en el cliente Android (http_stream_start). Los
+		// manifests y comandos del webui no lo activan.
+		isAceStream := isAceStreamPath(acePath)
+		if isAceStream {
+			WarpStreamStart()
+		}
+
 		log.Printf("🔄 Proxy ACE: %s -> %s", c.Path(), targetURL)
 
 		// Crear la petición
@@ -179,10 +187,18 @@ func StartWebServer() (*fiber.App, error) {
 			return client.Do(req)
 		})
 		if err != nil {
+			if isAceStream {
+				WarpStreamStop()
+			}
 			log.Printf("❌ Error en petición a Ace Stream: %v", err)
 			return c.Status(502).SendString("Error conectando con Ace Stream: " + err.Error())
 		}
-		defer resp.Body.Close()
+		defer func() {
+			resp.Body.Close()
+			if isAceStream {
+				WarpStreamStop()
+			}
+		}()
 		if via != "direct" {
 			log.Printf("🔄 ACE %s vía %s", c.Path(), via)
 		}
@@ -542,14 +558,22 @@ func copyHeaders(c fiber.Ctx, resp *http.Response) {
 }
 
 func fetchAndProxy(c fiber.Ctx, targetURL string) error {
+	// WARP on-demand: equivalencia de http_stream_start en el cliente Android.
+	WarpStreamStart()
 	resp, finalURL, err := openUpstream(targetURL, c.Get("Range"), mediaTransports())
 	if err != nil {
+		WarpStreamStop()
 		if proxyMediaEnabled() {
 			return c.Status(502).SendString("Sin transporte multimedia (ni proxies ni directa): " + err.Error())
 		}
 		return c.Status(500).SendString("Failed to connect to stream: " + err.Error())
 	}
-	defer resp.Body.Close()
+	defer func() {
+		resp.Body.Close()
+		// http_stream_stop del cliente Android: sin reproducción, WARP para
+		// a los 60 s (ver WarpStreamStop).
+		WarpStreamStop()
+	}()
 
 	return serveUpstream(c, resp, finalURL, targetURL)
 }

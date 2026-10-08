@@ -107,8 +107,16 @@ func mediaTransports() []string {
 
 // proxyChainWithDirectFallback añade "direct" al final si no está.
 // ON = proxies primero, directa última (nunca duplicada).
+//
+// Con WARP habilitado (warpEnabled) se antepone "warp": es el transporte que
+// corresponde al tráfico de reproducción, y como el túnel es on-demand puede
+// no estar levantado todavía. Si no lo está, el dial da "connection refused" y
+// la rotación sigue con el resto de la cadena sin coste apreciable.
 func proxyChainWithDirectFallback() []string {
 	chain := proxyChain()
+	if warpEnabled() {
+		chain = append([]string{"warp"}, chain...)
+	}
 	for _, tr := range chain {
 		if tr == "direct" {
 			return chain

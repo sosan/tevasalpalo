@@ -28,6 +28,8 @@ func init() {
 }
 
 func main() {
+	avisoEnlacesXray()
+
 	// log.Println("📡 Iniciando Tor...")
 	cmdTor, err := RunTor()
 	if err != nil {
@@ -117,6 +119,10 @@ func main() {
 		log.Println("✅ Cerrado xray correctamente")
 	}
 
+	if err := StopWarpIfRunning(); err != nil {
+		log.Printf("❌ Error al cerrar WARP: %v", err)
+	}
+
 	cmdAcestreamMu.Lock()
 	aceCmd := cmdAcestream
 	cmdAcestreamMu.Unlock()
@@ -125,4 +131,15 @@ func main() {
 	} else if aceCmd != nil {
 		log.Println("✅ Cerrado ace correctamente")
 	}
+}
+
+// avisoEnlacesXray recuerda dónde pegar los enlaces de proxy, para no tener que
+// buscar el nombre cada vez. Se llama al arrancar y solo loguea si el fichero
+// no está: si ya existe, calla (el log de xray ya dice cuántos enlaces ha
+// encontrado).
+func avisoEnlacesXray() {
+	if p := xrayLocalFile(); p != "" {
+		return
+	}
+	log.Printf("💡 Para usar enlaces de proxy (vless/vmess/trojan/ss/socks/wireguard): pégalos en %s, junto al ejecutable", xrayLinksFile)
 }

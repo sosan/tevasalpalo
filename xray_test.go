@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -183,8 +185,9 @@ func TestFetchSubscriptionPlain(t *testing.T) {
 	if err != nil {
 		t.Fatalf("fetch error: %v", err)
 	}
-	// El fetch no filtra comentarios (lo hace parseSubscriptionLinks).
-	if len(lines) != 2 || !strings.HasPrefix(lines[1], "trojan://") {
+	// El fetch ya devuelve solo candidatos a enlace: los comentarios y líneas
+	// en blanco se descartan aquí, no en parseSubscriptionLinks.
+	if len(lines) != 1 || !strings.HasPrefix(lines[0], "trojan://") {
 		t.Fatalf("líneas = %v", lines)
 	}
 }
@@ -200,7 +203,7 @@ func TestFetchSubscriptionBase64(t *testing.T) {
 		t.Fatalf("fetch error: %v", err)
 	}
 	if len(lines) != 2 {
-		t.Fatalf("líneas = %d, want 2", len(lines))
+		t.Fatalf("líneas = %d, want 2: %v", len(lines), lines)
 	}
 }
 
@@ -432,5 +435,256 @@ func TestParseSubscriptionLinksWireguard(t *testing.T) {
 	}
 	if supported[0].Protocol != "wireguard" {
 		t.Fatalf("protocol = %q", supported[0].Protocol)
+	}
+}
+
+const (
+	xrayTestVlessPQ   = "vless://560ecca1@trk2.example.com:8080?path=%2F&security=none&encryption=mlkem768x25519plus.native.0rtt.HZkmJtPesWHuoN7JnEmjat7utDPAEE6gYX0MUvIl-Wk&host=primevideo.com&type=ws#pq"
+	xrayTestVlessFm   = "vless://44eae030@104.21.89.41:443?path=%2F&security=tls&encryption=none&fm=%7B%22tcp%22%3A%5B%7B%22type%22%3A%22fragment%22%7D%5D%7D&host=x.pages.dev&type=ws#fm"
+	xrayTestTrojanEch = "trojan://humanity@188.114.97.7:443?path=%2Fassignment&security=tls&ech=ip.gs%2Budp%3A%2F%2F8.8.8.8&type=ws&sni=w.example.com#ech"
+	xrayTestSocksB64  = "socks://MTExOjExMQ@47.76.229.132:11310#socks"
+	xrayTestHysteria2 = "hysteria2://QCgqi_I4EkV8UR-OgQ@162.249.125.133:443?security=tls&obfs=salamander&sni=hy2.example.com#hy2"
+)
+
+func TestParseXrayVlessPostQuantum(t *testing.T) {
+	ep, err := parseXrayLink(xrayTestVlessPQ)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if ep.Encryption != "mlkem768x25519plus.native.0rtt.HZkmJtPesWHuoN7JnEmjat7utDPAEE6gYX0MUvIl-Wk" {
+		t.Fatalf("encryption = %q", ep.Encryption)
+	}
+	// El outbound tiene que llevar ese encryption, no "none": si no, el
+	// enlace se probea, el SOCKS responde y el túnel nunca pasa tráfico.
+	raw, err := xrayClientConfigJSON(ep, "127.0.0.1", 10808)
+	if err != nil {
+		t.Fatalf("config: %v", err)
+	}
+	if !strings.Contains(string(raw), "mlkem768x25519plus.native.0rtt") {
+		t.Fatalf("el outbound perdió el encryption: %s", raw)
+	}
+}
+
+func TestParseXrayVlessEncryptionNone(t *testing.T) {
+	ep, err := parseXrayLink(xrayTestVlessReality)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ep.Encryption != "none" {
+		t.Fatalf("encryption = %q, want none", ep.Encryption)
+	}
+}
+
+func TestParseXrayRejectsSilentlyDropped(t *testing.T) {
+	// fm, ech y pcs se ignoraban en silencio: el outbound salía sin ellos y el
+	// enlace "funcionaba" en el log pero no tunelizaba nada.
+	for name, link := range map[string]string{
+		"fm":  xrayTestVlessFm,
+		"ech": xrayTestTrojanEch,
+		"pcs": "vless://08dd79b8@n.example:443?path=%2F&security=tls&pcs=ABCDEF0123&type=xhttp&sni=s.example#pcs",
+	} {
+		if _, err := parseXrayLink(link); err == nil {
+			t.Fatalf("%s: se esperaba error", name)
+		} else if !strings.Contains(err.Error(), "no soportado") {
+			t.Fatalf("%s: error poco claro: %v", name, err)
+		}
+	}
+}
+
+func TestParseXrayHysteria2Unsupported(t *testing.T) {
+	_, err := parseXrayLink(xrayTestHysteria2)
+	if err == nil || !strings.Contains(err.Error(), "hysteria2") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestParseXraySocks(t *testing.T) {
+	// Credenciales en base64, que es como las emiten estos canales.
+	ep, err := parseXrayLink(xrayTestSocksB64)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if ep.Protocol != "socks" || ep.Address != "47.76.229.132" || ep.Port != 11310 {
+		t.Fatalf("endpoint = %+v", ep)
+	}
+	if ep.ID != "111" || ep.Password != "111" {
+		t.Fatalf("credenciales = %q/%q", ep.ID, ep.Password)
+	}
+	raw, err := xrayClientConfigJSON(ep, "127.0.0.1", 10808)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`"protocol": "socks"`, `"user": "111"`, `"pass": "111"`, `"port": 11310`} {
+		if !strings.Contains(string(raw), want) {
+			t.Fatalf("falta %s en %s", want, raw)
+		}
+	}
+
+	// Sin credenciales y puerto por defecto.
+	ep2, err := parseXrayLink("socks://1.2.3.4:1080")
+	if err != nil || ep2.ID != "" || ep2.Port != 1080 {
+		t.Fatalf("socks sin auth = %+v (%v)", ep2, err)
+	}
+	// En claro.
+	ep3, err := parseXrayLink("socks://user:pass@1.2.3.4:1080")
+	if err != nil || ep3.ID != "user" || ep3.Password != "pass" {
+		t.Fatalf("socks en claro = %+v (%v)", ep3, err)
+	}
+	if _, err := parseXrayLink("socks://@:1080"); err == nil {
+		t.Fatal("se esperaba error sin servidor")
+	}
+}
+
+func TestParseXrayVMess(t *testing.T) {
+	mk := func(t *testing.T, j string) *xrayEndpoint {
+		t.Helper()
+		ep, err := parseXrayLink("vmess://" + b64std(t, j))
+		if err != nil {
+			t.Fatalf("parse: %v", err)
+		}
+		return ep
+	}
+	ep := mk(t, `{"add":"1.2.3.4","port":"443","id":"0c265dc4-0c0c-452a-a0d7-d57e165f006","aid":"0","scy":"auto","net":"ws","path":"/ws","host":"cdn.example.org","tls":"tls","sni":"cdn.example.org"}`)
+	if ep.Protocol != "vmess" || ep.Address != "1.2.3.4" || ep.Port != 443 {
+		t.Fatalf("endpoint = %+v", ep)
+	}
+	if ep.ID != "0c265dc4-0c0c-452a-a0d7-d57e165f006" || ep.VmessSecurity != "auto" {
+		t.Fatalf("user = %+v", ep)
+	}
+	if ep.Network != "ws" || ep.Path != "/ws" || ep.Host != "cdn.example.org" || ep.Security != "tls" {
+		t.Fatalf("stream = %+v", ep)
+	}
+	raw, err := xrayClientConfigJSON(ep, "127.0.0.1", 10808)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`"protocol": "vmess"`, `"security": "auto"`, `"network": "ws"`} {
+		if !strings.Contains(string(raw), want) {
+			t.Fatalf("falta %s en %s", want, raw)
+		}
+	}
+
+	// grpc: el serviceName va en "path".
+	epg := mk(t, `{"add":"5.6.7.8","port":443,"id":"0c265dc4-0c0c-452a-a0d7-d57e165f006","net":"grpc","path":"grpcsvc","tls":"tls"}`)
+	if epg.Network != "grpc" || epg.Service != "grpcsvc" {
+		t.Fatalf("grpc = %+v", epg)
+	}
+
+	// Sin aid y con aid numérico.
+	epa := mk(t, `{"add":"9.9.9.9","port":443,"id":"0c265dc4-0c0c-452a-a0d7-d57e165f006","net":"tcp","aid":4}`)
+	if epa.AlterID != 4 {
+		t.Fatalf("alterId = %d", epa.AlterID)
+	}
+}
+
+func TestParseXrayVMessRejects(t *testing.T) {
+	for name, payload := range map[string]string{
+		"base64 roto":  "!!!!",
+		"json roto":    b64stdT(t, `{"add":`),
+		"sin servidor": b64stdT(t, `{"port":443,"id":"x"}`),
+		"sin uuid":     b64stdT(t, `{"add":"1.2.3.4","port":443}`),
+		"puerto roto":  b64stdT(t, `{"add":"1.2.3.4","port":"abc","id":"x"}`),
+		"red h2":       b64stdT(t, `{"add":"1.2.3.4","port":443,"id":"x","net":"h2"}`),
+		"red quic":     b64stdT(t, `{"add":"1.2.3.4","port":443,"id":"x","net":"quic"}`),
+	} {
+		if _, err := parseXrayLink("vmess://" + payload); err == nil {
+			t.Fatalf("%s: se esperaba error", name)
+		}
+	}
+}
+
+func b64std(t *testing.T, s string) string { return b64stdT(t, s) }
+
+func b64stdT(t *testing.T, s string) string {
+	t.Helper()
+	return base64.StdEncoding.EncodeToString([]byte(s))
+}
+
+func TestExtractLinksFromChatDump(t *testing.T) {
+	// Formato real: marcas de tiempo del chat, texto en árabe, menciones a
+	// canales, propaganda y el enlace pegado en medio de la línea.
+	raw := `[21/9/26 19:53] Free_VPN: vless://aaa@1.1.1.1:443?type=ws#uno
+vless://aaa@1.1.1.1:443?type=ws#uno
+همه ی نتها 🔥 @FarazV2ray ✅
+socks://MTExOjExMQ@2.2.2.2:11310
+پروکسی (tg://proxy?port=50746&secret=ee07&server=45.74.158.199)
+hysteria2://x@3.3.3.3:443?sni=h.example#hy2
+vmess://eyJhZGQiOiI0LjQuNC40NCIsImlkIjoieHl6IiwicG9ydCI6NDQzLCJuZXQiOiJ0Y3AiLCJ2IjoiMiJ9
+ss://YWVzLTI1Ni1nY206T1VkRGVz@4.4.4.4:8388#ss
+https://bord.bet/registration`
+	got := extractLinks(raw)
+	want := []string{
+		"vless://aaa@1.1.1.1:443?type=ws#uno", // duplicado eliminado
+		"socks://MTExOjExMQ@2.2.2.2:11310",
+		"hysteria2://x@3.3.3.3:443?sni=h.example#hy2",
+		"vmess://eyJhZGQiOiI0LjQuNC40NCIsImlkIjoieHl6IiwicG9ydCI6NDQzLCJuZXQiOiJ0Y3AiLCJ2IjoiMiJ9",
+		"ss://YWVzLTI1Ni1nY206T1VkRGVz@4.4.4.4:8388#ss",
+	}
+	if len(got) != len(want) {
+		t.Fatalf("enlaces = %d, want %d: %v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("enlace %d = %q, want %q", i, got[i], want[i])
+		}
+	}
+	// Ningún enlace debe arrastrar texto del chat ni paréntesis.
+	for _, l := range got {
+		if strings.ContainsAny(l, " \t()") {
+			t.Fatalf("enlace sucio: %q", l)
+		}
+	}
+}
+
+func TestFetchSubscriptionLocalFile(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "xray-links.txt")
+	content := "vless://a@b.c:443?type=ws#x\nsocks://MTExOjExMQ@1.2.3.4:1080\n"
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+	for _, src := range []string{path, "file://" + path} {
+		links, err := fetchSubscription(src)
+		if err != nil {
+			t.Fatalf("%s: %v", src, err)
+		}
+		if len(links) != 2 {
+			t.Fatalf("%s: %d enlaces: %v", src, len(links), links)
+		}
+	}
+	// Ruta inexistente: error con el nombre.
+	if _, err := fetchSubscription(filepath.Join(dir, "no-existe.txt")); err == nil {
+		t.Fatal("se esperaba error")
+	}
+}
+
+func TestXraySubURLPriority(t *testing.T) {
+	t.Setenv("XRAY_FILE", "/tmp/f.txt")
+	t.Setenv("XRAY_SUB", "https://ejemplo.invalid/sub")
+	if got := xraySubURL(); got != "/tmp/f.txt" {
+		t.Fatalf("XRAY_FILE debe mandar: %q", got)
+	}
+	t.Setenv("XRAY_FILE", "")
+	if got := xraySubURL(); got != "https://ejemplo.invalid/sub" {
+		t.Fatalf("XRAY_SUB = %q", got)
+	}
+	// XRAY_SUB vacío desactiva la lista; si no está definido, se autodetecta
+	// xray-links.txt.
+	t.Setenv("XRAY_SUB", "")
+	if got := xraySubURL(); got != "" {
+		t.Fatalf("XRAY_SUB vacío debe desactivar la lista: %q", got)
+	}
+	os.Unsetenv("XRAY_SUB")
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, xrayLinksFile), []byte("vless://a@b.c:443\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	wd, _ := os.Getwd()
+	defer func() { _ = os.Chdir(wd) }()
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	if got := xraySubURL(); got != xrayLinksFile {
+		t.Fatalf("autodetección = %q, want %q", got, xrayLinksFile)
 	}
 }

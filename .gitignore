@@ -8,3 +8,5 @@ __debug_*
 .openspec/
 openspec/*
 .agents/*
+xray-links.txt
+

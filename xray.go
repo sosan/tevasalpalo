@@ -5,12 +5,17 @@ package main
 // memoria). Expone el inbound SOCKS en SOCKS5_ADDR para la cadena de
 // transportes de fetch.go (primario xray, reserva Tor).
 //
-// - El usuario aporta el SERVIDOR con XRAY_LINK (vless/trojan/ss/wireguard), nunca al repo.
+// - El usuario aporta el SERVIDOR con XRAY_LINK (vless/vmess/trojan/ss/
+//   socks/wireguard), nunca al repo.
 // - MaybeRunXray() nunca es fatal: sin link no hace nada; con error lo
 //   devuelve y la cadena de transportes de fetch.go cae a Tor.
 // - Soporta redes tcp/ws/grpc/xhttp/httpupgrade y seguridad none/tls/reality.
-//   NO soporta: vmess, hysteria/hysteria2, tuic, wireguard, kcp, quic ni
-//   plugins ss (obfs) — dan error claro antes de arrancar.
+// - NO soporta: hysteria/hysteria2, tuic, kcp, quic ni plugins ss (obfs) —
+//   dan error claro antes de arrancar.
+// - Tampoco los parámetros que el outbound ignoraría en silencio: fm
+//   (fragment/splitter), ech y pcs. Descartarlos es peor que rechazarlos,
+//   porque el enlace se probea, el SOCKS parece vivo y el túnel nunca pasa
+//   tráfico (ver xrayFeaturesNoSoportadas).
 
 import (
 	"bytes"
@@ -24,6 +29,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -31,8 +37,9 @@ import (
 	"github.com/xtls/xray-core/core"
 	"github.com/xtls/xray-core/infra/conf/serial"
 	// distro/all registra todas las apps, proxies y transportes (inbounds,
-	// outbounds vless/trojan/ss/wireguard, tls/reality/ws/grpc/xhttp). Sin estos
-	// imports ciegos, core.New falla con "... is not registered".
+	// outbounds vless/vmess/trojan/ss/socks/wireguard, tls/reality/ws/grpc/
+	// xhttp). Sin estos imports ciegos, core.New falla con "... is not
+	// registered".
 	_ "github.com/xtls/xray-core/main/distro/all"
 	"golang.org/x/net/proxy"
 )
@@ -80,6 +87,15 @@ type xrayEndpoint struct {
 	Service   string // grpc serviceName
 	Mode      string // grpc/xhttp mode (gun/multi/auto/...)
 	Authority string // grpc authority
+	// Encryption es el campo "encryption" de VLESS. Vacío = none.
+	// Las subscripciones neueras incluyen mlkem768x25519plus.native.0rtt.<clave>
+	// (cifrado post-cuántico de Xray); sin este campo el outbound se genera
+	// con encryption=none y la conexión falla aunque el enlace "parezca" bueno.
+	Encryption string
+	// AlterID es el campo "aid" de VMess.
+	AlterID int
+	// VmessSecurity es el campo "scy" de VMess (auto/none/zero/...).
+	VmessSecurity string
 }
 
 func parseXrayLink(raw string) (*xrayEndpoint, error) {
@@ -100,6 +116,7 @@ func parseXrayLink(raw string) (*xrayEndpoint, error) {
 			return nil, fmt.Errorf("vless sin UUID")
 		}
 		ep.Flow = u.Query().Get("flow")
+		ep.Encryption = xrayVlessEncryption(u)
 		if err := xrayHostPort(ep, u, 443); err != nil {
 			return nil, err
 		}
@@ -125,14 +142,61 @@ func parseXrayLink(raw string) (*xrayEndpoint, error) {
 		if err := xrayParseSS(ep, u); err != nil {
 			return nil, err
 		}
+	case "socks":
+		if err := xrayParseSOCKS(ep, u); err != nil {
+			return nil, err
+		}
+	case "vmess":
+		if err := xrayParseVMess(ep, u, s); err != nil {
+			return nil, err
+		}
 	case "wireguard":
 		if err := xrayParseWireguard(ep, s); err != nil {
 			return nil, err
 		}
 	default:
-		return nil, fmt.Errorf("esquema %q no soportado (vless/trojan/ss/wireguard)", u.Scheme)
+		switch strings.ToLower(u.Scheme) {
+		case "hy2", "hysteria2", "hysteria", "tuic":
+			return nil, fmt.Errorf("hysteria2/tuic no soportado (xray-core no trae ese outbound)")
+		case "ovpn", "openvpn":
+			return nil, fmt.Errorf("openVPN no soportado")
+		}
+		return nil, fmt.Errorf("esquema %q no soportado (vless/vmess/trojan/ss/socks/wireguard)", u.Scheme)
+	}
+	if err := xrayRejectUnsupported(ep, u); err != nil {
+		return nil, err
 	}
 	return ep, nil
+}
+
+// xrayFeaturesNoSoportadas son parámetros que aparecen en subscripciones
+// neueras y que el outbound generado ignoraría en silencio. Ignorarlos es peor
+// que rechazarlos: el enlace se probea, el SOCKS "responde" pero el túnel nunca
+// pasa tráfico y se pierde tiempo probando la lista entera. Se rechazan con un
+// motivo claro para que el log diga qué falta.
+//
+//   - fm: fragment/splitter (el "type":"fragment" de estos enlaces), no está en
+//     la infra/conf de esta versión de xray-core.
+//   - ech: ECH (ip.gs+udp://… o cloudflare-ech.com+udp://…). xray-core sí
+//     tiene echConfigList, pero con otro formato: no es traducible aquí.
+//   - pcs: pre-shared config de Cloudflare para xhttp.
+var xrayFeaturesNoSoportadas = []struct {
+	param   string
+	nombres []string
+}{
+	{"fm (fragment/splitter)", []string{"fm"}},
+	{"ech", []string{"ech"}},
+	{"pcs", []string{"pcs"}},
+}
+
+func xrayRejectUnsupported(ep *xrayEndpoint, u *url.URL) error {
+	q := xrayQuery(u.RawQuery)
+	for _, f := range xrayFeaturesNoSoportadas {
+		if v := xrayQGet(q, f.nombres...); v != "" {
+			return fmt.Errorf("%s con %q no soportado (xray-core no lo implementa aquí)", ep.Protocol, f.param)
+		}
+	}
+	return nil
 }
 
 func xrayHostPort(ep *xrayEndpoint, u *url.URL, defPort int) error {
@@ -268,6 +332,182 @@ func xrayParseSS(ep *xrayEndpoint, u *url.URL) error {
 	}
 	ep.Port = n
 	return nil
+}
+
+// xrayVlessEncryption normaliza el campo "encryption" de VLESS.
+//
+// "none" y vacío significan lo mismo. Además se acepta el prefijo
+// post-cuántico de Xray: mlkem768x25519plus.native|random|xorpub.1rtt|0rtt.clave,
+// que es lo que emiten casi todas las subscripciones nuevas. Cualquier otra
+// cosa se rechaza aquí en vez de llegar a xray-core y reventar al arrancar con
+// un error mucho menos claro.
+func xrayVlessEncryption(u *url.URL) string {
+	q := xrayQuery(u.RawQuery)
+	enc := strings.TrimSpace(xrayQGet(q, "encryption"))
+	if enc == "" || strings.EqualFold(enc, "none") {
+		return "none"
+	}
+	parts := strings.Split(enc, ".")
+	if parts[0] != "mlkem768x25519plus" || len(parts) < 4 {
+		return ""
+	}
+	switch parts[1] {
+	case "native", "random", "xorpub":
+	default:
+		return ""
+	}
+	switch parts[2] {
+	case "1rtt", "0rtt":
+	default:
+		return ""
+	}
+	return enc
+}
+
+// xrayParseSOCKS parsea socks://[user:pass@]host:port#tag. Las credenciales
+// pueden venir en base64 (socks://MTExOjExMQ@host:port) o en claro.
+func xrayParseSOCKS(ep *xrayEndpoint, u *url.URL) error {
+	ep.Protocol = "socks"
+	if u.User != nil {
+		user, pass := u.User.Username(), ""
+		if p, ok := u.User.Password(); ok {
+			pass = p
+		}
+		// "MTExOjExMQ" es base64 de "111:111".
+		if raw, err := b64decode(user); err == nil && strings.Contains(string(raw), ":") {
+			user, pass, _ = strings.Cut(string(raw), ":")
+		}
+		ep.ID, ep.Password = user, pass
+	}
+	host := u.Hostname()
+	if host == "" {
+		return fmt.Errorf("socks sin servidor")
+	}
+	ep.Address = host
+	portStr := u.Port()
+	if portStr == "" {
+		portStr = "1080"
+	}
+	n, err := strconv.Atoi(portStr)
+	if err != nil || n <= 0 || n > 65535 {
+		return fmt.Errorf("socks con puerto inválido %q", portStr)
+	}
+	ep.Port = n
+	return nil
+}
+
+// xrayParseVMess parsea vmess://<base64-json>, el formato de las subscripciones
+// clásicas. El JSON trae add/id/aid/scy/net/tls/host/path/sni/alpn.
+func xrayParseVMess(ep *xrayEndpoint, u *url.URL, raw string) error {
+	ep.Protocol = "vmess"
+	payload := strings.TrimPrefix(raw, "vmess://")
+	payload = strings.TrimSuffix(payload, "/")
+	if i := strings.Index(payload, "#"); i != -1 {
+		payload = payload[:i]
+	}
+	blob, err := b64decode(payload)
+	if err != nil {
+		return fmt.Errorf("vmess base64 inválido: %w", err)
+	}
+	var j struct {
+		Add  string `json:"add"`
+		Port any    `json:"port"`
+		ID   string `json:"id"`
+		Aid  any    `json:"aid"`
+		Scy  string `json:"scy"`
+		Net  string `json:"net"`
+		Type string `json:"type"`
+		Host string `json:"host"`
+		Path string `json:"path"`
+		TLS  string `json:"tls"`
+		SNI  string `json:"sni"`
+		ALPN string `json:"alpn"`
+	}
+	if err := json.Unmarshal(blob, &j); err != nil {
+		return fmt.Errorf("vmess JSON ilegible: %w", err)
+	}
+	if j.Add == "" {
+		return fmt.Errorf("vmess sin servidor")
+	}
+	if j.ID == "" {
+		return fmt.Errorf("vmess sin UUID")
+	}
+	ep.Address = j.Add
+	ep.ID = j.ID
+	port, err := vmessInt(j.Port)
+	if err != nil || port <= 0 || port > 65535 {
+		return fmt.Errorf("vmess con puerto inválido %v", j.Port)
+	}
+	ep.Port = port
+	if aid, err := vmessInt(j.Aid); err == nil {
+		ep.AlterID = aid
+	}
+	ep.VmessSecurity = j.Scy
+
+	// net: tcp/ws/grpc/httpupgrade/h2/http/quic/kcp
+	switch strings.ToLower(j.Net) {
+	case "", "tcp":
+		ep.Network = "tcp"
+	case "ws", "websocket":
+		ep.Network = "ws"
+		ep.Path = j.Path
+		ep.Host = j.Host
+	case "grpc":
+		ep.Network = "grpc"
+		ep.Service = j.Path
+		ep.Host = j.Host
+	case "h2", "http":
+		return fmt.Errorf("vmess h2/http no soportado")
+	case "httpupgrade":
+		ep.Network = "httpupgrade"
+		ep.Path = j.Path
+		ep.Host = j.Host
+	default:
+		return fmt.Errorf("vmess con red %q no soportada", j.Net)
+	}
+	if strings.EqualFold(j.TLS, "tls") {
+		ep.Security = "tls"
+		ep.SNI = j.SNI
+		if ep.SNI == "" {
+			ep.SNI = j.Host
+		}
+		if ep.ALPN, err = vmessALPN(j.ALPN); err != nil {
+			return err
+		}
+	} else {
+		ep.Security = "none"
+	}
+	return nil
+}
+
+// vmessInt acepta el puerto/aid como número o como cadena: las subscripciones
+// mezclan las dos formas.
+func vmessInt(v any) (int, error) {
+	switch t := v.(type) {
+	case float64:
+		return int(t), nil
+	case string:
+		return strconv.Atoi(strings.TrimSpace(t))
+	case int:
+		return t, nil
+	case nil:
+		return 0, fmt.Errorf("vacío")
+	}
+	return 0, fmt.Errorf("tipo %T", v)
+}
+
+func vmessALPN(s string) ([]string, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil, nil
+	}
+	var out []string
+	for _, p := range strings.Split(s, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out, nil
 }
 
 func b64decode(s string) ([]byte, error) {
@@ -416,11 +656,13 @@ func putNonEmpty(m map[string]any, key, val string) {
 	}
 }
 
+// xrayOutboundProtocol mapea el nombre del enlace al nombre del outbound, que
+// no siempre coincide ("ss" -> "shadowsocks").
 func xrayOutboundProtocol(ep *xrayEndpoint) string {
 	if ep.Protocol == "shadowsocks" {
 		return "shadowsocks"
 	}
-	return ep.Protocol // vless | trojan
+	return ep.Protocol // vless | vmess | trojan | socks | wireguard
 }
 
 func xrayClientConfigJSON(ep *xrayEndpoint, listen string, port int) ([]byte, error) {
@@ -433,7 +675,12 @@ func xrayClientConfigJSON(ep *xrayEndpoint, listen string, port int) ([]byte, er
 	var outbound map[string]any
 	switch ep.Protocol {
 	case "vless":
-		user := map[string]any{"id": ep.ID, "encryption": "none"}
+		// encryption: "none" o el valor post-cuántico del enlace.
+		enc := ep.Encryption
+		if enc == "" {
+			enc = "none"
+		}
+		user := map[string]any{"id": ep.ID, "encryption": enc}
 		putNonEmpty(user, "flow", ep.Flow)
 		outbound = map[string]any{
 			"protocol": "vless",
@@ -445,6 +692,34 @@ func xrayClientConfigJSON(ep *xrayEndpoint, listen string, port int) ([]byte, er
 				}},
 			},
 			"streamSettings": xrayStreamSettings(ep),
+		}
+	case "vmess":
+		user := map[string]any{"id": ep.ID}
+		putNonEmpty(user, "security", ep.VmessSecurity)
+		if ep.AlterID != 0 {
+			user["alterId"] = ep.AlterID
+		}
+		outbound = map[string]any{
+			"protocol": "vmess",
+			"settings": map[string]any{
+				"vnext": []any{map[string]any{
+					"address": ep.Address,
+					"port":    ep.Port,
+					"users":   []any{user},
+				}},
+			},
+			"streamSettings": xrayStreamSettings(ep),
+		}
+	case "socks":
+		settings := map[string]any{
+			"address": ep.Address,
+			"port":    ep.Port,
+		}
+		putNonEmpty(settings, "user", ep.ID)
+		putNonEmpty(settings, "pass", ep.Password)
+		outbound = map[string]any{
+			"protocol": "socks",
+			"settings": settings,
 		}
 	case "trojan":
 		outbound = map[string]any{
@@ -586,59 +861,196 @@ func xrayLink() string {
 // XRAY_SUB la sustituye; XRAY_SUB vacía la desactiva.
 const xrayDefaultSub = "https://raw.githubusercontent.com/4n0nymou3/multi-proxy-config-fetcher/refs/heads/main/configs/proxy_configs.txt"
 
-// xraySubURL devuelve la URL de subscripción (lista de enlaces), si hay.
+// xraySubURL devuelve la fuente de la lista de enlaces, si hay.
+//
+// Prioridad:
+//  1. XRAY_FILE: ruta de un fichero local.
+//  2. XRAY_SUB: URL http(s), file:// o ruta local. Vacía desactiva la lista
+//     por defecto (que es una subscripción pública).
+//  3. xray-links.txt junto al ejecutable o en el directorio de trabajo, que es
+//     lo que se usa al pegar enlaces a mano de un canal de Telegram.
+//  4. La subscripción pública por defecto.
 func xraySubURL() string {
+	if p := strings.TrimSpace(os.Getenv("XRAY_FILE")); p != "" {
+		return p
+	}
+	// XRAY_SUB explícitamente vacío desactiva la lista (comportamiento previo).
 	if v, ok := os.LookupEnv("XRAY_SUB"); ok {
 		return strings.TrimSpace(v)
+	}
+	if p := xrayLocalFile(); p != "" {
+		return p
 	}
 	return xrayDefaultSub
 }
 
+// xraySubMaxBytes limita lo que se lee de una subscripción o fichero local.
+const xraySubMaxBytes = 2 << 20
+
+// xrayLinksFile es el fichero donde pegar los enlaces de proxy (vless, vmess,
+// trojan, ss, socks, wireguard). Se autodetecta: si existe junto al ejecutable
+// o en el directorio de trabajo, se usa sin configurar nada. Está en .gitignore
+// porque contiene credenciales de terceros.
+//
+// XRAY_FILE lo sobrescribe; XRAY_SUB tiene prioridad sobre la autodetección.
+//
+// ┌──────────────────────────────────────────────────────────────────────────┐
+// │  Para usar tus enlaces: pégalos en  xray-links.txt  junto al .exe        │
+// │  (vale un volcado de Telegram tal cual: deduplica y descarta el ruido)  │
+// └──────────────────────────────────────────────────────────────────────────┘
+const xrayLinksFile = "xray-links.txt"
+
+// xrayLocalFile devuelve el fichero local de enlaces, si existe. Se busca
+// primero junto al ejecutable y luego en el directorio de trabajo, para que
+// sirva tanto en el portable como en el repo.
+func xrayLocalFile() string {
+	if p := strings.TrimSpace(os.Getenv("XRAY_FILE")); p != "" {
+		if fileExists(p) {
+			return p
+		}
+		return p // se devuelve igualmente para que el error diga el nombre
+	}
+	if exe, err := os.Executable(); err == nil {
+		p := filepath.Join(filepath.Dir(exe), xrayLinksFile)
+		if fileExists(p) {
+			return p
+		}
+	}
+	if fileExists(xrayLinksFile) {
+		return xrayLinksFile
+	}
+	return ""
+}
+
 // fetchSubscription descarga una subscripción estándar (texto plano o blob
-// base64 estilo v2rayNG) y devuelve sus líneas no vacías.
+// base64 estilo v2rayNG) y devuelve sus líneas no vacías. Acepta también
+// file:// y rutas locales, que es lo que se usa para pegar enlaces a mano.
+// fetchSubscription obtiene la lista de enlaces desde una subscripción http(s),
+// un fichero local (file:// o ruta) o un blob base64 estilo v2rayNG, y devuelve
+// los enlaces ya extraídos y deduplicados (ver extractLinks).
+//
+// Devuelve solo candidatos a enlace, no líneas: estas listas se copian de
+// chats, con marcas de tiempo, propaganda en árabe y duplicados, así que
+// devolver líneas y filtrar luego por "quítalo todo lo que no empieza por
+// esquema" no serviría. parseSubscriptionLinks sigue haciendo la validación
+// real de cada enlace.
 func fetchSubscription(rawURL string) ([]string, error) {
-	client := &http.Client{Timeout: xraySubFetchTimeout}
-	req, err := http.NewRequest("GET", rawURL, nil)
-	if err != nil {
-		return nil, err
-	}
-	// Muchas subscripciones (incl. paneles Hiddify) negocian el formato
-	// lista-URI según el User-Agent.
-	req.Header.Set("User-Agent", "v2rayNG")
-	req.Header.Set("Accept", "text/plain,*/*;q=0.8")
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("subscripción status %d", resp.StatusCode)
-	}
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
-	if err != nil {
-		return nil, err
+	var body []byte
+	if local := subscriptionLocalPath(rawURL); local != "" {
+		b, err := os.ReadFile(local)
+		if err != nil {
+			return nil, fmt.Errorf("no se pudo leer %s: %w", local, err)
+		}
+		if int64(len(b)) > xraySubMaxBytes {
+			b = b[:xraySubMaxBytes]
+		}
+		body = b
+	} else {
+		client := &http.Client{Timeout: xraySubFetchTimeout}
+		req, err := http.NewRequest("GET", rawURL, nil)
+		if err != nil {
+			return nil, err
+		}
+		// Muchas subscripciones (incl. paneles Hiddify) negocian el formato
+		// lista-URI según el User-Agent.
+		req.Header.Set("User-Agent", "v2rayNG")
+		req.Header.Set("Accept", "text/plain,*/*;q=0.8")
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("subscripción status %d", resp.StatusCode)
+		}
+		b, err := io.ReadAll(io.LimitReader(resp.Body, xraySubMaxBytes))
+		if err != nil {
+			return nil, err
+		}
+		body = b
 	}
 	text := strings.TrimSpace(string(body))
 	if text == "" {
 		return nil, fmt.Errorf("subscripción vacía")
 	}
+	// Blob base64 de una subscripción entera.
 	if !strings.Contains(text, "://") {
 		compact := strings.Join(strings.Fields(text), "")
 		if raw, err := b64decode(compact); err == nil && strings.Contains(string(raw), "://") {
 			text = string(raw)
 		}
 	}
-	var lines []string
-	for _, ln := range strings.Split(text, "\n") {
-		if ln = strings.TrimSpace(ln); ln != "" {
-			lines = append(lines, ln)
-		}
-	}
-	return lines, nil
+	return extractLinks(text), nil
 }
 
-// parseSubscriptionLinks filtra líneas a endpoints soportados (vless/trojan/ss/wireguard).
-// Lo demás (hysteria2, vmess, comentarios...) cuenta como omitido, no como error.
+// subscriptionLocalPath decide si la subscripción es un fichero local y
+// devuelve su ruta. Acepta file:///abs/path, file://./rel/path y una ruta
+// suelta.
+func subscriptionLocalPath(rawURL string) string {
+	switch {
+	case strings.HasPrefix(rawURL, "file://"):
+		p := strings.TrimPrefix(rawURL, "file://")
+		if p == "" {
+			return ""
+		}
+		// file:///tmp/x -> /tmp/x ; file://./x -> ./x
+		if strings.HasPrefix(p, "./") {
+			return strings.TrimPrefix(p, "./")
+		}
+		return p
+	case strings.Contains(rawURL, "://"):
+		return ""
+	default:
+		return rawURL
+	}
+}
+
+// extractLinks saca los enlaces de un texto que puede ser un volcado de chat:
+// líneas con marca de tiempo, texto en árabe, menciones a canales y el enlace
+// pegado en medio. Devuelve enlaces únicos y en orden de aparición, porque
+// estas listas vienen con muchísimos duplicados y sin ellos se agotan los
+// intentos de prueba con el mismo nodo.
+func extractLinks(text string) []string {
+	const maxLinkLen = 4096
+	// De más largo a más corto, y en un único barrido: "ss://" es subcadena de
+	// "vless://", así que buscar cada esquema por separado duplicaba cada
+	// enlace VLESS como si fuera Shadowsocks.
+	schemes := []string{
+		"shadowsocks://", "wireguard://", "hysteria2://", "hysteria://",
+		"vless://", "vmess://", "trojan://", "socks://", "tuic://",
+		"ss://", "hy2://",
+	}
+	seen := map[string]bool{}
+	out := make([]string, 0, 32)
+	for i := 0; i < len(text); {
+		matched := ""
+		for _, scheme := range schemes {
+			if strings.HasPrefix(text[i:], scheme) {
+				matched = scheme
+				break
+			}
+		}
+		if matched == "" {
+			i++
+			continue
+		}
+		link := text[i:]
+		if n := strings.IndexAny(link, " \t\r\n"); n != -1 {
+			link = link[:n]
+		}
+		link = strings.TrimRight(link, ")]}>\u00bb,\u2019;")
+		if len(link) > len(matched) && len(link) <= maxLinkLen && !seen[link] {
+			seen[link] = true
+			out = append(out, link)
+		}
+		i += len(matched)
+	}
+	return out
+}
+
+// parseSubscriptionLinks filtra líneas a endpoints soportados
+// (vless/vmess/trojan/ss/socks/wireguard). Lo demás (hysteria2, tuic,
+// ovpn, comentarios, fm/ech/pcs...) cuenta como omitido, no como error.
 func parseSubscriptionLinks(lines []string, max int) (supported []*xrayEndpoint, skipped int) {
 	for _, ln := range lines {
 		ln = strings.TrimSpace(ln)
@@ -664,14 +1076,14 @@ func xrayCandidates(link, sub string) ([]*xrayEndpoint, error) {
 	if sub != "" {
 		lines, err := fetchSubscription(sub)
 		if err != nil {
-			log.Printf("⚠️  XRAY_SUB no se pudo obtener (%v); probando XRAY_LINK", err)
+			log.Printf("⚠️  No se pudo obtener la lista de enlaces de %s (%v); probando XRAY_LINK", sub, err)
 		} else {
 			supported, skipped := parseSubscriptionLinks(lines, xrayMaxSubEndpoints)
-			log.Printf("📡 XRAY_SUB: %d endpoints utilizables (%d omitidos: no vless/trojan/ss/wireguard)", len(supported), skipped)
+			log.Printf("📡 %s: %d enlaces utilizables (%d omitidos: protocolo o parámetro no soportado)", sub, len(supported), skipped)
 			if len(supported) > 0 {
 				return supported, nil
 			}
-			log.Println("⚠️  XRAY_SUB sin endpoints utilizables; probando XRAY_LINK")
+			log.Println("⚠️  la lista no tiene endpoints utilizables; probando XRAY_LINK")
 		}
 	}
 	if link == "" {

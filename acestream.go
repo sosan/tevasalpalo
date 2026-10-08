@@ -1,7 +1,9 @@
 package main
 
 import (
+	"archive/tar"
 	"archive/zip"
+	"compress/gzip"
 	"embed"
 	"fmt"
 	"io"
@@ -10,11 +12,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 )
 
-//go:embed assets/acestream-runtime-windows.zip
 //go:embed assets/tor-expert-bundle-windows-x86_64.zip
 //go:embed assets/tor-expert-bundle-linux-x86_64.zip
 var runtimeZip embed.FS
@@ -23,7 +25,8 @@ const (
 	runtimeDirName    = "runtime"
 	httpPort          = 6878
 	httpWebServerPort = 3000
-	aceAssetNameWin      = "acestream-runtime-windows.zip"
+	aceAssetNameWin   = "acestream-runtime-windows.zip"
+	aceAssetNameLinux = "acestream-runtime-linux-x86_64.tar.gz"
 )
 
 func findBroadcaster(name string, competitionName, sport string) BroadcasterInfo {
@@ -218,6 +221,55 @@ func findBroadcaster(name string, competitionName, sport string) BroadcasterInfo
 // 	return []string{}
 // }
 
+// engineSpec describe cómo extraer y arrancar el motor para una plataforma.
+// Los dos builds no comparten layout: el de Windows es un ejecutable
+// (ace_console.exe) dentro de runtime/engine/ con python38 y módulos .pyd, y el
+// de Linux es un binario ELF (acestreamengine) en la raíz del runtime con los
+// módulos en runtime/lib/acestreamengine y las wheels al lado. Por eso no se
+// puede usar el ZIP de Windows en el build linux (antes se intentaba y
+// fallaba al lanzar ace_console.exe).
+type engineSpec struct {
+	// marker es el archivo cuya presencia indica "ya extraído".
+	marker string
+	// asset es la ruta dentro del embed.FS.
+	asset string
+	// binary es la ruta del ejecutable, relativa a runtimePath.
+	binary string
+	// workDir es el directorio de trabajo del proceso, relativo a runtimePath.
+	workDir string
+	// dataDir es donde el motor guarda plugins y schema, relativo a runtimePath.
+	dataDir string
+	// args son los flags de arranque.
+	args []string
+}
+
+// aceEngineSpec devuelve la ruta del motor según el SO compilado.
+func aceEngineSpec(runtimePath string) engineSpec {
+	args := []string{
+		"--live-buffer", "60", // 30
+		"--vod-buffer", "10", // 30
+		"--client-console",
+	}
+	if runtime.GOOS == "windows" {
+		return engineSpec{
+			marker:  filepath.Join(runtimePath, "engine", "ace_console.exe"),
+			asset:   "assets/" + aceAssetNameWin,
+			binary:  filepath.Join("engine", "ace_console.exe"),
+			workDir: "engine",
+			dataDir: filepath.Join("engine", "data"),
+			args:    args,
+		}
+	}
+	return engineSpec{
+		marker:  filepath.Join(runtimePath, "acestreamengine"),
+		asset:   "assets/" + aceAssetNameLinux,
+		binary:  "acestreamengine",
+		workDir: ".",
+		dataDir: "data",
+		args:    args,
+	}
+}
+
 func RunAceStream() (*exec.Cmd, error) {
 	exePath, err := os.Executable()
 	if err != nil {
@@ -226,12 +278,12 @@ func RunAceStream() (*exec.Cmd, error) {
 	execDir := filepath.Dir(exePath)
 
 	runtimePath := filepath.Join(execDir, runtimeDirName)
-	engineAcePath := filepath.Join(runtimePath, "engine", "ace_console.exe")
-	zipAceFile := "assets/" + aceAssetNameWin
+	spec := aceEngineSpec(runtimePath)
+	engineAcePath := filepath.Join(runtimePath, spec.binary)
 
-	if !fileExists(engineAcePath) {
+	if !fileExists(spec.marker) {
 		log.Println("📦 No se encontró Lista Canales TV. Extrayendo por primera vez...")
-		if err := extractRuntime(runtimePath, zipAceFile); err != nil {
+		if err := extractRuntime(runtimePath, spec.asset); err != nil {
 			log.Fatal("Error al extraer Lista Canales: ", err)
 		}
 		log.Println("✅ Lista Canales TV extraído exitosamente.")
@@ -240,13 +292,19 @@ func RunAceStream() (*exec.Cmd, error) {
 	}
 
 	log.Println("🚀 Actualizando Lista Canales TV...")
-	args := []string{
-		"--live-buffer", "60", // 30
-		"--vod-buffer", "10", // 30
-		"--client-console",
+	// Hooks de red y plugins: se aplican sobre el motor recién extraído.
+	applyEngineOverlay(runtimePath, spec)
+	cmd := exec.Command(engineAcePath, spec.args...)
+	cmd.Dir = filepath.Join(runtimePath, spec.workDir)
+	// El motor de Linux enlaza sus .so desde runtime/lib (así lo hace su
+	// start-engine con LD_LIBRARY_PATH) e importa sitecustomize del overlay
+	// para el bypass de DNS/VAST.
+	if runtime.GOOS != "windows" {
+		cmd.Env = append(os.Environ(),
+			"LD_LIBRARY_PATH="+filepath.Join(runtimePath, "lib"),
+			"PYTHONPATH="+overlayDir(runtimePath),
+		)
 	}
-	cmd := exec.Command(engineAcePath, args...)
-	cmd.Dir = filepath.Join(runtimePath, "engine")
 	setSysProcAttr(cmd)
 
 	if err := cmd.Start(); err != nil {
@@ -263,9 +321,82 @@ func RunAceStream() (*exec.Cmd, error) {
 	return cmd, err
 }
 
-// extractRuntime extrae el ZIP embebido en el directorio runtime
+// extractRuntime extrae el asset embebido (ZIP o tar.gz) en targetDir.
+// El motor de Linux viene en tar.gz, así que ambos formatos conviven aquí.
 func extractRuntime(targetDir, pathFile string) error {
-	zipFile, err := runtimeZip.Open(pathFile)
+	if strings.HasSuffix(pathFile, ".tar.gz") {
+		return extractTarGz(targetDir, pathFile)
+	}
+	return extractZip(targetDir, pathFile)
+}
+
+// extractTarGz extrae un tar.gz embebido preservando el modo de los archivos
+// (el motor de Linux necesita el bit +x en acestreamengine y los .so legibles).
+func extractTarGz(targetDir, pathFile string) error {
+	f, err := aceEngineAsset.Open(pathFile)
+	if err != nil {
+		return fmt.Errorf("no se pudo abrir el tar.gz embebido: %w", err)
+	}
+	defer f.Close()
+
+	gz, err := gzip.NewReader(f)
+	if err != nil {
+		return fmt.Errorf("no se pudo leer el gzip: %w", err)
+	}
+	defer gz.Close()
+
+	tr := tar.NewReader(gz)
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("error leyendo el tar.gz: %w", err)
+		}
+		// No se aceptan rutas que salgan del directorio destino.
+		dest, err := safeJoin(targetDir, hdr.Name)
+		if err != nil {
+			return err
+		}
+		switch hdr.Typeflag {
+		case tar.TypeDir:
+			if err := os.MkdirAll(dest, 0755); err != nil {
+				return err
+			}
+		case tar.TypeReg:
+			if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
+				return err
+			}
+			out, err := os.OpenFile(dest, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, hdr.FileInfo().Mode().Perm())
+			if err != nil {
+				return fmt.Errorf("no se pudo crear %s: %w", dest, err)
+			}
+			if _, err := io.Copy(out, tr); err != nil {
+				out.Close()
+				return fmt.Errorf("error al copiar %s: %w", hdr.Name, err)
+			}
+			if err := out.Close(); err != nil {
+				return fmt.Errorf("error al cerrar %s: %w", hdr.Name, err)
+			}
+		}
+		// Symlinks y otros tipos se ignoran: el paquete no los trae.
+	}
+}
+
+// safeJoin une base y name rechazando cualquier salto fuera de base
+// (Zip Slip / Tar Slip).
+func safeJoin(base, name string) (string, error) {
+	clean := filepath.Clean(filepath.Join(base, name))
+	baseAbs := filepath.Clean(base)
+	if clean != baseAbs && !strings.HasPrefix(clean, baseAbs+string(os.PathSeparator)) {
+		return "", fmt.Errorf("ruta fuera del directorio destino: %s", name)
+	}
+	return clean, nil
+}
+
+func extractZip(targetDir, pathFile string) error {
+	zipFile, err := aceEngineAsset.Open(pathFile)
 	if err != nil {
 		return fmt.Errorf("no se pudo abrir el ZIP embebido: %w", err)
 	}
@@ -340,4 +471,3 @@ func waitForAPI(url string, timeout time.Duration) bool {
 	}
 	return false
 }
-
