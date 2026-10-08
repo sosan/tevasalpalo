@@ -15,6 +15,38 @@ jobs:
     permissions:
       packages: write
     steps:
+      # Sin checkout, buildx carga el contexto desde el repo remoto y falla al
+      # no encontrar el Dockerfile: de ahí el error "no such file or directory".
+      - uses: actions/checkout@v7
+
+      - name: Cache and Install apt (.deb) Packages
+        uses: eth-pkg/apt-deb-cache@v0.2.7
+        with:
+          packages: 'megatools'
+
+      # assets/ está en .gitignore (son ~100 MB) pero el build no puede
+      # compilar sin ellos: tor.go y acestream.go hacen go:embed de los bundles
+      # de Tor, y aceasset_linux.go del tar.gz del motor (el Dockerfile
+      # compila con GOOS=linux, así que el motor Windows no hace falta).
+      - name: Download embedded assets
+        run: |
+          if [ -z "${{ secrets.URL_ASSET_ACE_LINUX_TARBALL }}" ]; then
+            echo "::error::Falta el secret URL_ASSET_ACE_LINUX_TARBALL. El Dockerfile compila para linux y aceasset_linux.go hace go:embed del tar.gz del motor."
+            exit 1
+          fi
+          megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_TOR_WINDOWS_ZIPPED }}
+          megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_TOR_LINUX_ZIPPED }}
+          megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_ACE_LINUX_TARBALL }}
+          if [ ! -f ./assets/acestream-runtime-linux-x86_64.tar.gz ]; then
+            mv ./assets/*.tar.gz ./assets/acestream-runtime-linux-x86_64.tar.gz
+          fi
+          ls -la ./assets/
+
+      # scripts/Dockerfile hace COPY ./certs/, y certs/ no está en el repo
+      # (lo genera scripts/generate-cert.sh en local). mkdir lo evita.
+      - name: Prepare certs dir
+        run: mkdir -p ./certs
+
       - name: Setup docker buildx
         uses: docker/setup-buildx-action@v4
 
@@ -28,7 +60,7 @@ jobs:
       - name: Build and Push to GHCR
         uses: docker/build-push-action@v7
         with:
-          file: ./Dockerfile.linux
+          file: ./scripts/Dockerfile
           push: true
           tags: ghcr.io/${{ github.actor }}/${{ github.event.repository.name }}:${{ github.run_id }}
           cache-from: type=gha
@@ -199,6 +231,14 @@ jobs:
 
       - name: Descargar assets
         run: |
+          # El secret del motor de Linux todavía no existe en el repo. Fallar
+          # aquí con un mensaje claro es mejor que dejar que megadl recibiendo
+          # un argumento vacío y aborte con "No links specified for download".
+          if [ -z "${{ secrets.URL_ASSET_ACE_LINUX_TARBALL }}" ]; then
+            echo "::error::Falta el secret URL_ASSET_ACE_LINUX_TARBALL (Settings > Secrets and variables > Actions)."
+            echo "Sube a Mega el tar.gz del motor Linux y pega ahí su URL."
+            exit 1
+          fi
           megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_ACE_LINUX_TARBALL }}
           megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_TOR_WINDOWS_ZIPPED }}
           megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_TOR_LINUX_ZIPPED }}
