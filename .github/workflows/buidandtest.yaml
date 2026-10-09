@@ -203,20 +203,30 @@ jobs:
           CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-X 'main/update.VersionBuild=${VERSION_BUILD}'" -o ./build/${{ matrix.artifact_name }}
           echo "✅ Compilación exitosa: ./build/${{ matrix.artifact_name }}"
 
-      - name: Vet and unit tests
+      - name: Vet
         run: |
-          # Sin este paso el código de este job (incluido el bypass DNS/VAST del
-          # motor) no lo cubre ningún test: el único go test de Windows eran
-          # 4 ficheros sueltos de update/ y go test ./... solo vivía en el job
-          # de Linux.
-          go vet ./...
-          # El módulo se llama "main", que no es importable, así que go test
-          # sobre el paquete raíz falla con "cannot import main". Se prueba en
-          # una copia con el módulo renombrado, igual que en build-linux.
+          # GOOS/GOARCH explícitos: sin ellos vet compila para linux y falla con
+          # "pattern assets/acestream-runtime-linux-x86_64.tar.gz: no matching
+          # files found", porque este job no descarga el motor de Linux (solo lo
+          # embebe el de Windows, ver aceasset_windows.go).
+          #
+          # vet cruz-compilado también revisa los _test.go, así que sigue
+          # detectando errores de tipo en los tests aunque no pueda ejecutarlos.
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go vet ./...
+
+      - name: Unit tests
+        run: |
+          # Los tests NO pueden correr con GOOS=windows: el runner es ubuntu y
+          # ejecutar el .exe da "exec format error". Se ejecutan nativos (linux),
+          # lo que exige el asset del motor de Linux, que este job no descarga.
+          # Por eso los tests viven en build-linux, que sí lo trae.
+          #
+          # Para no dejar el código de este job sin cubrir del todo, se
+          # comprueba al menos que los tests compilan para windows.
           cp -r . /tmp/t && cd /tmp/t
           sed -i 's|^module main$|module acestreamtest|' go.mod
           sed -i 's|"main/update"|"acestreamtest/update"|' main.go server.go
-          go test ./...
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go test -c -o /dev/null .
 
 
 
