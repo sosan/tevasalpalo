@@ -36,14 +36,14 @@ var (
 )
 
 type CachedData struct {
-	Days                     []DayView
-	DaysJSON                 template.JS
-	TopCompetitionsJSON      template.JS
-	AllCompetitions          AllCompetitions
-	TopCompetitions          map[string]CompetitionDetail
-	TopCompetitionsOrdered   []OrderedTopCompetition
-	Broadcasters             map[string]BroadcasterInfo
-	BroadcastersOrdered      []BroadcasterInfo
+	Days                   []DayView
+	DaysJSON               template.JS
+	TopCompetitionsJSON    template.JS
+	AllCompetitions        AllCompetitions
+	TopCompetitions        map[string]CompetitionDetail
+	TopCompetitionsOrdered []OrderedTopCompetition
+	Broadcasters           map[string]BroadcasterInfo
+	BroadcastersOrdered    []BroadcasterInfo
 }
 
 func preloadProgramationTVData() error {
@@ -265,34 +265,34 @@ func StartWebServer() (*fiber.App, error) {
 	}
 
 	app.Use("/", static.New("", static.Config{
-		FS: viewsFS,
-		Browse: false,
+		FS:         viewsFS,
+		Browse:     false,
 		IndexNames: []string{"index.html"},
 	}))
 
 	app.Use("/css", static.New("", static.Config{
-		FS: cssFS,
+		FS:     cssFS,
 		Browse: false,
 		// IndexNames: []string{"index.html"},
 	}))
 
 	app.Use("/images", static.New("", static.Config{
-		FS: imagesFS,
+		FS:     imagesFS,
 		Browse: false,
 	}))
 
 	app.Use("/player/js", static.New("", static.Config{
-		FS: jsFS,
+		FS:     jsFS,
 		Browse: false,
 	}))
 
 	app.Use("/player/css", static.New("", static.Config{
-		FS: cssFS,
+		FS:     cssFS,
 		Browse: false,
 	}))
 
 	app.Use("/js", static.New("", static.Config{
-		FS: jsFS,
+		FS:     jsFS,
 		Browse: false,
 	}))
 
@@ -301,12 +301,12 @@ func StartWebServer() (*fiber.App, error) {
 		data := cachedData
 		dataMutex.RUnlock()
 		return c.Render("index", fiber.Map{
-			"Days":                     data.Days,
-			"allCompetitions":          data.AllCompetitions,
-			"topCompetitions":          data.TopCompetitions,
-			"topCompetitionsOrdered":   data.TopCompetitionsOrdered,
-			"DaysJSON":                 data.DaysJSON,
-			"topCompetitionsJSON":      data.TopCompetitionsJSON,
+			"Days":                   data.Days,
+			"allCompetitions":        data.AllCompetitions,
+			"topCompetitions":        data.TopCompetitions,
+			"topCompetitionsOrdered": data.TopCompetitionsOrdered,
+			"DaysJSON":               data.DaysJSON,
+			"topCompetitionsJSON":    data.TopCompetitionsJSON,
 		})
 	})
 
@@ -361,6 +361,45 @@ func StartWebServer() (*fiber.App, error) {
 		return c.JSON(fiber.Map{
 			"enabled": proxyMediaEnabled(),
 		})
+	})
+
+	// Estado de WARP. "active" es si el túnel está realmente levantado ahora,
+	// que no es lo mismo que "enabled": WARP es on-demand y solo levanta el
+	// túnel cuando entra un stream.
+	app.Get("/api/warp", func(c fiber.Ctx) error {
+		return c.JSON(warpStatus())
+	})
+
+	app.Post("/api/warp", func(c fiber.Ctx) error {
+		var body struct {
+			Enabled *bool `json:"enabled"`
+		}
+		if err := json.Unmarshal(c.Body(), &body); err != nil || body.Enabled == nil {
+			return c.Status(400).JSON(fiber.Map{
+				"error": "JSON {enabled: bool} requerido",
+			})
+		}
+		if err := setWarpEnabled(*body.Enabled); err != nil {
+			log.Printf("❌ No se pudo guardar el ajuste de WARP: %v", err)
+			return c.Status(500).JSON(fiber.Map{
+				"error":   "no se pudo guardar settings.json",
+				"details": err.Error(),
+			})
+		}
+		log.Printf("🛡️  WARP: %v (guardado)", *body.Enabled)
+		// Al desactivar y no haber stream, el túnel se para ya: si no se
+		// quedaría abierto hasta que saltara el temporizador de 60 s.
+		if !*body.Enabled {
+			warp.streamsMu.Lock()
+			idle := warp.streams == 0
+			warp.streamsMu.Unlock()
+			if idle {
+				if err := StopWarpIfRunning(); err != nil {
+					log.Printf("⚠️  Error al cerrar WARP: %v", err)
+				}
+			}
+		}
+		return c.JSON(warpStatus())
 	})
 
 	app.Get("/player/index.html", func(c fiber.Ctx) error {

@@ -294,17 +294,32 @@ func RunAceStream() (*exec.Cmd, error) {
 	log.Println("🚀 Actualizando Lista Canales TV...")
 	// Hooks de red y plugins: se aplican sobre el motor recién extraído.
 	applyEngineOverlay(runtimePath, spec)
-	cmd := exec.Command(engineAcePath, spec.args...)
-	cmd.Dir = filepath.Join(runtimePath, spec.workDir)
-	// El motor de Linux enlaza sus .so desde runtime/lib (así lo hace su
-	// start-engine con LD_LIBRARY_PATH) e importa sitecustomize del overlay
-	// para el bypass de DNS/VAST.
+
+	// Bypass DNS/VAST por proxy: el motor no se puede parchear en Windows, así
+	// que se le pone delante un proxy local que corta los hosts muertos y
+	// responde VAST vacío. Va por variables de entorno, que es la única vía
+	// que el motor 3.2.8 respeta (no expone claves de proxy en acestream.conf).
+	env := os.Environ()
+	if engineHooksEnabled() {
+		if addr, err := serveBypass(); err != nil {
+			log.Printf("⚠️ bypass del motor no disponible: %v", err)
+		} else {
+			env = append(env, engineProxyEnv(addr)...)
+			log.Printf("🛡️ Bypass DNS/VAST del motor activo en %s", addr)
+		}
+	}
 	if runtime.GOOS != "windows" {
-		cmd.Env = append(os.Environ(),
+		// El motor de Linux enlaza sus .so desde runtime/lib (así lo hace su
+		// start-engine con LD_LIBRARY_PATH) e importa sitecustomize del overlay.
+		env = append(env,
 			"LD_LIBRARY_PATH="+filepath.Join(runtimePath, "lib"),
 			"PYTHONPATH="+overlayDir(runtimePath),
 		)
 	}
+
+	cmd := exec.Command(engineAcePath, spec.args...)
+	cmd.Dir = filepath.Join(runtimePath, spec.workDir)
+	cmd.Env = env
 	setSysProcAttr(cmd)
 
 	if err := cmd.Start(); err != nil {

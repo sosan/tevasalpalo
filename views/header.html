@@ -135,6 +135,17 @@
                             <div id="proxy-media-status" style="font-size:0.85rem; opacity:0.8; text-align:center; padding-bottom:0.5rem;"></div>
                             <p style="font-size:0.8rem; opacity:0.7; text-align:center; margin:0 1rem 1rem;">OFF = directo (actual). ON = /api/iptv y motor remoto por Tor/xray, con directa como último recurso; loopback siempre directo.</p>
                         </div>
+                        <div class="card-component">
+                            <div class="comeptitions-interest">
+                                <span class="competition-title">WARP (Cloudflare)</span>
+                            </div>
+                            <div style="display:flex; align-items:center; justify-content:center; gap:0.75rem; padding:0.5rem 0;">
+                                <label for="warp-toggle" style="cursor:pointer;">Salir por WARP</label>
+                                <input type="checkbox" id="warp-toggle" style="width:1.25rem; height:1.25rem; cursor:pointer;">
+                            </div>
+                            <div id="warp-status" style="font-size:0.85rem; opacity:0.8; text-align:center; padding-bottom:0.5rem;"></div>
+                            <p style="font-size:0.8rem; opacity:0.7; text-align:center; margin:0 1rem 1rem;">ON = el tráfico de reproducción sale por el túnel WARP. Se levanta solo al empezar un canal y se para a los 60 s sin reproducir. Se guarda en settings.json.</p>
+                        </div>
                     </div>
                 </dialog>
             </li>
@@ -161,6 +172,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script src="/js/modal.js" defer></script>
 <script src="/js/proxy.js" defer></script>
+<script src="/js/warp.js" defer></script>
 <style>
 .competitions-grid .sortable-ghost { opacity: 0.4; background: #e0f2fe; border: 2px dashed #0ea5e9; border-radius: 8px; }
 .competitions-grid .sortable-drag { opacity: 0.9; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }

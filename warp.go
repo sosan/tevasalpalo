@@ -114,13 +114,22 @@ type warpAccount struct {
 	} `json:"config"`
 }
 
-// warpEnabled decide si WARP entra en la cadena. Opt-in, como PROXY_MEDIA:
-// nada de tocar rutas del sistema ni activarse por defecto.
+// warpEnabled decide si WARP entra en la cadena.
+//
+// Prioridad: WARP=0/1 (variable explícita) > el interruptor de la UI web
+// guardado en settings.json > WARP_AUTO. Así se puede forzar desde consola
+// sin tocar lo que el usuario dejó elegido en la interfaz.
+//
+// Opt-in por defecto: nada de tocar rutas del sistema ni salir por un túnel
+// sin querer.
 func warpEnabled() bool {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv("WARP"))) {
 	case "0", "false", "no", "off":
 		return false
 	case "1", "true", "yes", "on":
+		return true
+	}
+	if loadSettings().WarpEnabled {
 		return true
 	}
 	return parseBoolEnv("WARP_AUTO", false)
@@ -591,6 +600,24 @@ func StopWarp(h *warpHandle) error {
 		return nil
 	}
 	return h.instance.Close()
+}
+
+// warpStatus resume el estado de WARP para la UI web.
+func warpStatus() map[string]any {
+	warp.mu.Lock()
+	active := warp.handle != nil
+	socks := ""
+	if active {
+		socks = warp.handle.socksAddr
+	}
+	warp.mu.Unlock()
+	return map[string]any{
+		"enabled": warpEnabled(),
+		"active":  active,
+		"socks":   socks,
+		// Si WARP=0/1 está puesto, el ajuste de la UI no manda.
+		"locked": strings.TrimSpace(os.Getenv("WARP")) != "",
+	}
 }
 
 // StopWarpIfRunning para el túnel activo del proceso, si lo hay, y cancela el

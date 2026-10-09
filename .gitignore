@@ -9,4 +9,4 @@ __debug_*
 openspec/*
 .agents/*
 xray-links.txt
-
+settings.json

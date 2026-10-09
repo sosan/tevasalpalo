@@ -142,8 +142,8 @@ jobs:
           format: table
           exit-code: 0
   
-  upload-artifact:
-    name: Upload ${{ matrix.arch }} artifacts
+  build-windows:
+    name: Build ${{ matrix.arch }} windows
     # needs: [scan-image]
     runs-on: ubuntu-26.04
     permissions:
