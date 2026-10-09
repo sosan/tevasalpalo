@@ -151,6 +151,7 @@ jobs:
     strategy:
       matrix:
         goos: [windows]
+        goarch: [amd64]
         artifact_name: [portable.exe]
 
     steps:
@@ -160,14 +161,26 @@ jobs:
         with:
           packages: 'megatools'
 
-      - name: Build binary
+      - name: Descargar assets
         run: |
+          # Los assets van por secret y assets/ está en .gitignore, así que si
+          # falta uno megadl se queda con un argumento vacío y aborta con un
+          # "No links specified" que no dice qué falta. Fallar aquí con el
+          # nombre del secret hace el diagnóstico trivial.
+          if [ -z "${{ secrets.URL_ASSET_ACE_ZIPPED }}" ]; then
+            echo "::error::Falta el secret URL_ASSET_ACE_ZIPPED (Settings > Secrets and variables > Actions)."
+            echo "Sube a Mega el ZIP del motor Windows y pega ahí su URL."
+            exit 1
+          fi
           megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_ACE_ZIPPED }}
           megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_TOR_WINDOWS_ZIPPED }}
           megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_TOR_LINUX_ZIPPED }}
+          ls -la ./assets/
+
+      - name: Build binary
+        run: |
           export VERSION_BUILD=$(date -u "+%Y-%m-%dT%H:%M:%SZ")
           echo ${VERSION_BUILD} > date_build_${{ matrix.artifact_name }}.txt
-          # CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=amd64 go build -ldflags="-X 'main/update.VersionBuild=${VERSION_BUILD}'" -o ${{ matrix.artifact_name }}
 
           # Cargar variables de entorno desde .env.prod
           if [ -f ".env.prod" ]; then
@@ -180,23 +193,30 @@ jobs:
           # Verificar que las variables de entorno se cargaron correctamente
           echo "🛠️ Variables de entorno cargadas:"
           echo "ENV: $ENV"
-          echo "GOOS: $GOOS"
-          echo "GOARCH: $GOARCH"
           echo "CGO_ENABLED: $CGO_ENABLED"
 
-          # Ejecutar el comando de compilación
-          echo "🚀 Compilando para $GOOS/$GOARCH..."
-          # go build -o ../build/portable.exe ../.
-          # GOOS=$GOOS GOARCH=$GOARCH CGO_ENABLED=$CGO_ENABLED go build -ldflags="-X 'main/update.VersionBuild=${VERSION_BUILD}'" -o ../build/portable.exe ../.
-          CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=amd64 go build -ldflags="-X 'main/update.VersionBuild=${VERSION_BUILD}'" -o ./build/${{ matrix.artifact_name }}
+          # La arquitectura sale de la matriz, no de .env.prod: antes el build
+          # llevaba GOARCH=amd64 hardcodeado mientras el log anunciaba el
+          # GOARCH de .env.prod, así que un binario de 32 bits habría salido
+          # amd64 sin que nadie se enterase.
+          echo "🚀 Compilando para ${{ matrix.goos }}/${{ matrix.goarch }}..."
+          CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-X 'main/update.VersionBuild=${VERSION_BUILD}'" -o ./build/${{ matrix.artifact_name }}
+          echo "✅ Compilación exitosa: ./build/${{ matrix.artifact_name }}"
 
-          # Verificar si la compilación fue exitosa
-          if [ $? -eq 0 ]; then
-              echo "✅ Compilación exitosa: ./build/portable.exe"
-          else
-              echo "❌ Error durante la compilación."
-              exit 1
-          fi
+      - name: Vet and unit tests
+        run: |
+          # Sin este paso el código de este job (incluido el bypass DNS/VAST del
+          # motor) no lo cubre ningún test: el único go test de Windows eran
+          # 4 ficheros sueltos de update/ y go test ./... solo vivía en el job
+          # de Linux.
+          go vet ./...
+          # El módulo se llama "main", que no es importable, así que go test
+          # sobre el paquete raíz falla con "cannot import main". Se prueba en
+          # una copia con el módulo renombrado, igual que en build-linux.
+          cp -r . /tmp/t && cd /tmp/t
+          sed -i 's|^module main$|module acestreamtest|' go.mod
+          sed -i 's|"main/update"|"acestreamtest/update"|' main.go server.go
+          go test ./...
 
 
 
@@ -231,9 +251,9 @@ jobs:
 
       - name: Descargar assets
         run: |
-          # El secret del motor de Linux todavía no existe en el repo. Fallar
-          # aquí con un mensaje claro es mejor que dejar que megadl recibiendo
-          # un argumento vacío y aborte con "No links specified for download".
+          # Fallar aquí con un mensaje claro es mejor que dejar que megadl reciba
+          # un argumento vacío y aborte con "No links specified for download",
+          # que no dice qué secret falta.
           if [ -z "${{ secrets.URL_ASSET_ACE_LINUX_TARBALL }}" ]; then
             echo "::error::Falta el secret URL_ASSET_ACE_LINUX_TARBALL (Settings > Secrets and variables > Actions)."
             echo "Sube a Mega el tar.gz del motor Linux y pega ahí su URL."

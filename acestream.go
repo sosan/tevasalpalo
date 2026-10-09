@@ -7,6 +7,7 @@ import (
 	"embed"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -339,21 +340,36 @@ func RunAceStream() (*exec.Cmd, error) {
 // extractRuntime extrae el asset embebido (ZIP o tar.gz) en targetDir.
 // El motor de Linux viene en tar.gz, así que ambos formatos conviven aquí.
 func extractRuntime(targetDir, pathFile string) error {
-	if strings.HasSuffix(pathFile, ".tar.gz") {
-		return extractTarGz(targetDir, pathFile)
+	f, err := openAsset(pathFile)
+	if err != nil {
+		return err
 	}
-	return extractZip(targetDir, pathFile)
+	defer f.Close()
+
+	if strings.HasSuffix(pathFile, ".tar.gz") {
+		return extractTarGz(targetDir, f)
+	}
+	return extractZip(targetDir, f)
+}
+
+// openAsset abre un asset embebido buscando en los dos embeds. El motor vive en
+// aceEngineAsset (que solo lleva el de la plataforma, para no arrastrar los 77 MB
+// del otro) y Tor vive en runtimeZip. extractRuntime los usa a los dos, así que
+// tiene que mirar en ambos: si solo mira uno, el otro falla con "file does not
+// exist" en runtime.
+func openAsset(pathFile string) (fs.File, error) {
+	if f, err := aceEngineAsset.Open(pathFile); err == nil {
+		return f, nil
+	}
+	if f, err := runtimeZip.Open(pathFile); err == nil {
+		return f, nil
+	}
+	return nil, fmt.Errorf("no se pudo abrir el asset embebido %s: no está en aceEngineAsset ni en runtimeZip", pathFile)
 }
 
 // extractTarGz extrae un tar.gz embebido preservando el modo de los archivos
 // (el motor de Linux necesita el bit +x en acestreamengine y los .so legibles).
-func extractTarGz(targetDir, pathFile string) error {
-	f, err := aceEngineAsset.Open(pathFile)
-	if err != nil {
-		return fmt.Errorf("no se pudo abrir el tar.gz embebido: %w", err)
-	}
-	defer f.Close()
-
+func extractTarGz(targetDir string, f fs.File) error {
 	gz, err := gzip.NewReader(f)
 	if err != nil {
 		return fmt.Errorf("no se pudo leer el gzip: %w", err)
@@ -410,13 +426,7 @@ func safeJoin(base, name string) (string, error) {
 	return clean, nil
 }
 
-func extractZip(targetDir, pathFile string) error {
-	zipFile, err := aceEngineAsset.Open(pathFile)
-	if err != nil {
-		return fmt.Errorf("no se pudo abrir el ZIP embebido: %w", err)
-	}
-	defer zipFile.Close()
-
+func extractZip(targetDir string, zipFile fs.File) error {
 	zipInfo, _ := zipFile.Stat()
 	zipSize := zipInfo.Size()
 

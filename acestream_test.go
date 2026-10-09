@@ -99,6 +99,29 @@ func TestExtractRuntimeRejectsUnknownAsset(t *testing.T) {
 	}
 }
 
+func TestOpenAssetFindsBothEmbeds(t *testing.T) {
+	// Regresión: extractRuntime abre el motor desde aceEngineAsset y Tor desde
+	// runtimeZip. Cuando solo se miraba aceEngineAsset, Tor fallaba al arrancar
+	// en Windows con "no se pudo abrir el ZIP embebido: file does not exist",
+	// porque el bundle de Tor nunca estuvo en ese embed.
+	torAsset := "assets/" + torAssetNameWin
+	if _, err := os.Stat(filepath.Join("assets", torAssetNameWin)); err != nil {
+		t.Skipf("asset %s no presente", torAssetNameWin)
+	}
+	f, err := openAsset(torAsset)
+	if err != nil {
+		t.Fatalf("el bundle de Tor debe abrirse desde runtimeZip: %v", err)
+	}
+	info, err := f.Stat()
+	f.Close()
+	if err != nil {
+		t.Fatalf("Stat del bundle de Tor: %v", err)
+	}
+	if info.Size() == 0 {
+		t.Fatal("el bundle de Tor está vacío")
+	}
+}
+
 func TestExtractTarGzRealAsset(t *testing.T) {
 	// El motor de Linux es el único tar.gz embebido, y solo se embebe en builds
 	// linux (ver aceasset_linux.go). En otro SO el test no aplica.
