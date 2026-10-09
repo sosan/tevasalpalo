@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"encoding/xml"
 	"io"
 	"net"
@@ -43,7 +45,7 @@ func TestIsDeadPath(t *testing.T) {
 	dead := []string{
 		"/vast.php",
 		"/adserver/vast/wrapper?token=1",
-		"/api/v1/notification",
+		"torrentstream.org/x",
 		"/VAST.PHP?id=9",
 	}
 	for _, p := range dead {
@@ -55,6 +57,58 @@ func TestIsDeadPath(t *testing.T) {
 		if isDeadPath(p) {
 			t.Errorf("isDeadPath(%q) = true, se esperaba false", p)
 		}
+	}
+}
+
+// TestIsNotifURL separa notificaciones (JSON) de VAST (XML): el APK responde
+// {"notifications":[]} a unas y un VAST vacío a las otras, y mezclarlas hace
+// que el bypass no sirva.
+func TestIsNotifURL(t *testing.T) {
+	yes := [][2]string{
+		{"android.acestream.net", "/api/v1/notification"},
+		{"ANDROID.ACESTREAM.NET", "/API/V1/Notification"},
+	}
+	for _, c := range yes {
+		if !isNotifURL(c[0], c[1]) {
+			t.Errorf("isNotifURL(%q, %q) = false, se esperaba true", c[0], c[1])
+		}
+	}
+	no := [][2]string{
+		{"ads.acestream.net", "/vast.php"},
+		{"example.com", "/api/v1/notification"},
+	}
+	for _, c := range no {
+		if isNotifURL(c[0], c[1]) {
+			t.Errorf("isNotifURL(%q, %q) = true, se esperaba false", c[0], c[1])
+		}
+	}
+}
+
+// TestBypassNotifDevuelveJSON comprueba end-to-end que el endpoint de
+// notificaciones recibe JSON válido, no el VAST.
+func TestBypassNotifDevuelveJSON(t *testing.T) {
+	_, addr := startTestBypass(t)
+	client := &http.Client{Transport: &http.Transport{Proxy: proxyURL(t, addr)}}
+	resp, err := client.Get("http://android.acestream.net/api/v1/notification")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, se esperaba 200", resp.StatusCode)
+	}
+	if ct := resp.Header.Get("Content-Type"); !strings.Contains(ct, "json") {
+		t.Errorf("Content-Type = %q, se esperaba json", ct)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	var doc struct {
+		Notifications []any `json:"notifications"`
+	}
+	if err := json.Unmarshal(body, &doc); err != nil {
+		t.Fatalf("la respuesta no es JSON válido: %v (cuerpo %q)", err, body)
+	}
+	if len(doc.Notifications) != 0 {
+		t.Errorf("notifications = %v, se esperaba lista vacía", doc.Notifications)
 	}
 }
 
@@ -233,11 +287,219 @@ func startTestBypass(t *testing.T) (net.Listener, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h := &bypassHandler{dial: (&net.Dialer{}).Dial}
+	h := &bypassHandler{dial: (&net.Dialer{}).Dial, stats: &bypassStats{}}
 	srv := &http.Server{Handler: h}
 	go srv.Serve(ln)
 	t.Cleanup(func() { srv.Close() })
 	return ln, ln.Addr().String()
+}
+
+func TestBypassStatsCount(t *testing.T) {
+	// Los contadores son la única forma de saber en runtime si el motor pasa
+	// tráfico por el proxy: si no se incrementan, HTTP_PROXY no lo está cogiendo.
+	// TLS para forzar CONNECT: sobre http:// el cliente usa petición en claro.
+	upstream := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, "ok")
+	}))
+	defer upstream.Close()
+
+	stats := &bypassStats{}
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := &http.Server{Handler: &bypassHandler{dial: (&net.Dialer{}).Dial, stats: stats}}
+	go srv.Serve(ln)
+	defer srv.Close()
+	addr := ln.Addr().String()
+
+	client := &http.Client{Transport: &http.Transport{Proxy: proxyURL(t, addr)}}
+
+	// 1) CONNECT a un host vivo.
+	tr := upstream.Client().Transport.(*http.Transport).Clone()
+	tr.Proxy = proxyURL(t, addr)
+	resp, err := (&http.Client{Transport: tr}).Get(upstream.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+
+	// 2) VAST: debe sumar plain y empty_vast.
+	resp2, err := client.Get("http://ads.acestream.net/vast.php")
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp2.Body.Close()
+
+	// 3) Host muerto en claro: debe sumar dead_dns.
+	resp3, err := client.Get("http://router.acestream.me/announce")
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp3.Body.Close()
+
+	got := stats.snapshot()
+	if got["connect"] < 1 {
+		t.Errorf("connect = %d, se esperaba >= 1", got["connect"])
+	}
+	if got["plain"] < 2 {
+		t.Errorf("plain = %d, se esperaban >= 2 (vast y host muerto)", got["plain"])
+	}
+	if got["empty_vast"] < 1 {
+		t.Errorf("empty_vast = %d, se esperaba >= 1", got["empty_vast"])
+	}
+	if got["dead_dns"] < 1 {
+		t.Errorf("dead_dns = %d, se esperaba >= 1", got["dead_dns"])
+	}
+}
+
+// TestBypassHandlerSinStats comprueba que un handler sin contadores no peta: los
+// tests y cualquier uso futuro pueden montarlo sin stats.
+func TestBypassHandlerSinStats(t *testing.T) {
+	h := &bypassHandler{dial: (&net.Dialer{}).Dial}
+	h.count("connect") // no debe entrar en pánico
+}
+
+// TestDohResolveOverWARP comprueba el parseo de la respuesta DoH de Cloudflare
+// y que devuelve la IP A. Es la pieza que saca la resolución de DNS del ISP.
+func TestDohResolveOverWARP(t *testing.T) {
+	var gotName, gotAccept string
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotName = r.URL.Query().Get("name")
+		gotAccept = r.Header.Get("Accept")
+		w.Header().Set("Content-Type", "application/dns-json")
+		io.WriteString(w, `{"Status":0,"Answer":[{"name":"ads.acestream.net","type":1,"TTL":60,"data":"104.21.5.7"}]}`)
+	}))
+	defer srv.Close()
+	// El resolutor real es https://1.1.1.1/dns-query, con el certificado de
+	// cloudflare-dns.com; aquí se apunta al servidor de test.
+	prev, prevInsecure := warpDNSURL, warpDNSInsecure
+	warpDNSURL, warpDNSInsecure = srv.URL, true
+	t.Cleanup(func() { warpDNSURL, warpDNSInsecure = prev, prevInsecure })
+
+	dialCtx := func(ctx context.Context, network, addr string) (net.Conn, error) {
+		return (&net.Dialer{}).DialContext(ctx, network, addr)
+	}
+	ip, err := dohResolveOverWARP(dialCtx, "ads.acestream.net")
+	if err != nil {
+		t.Fatalf("dohResolveOverWARP: %v", err)
+	}
+	if ip != "104.21.5.7" {
+		t.Errorf("IP = %q, se esperaba 104.21.5.7", ip)
+	}
+	if gotName != "ads.acestream.net" {
+		t.Errorf("name consultado = %q", gotName)
+	}
+	if !strings.Contains(gotAccept, "dns-json") {
+		t.Errorf("Accept = %q, se esperaba dns-json", gotAccept)
+	}
+}
+
+// TestDohResolveSinRespuestaA cubre el fallo: el host no resuelve por DoH y hay
+// que devolver error, no una IP inventada.
+func TestDohResolveSinRespuestaA(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, `{"Status":3}`)
+	}))
+	defer srv.Close()
+	prev, prevInsecure := warpDNSURL, warpDNSInsecure
+	warpDNSURL, warpDNSInsecure = srv.URL, true
+	t.Cleanup(func() { warpDNSURL, warpDNSInsecure = prev, prevInsecure })
+
+	dialCtx := func(ctx context.Context, network, addr string) (net.Conn, error) {
+		return (&net.Dialer{}).DialContext(ctx, network, addr)
+	}
+	if _, err := dohResolveOverWARP(dialCtx, "no-existe.example"); err == nil {
+		t.Fatal("se esperaba error sin respuesta A")
+	}
+}
+
+func TestPortOf(t *testing.T) {
+	cases := map[string]string{
+		"example.com:8080": "8080",
+		"example.com":      "443",
+		"1.2.3.4:443":      "443",
+	}
+	for in, want := range cases {
+		if got := portOf(in); got != want {
+			t.Errorf("portOf(%q) = %q, se esperaba %q", in, got, want)
+		}
+	}
+}
+
+// TestBypassDialSinWarpVaDirecto comprueba que, con WARP apagado, el proxy del
+// motor sale directo. Es el caso por defecto: el bypass debe funcionar sin WARP.
+func TestBypassDialSinWarpVaDirecto(t *testing.T) {
+	t.Setenv("WARP", "0")
+	// Un servidor local al que el dial sí puede llegar.
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ln.Close()
+	go func() {
+		for {
+			c, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			c.Close()
+		}
+	}()
+
+	engineBypassStats = &bypassStats{}
+	conn, err := bypassDial("tcp", ln.Addr().String())
+	if err != nil {
+		t.Fatalf("bypassDial: %v", err)
+	}
+	conn.Close()
+
+	got := engineBypassStats.snapshot()
+	if got["via_direct"] != 1 {
+		t.Errorf("via_direct = %d, se esperaba 1", got["via_direct"])
+	}
+	if got["via_warp"] != 0 {
+		t.Errorf("via_warp = %d, se esperaba 0 con WARP apagado", got["via_warp"])
+	}
+}
+
+// TestBypassDialWarpCaidoCaeADirecto comprueba el caso que importa para no
+// romper la reproducción: WARP habilitado pero el túnel aún no levantado
+// (es on-demand). El motor debe salir directo, no quedarse sin conexión.
+func TestBypassDialWarpCaidoCaeADirecto(t *testing.T) {
+	t.Setenv("WARP", "1")
+	// WARP_SOCKS_ADDR apunta a un puerto sin nada escuchando.
+	t.Setenv("WARP_SOCKS_ADDR", "127.0.0.1:1")
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ln.Close()
+	go func() {
+		for {
+			c, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			c.Close()
+		}
+	}()
+
+	engineBypassStats = &bypassStats{}
+	conn, err := bypassDial("tcp", ln.Addr().String())
+	if err != nil {
+		t.Fatalf("con WARP caído el motor debe caer a directo: %v", err)
+	}
+	conn.Close()
+
+	got := engineBypassStats.snapshot()
+	if got["via_direct"] != 1 {
+		t.Errorf("via_direct = %d, se esperaba 1 (reserva)", got["via_direct"])
+	}
+	if got["via_warp"] != 0 {
+		t.Errorf("via_warp = %d, se esperaba 0 con el túnel caído", got["via_warp"])
+	}
 }
 
 func proxyURL(t *testing.T, addr string) func(*http.Request) (*url.URL, error) {

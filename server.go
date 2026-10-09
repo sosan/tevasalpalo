@@ -370,6 +370,19 @@ func StartWebServer() (*fiber.App, error) {
 		return c.JSON(warpStatus())
 	})
 
+	// Diagnóstico del bypass DNS/VAST: contadores del proxy local que se pone
+	// delante del motor. Si tras ver un canal siguen a cero, el motor no está
+	// usando HTTP_PROXY y hay que recurrir al parche de Py_NoSiteFlag.
+	// via_warp/via_direct dicen por dónde salió el tráfico del motor.
+	app.Get("/api/bypass", func(c fiber.Ctx) error {
+		return c.JSON(fiber.Map{
+			"addr":       engineBypassAddr,
+			"warp_on":    warpEnabled(),
+			"warp_socks": warpSocksAddr(),
+			"stats":      engineBypassStats.snapshot(),
+		})
+	})
+
 	app.Post("/api/warp", func(c fiber.Ctx) error {
 		var body struct {
 			Enabled *bool `json:"enabled"`

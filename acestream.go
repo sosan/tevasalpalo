@@ -435,9 +435,20 @@ func extractZip(targetDir string, zipFile fs.File) error {
 		return fmt.Errorf("no se pudo leer el ZIP: %w", err)
 	}
 
+	// El motor son ~9000 ficheros: listar cada ruta inunda el log sin aportar
+	// nada. Se cuenta y se resume al final.
+	var nFiles, nDirs int
+
 	for _, file := range zipReader.File {
-		filePath := filepath.Join(targetDir, file.Name)
+		// safeJoin y no filepath.Join: una entrada "../evil.exe" en el ZIP
+		// escribiría fuera del directorio destino (Zip Slip). extractTarGz ya lo
+		// hace; el ZIP se quedó sin la protección.
+		filePath, err := safeJoin(targetDir, file.Name)
+		if err != nil {
+			return err
+		}
 		if file.FileInfo().IsDir() {
+			nDirs++
 			if err := os.MkdirAll(filePath, 0755); err != nil {
 				return err
 			}
@@ -452,7 +463,6 @@ func extractZip(targetDir string, zipFile fs.File) error {
 		if err != nil {
 			return fmt.Errorf("no se pudo abrir archivo en ZIP: %s: %v", file.Name, err)
 		}
-		log.Printf("%s", filePath)
 		outFile, err := os.Create(filePath)
 		if err != nil {
 			inFile.Close()
@@ -470,7 +480,9 @@ func extractZip(targetDir string, zipFile fs.File) error {
 		if err != nil {
 			return fmt.Errorf("error al cambiar permisos %s: %v", file.Name, err)
 		}
+		nFiles++
 	}
+	log.Printf("   %d archivos, %d carpetas", nFiles, nDirs)
 	return nil
 }
 

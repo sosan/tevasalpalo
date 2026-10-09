@@ -5,11 +5,15 @@ package main
 // existe; si no, se prueba el generador de rutas contra rutas sintéticas.
 
 import (
+	"archive/zip"
+	"bytes"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 )
 
 func runtimeIsWindows() bool { return runtime.GOOS == "windows" }
@@ -91,6 +95,55 @@ func TestSafeJoin(t *testing.T) {
 		t.Fatalf("ruta absoluta escapó: %q", abs)
 	}
 }
+
+// TestExtractZipRejectsZipSlip comprueba que una entrada con "../" en el ZIP no
+// escapa del directorio destino. El motor se descarga de una URL externa, así
+// que un ZIP manipulado no debe poder escribir fuera de runtime/.
+func TestExtractZipRejectsZipSlip(t *testing.T) {
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	w, err := zw.Create("../../escaped.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.Write([]byte("no deberia escribirse fuera"))
+	zw.Close()
+
+	base := t.TempDir()
+	dest := filepath.Join(base, "runtime")
+	if err := os.MkdirAll(dest, 0755); err != nil {
+		t.Fatal(err)
+	}
+	// extractZip espera un fs.File del embed; un bytes.Reader cumple la misma
+	// interfaz de lectura que usa (Stat + io.ReaderAt).
+	if err := extractZip(dest, &fakeFile{name: "test.zip", r: bytes.NewReader(buf.Bytes())}); err == nil {
+		t.Fatal("se esperaba error con entrada Zip Slip")
+	}
+	if _, err := os.Stat(filepath.Join(base, "escaped.txt")); !os.IsNotExist(err) {
+		t.Fatal("el fichero con ../ se escribió fuera del destino")
+	}
+}
+
+// fakeFile implementa lo mínimo de fs.File que necesita extractZip: Stat con el
+// tamaño y lectura como io.ReaderAt.
+type fakeFile struct {
+	name string
+	r    *bytes.Reader
+}
+
+func (f *fakeFile) Stat() (fs.FileInfo, error) { return f, nil }
+func (f *fakeFile) Read([]byte) (int, error)   { return f.r.Read(nil) }
+func (f *fakeFile) Close() error               { return nil }
+func (f *fakeFile) ReadAt(p []byte, off int64) (int, error) {
+	return f.r.ReadAt(p, off)
+}
+func (f *fakeFile) Seek(int64, int) (int64, error) { return f.r.Seek(0, 0) }
+func (f *fakeFile) Name() string                   { return f.name }
+func (f *fakeFile) Size() int64                    { return f.r.Size() }
+func (f *fakeFile) Mode() fs.FileMode              { return 0444 }
+func (f *fakeFile) ModTime() time.Time             { return time.Time{} }
+func (f *fakeFile) IsDir() bool                    { return false }
+func (f *fakeFile) Sys() any                       { return nil }
 
 func TestExtractRuntimeRejectsUnknownAsset(t *testing.T) {
 	// Un asset que no existe en el embed da error claro, no panic.
