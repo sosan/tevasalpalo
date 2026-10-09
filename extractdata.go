@@ -51,6 +51,15 @@ const (
 	//   - hashes.m3u:            mismos 126 hashes con ?id= (contenido idéntico)
 	//   - canales_acestream.m3u: byte-idéntico a platinsportCanales (md5 igual)
 	gitgayHashes = "https://git.gay/a1975morales/ACESTREAM/raw/branch/main/hashes_acestream.m3u"
+	// Segundo IPNS de hashes, servido por filebase. La URL que nos pasaron
+	// apuntaba a este IPNS vía ipfs.io, pero ese gateway ya es
+	// service-worker-only (429 con "switching to a service worker gateway
+	// only", y 403 con challenge de Cloudflare si se finge un navegador), igual
+	// que dweb.link y w3s.link. Filebase es el único de los probados que
+	// resuelve este IPNS por HTTP plano: 200 y 13445 bytes. Aporta 58 hashes de
+	// los que 25 no salen de ninguna otra fuente.
+	filebaseHashesIPNS = "https://ipfs.filebase.io/ipns/k51qzi5uqu5di462t7j4vu4akwfhvtjhy88qbupktvoacqfqe9uforjvhyi4wr"
+	filebaseHashes     = filebaseHashesIPNS + "/hashes_acestream.m3u"
 	// Gateway IPFS que SIGUE hablando HTTP plano. Las gateways grandes
 	// (dweb.link, w3s.link, ipfs.io, inbrowser.link) son ya service-worker-only
 	// y devuelven 403 o un bootstrap de 11684 bytes. Filebase resuelve el IPNS
@@ -77,6 +86,9 @@ var sources = []Source{
 	// Espejo de git.gay: mismo operador que elcano, pero en otro host. Aporta
 	// 6 hashes que ninguna otra fuente da y cubre una caída de raw.githubusercontent.
 	{Name: "gitgay_hashes", URL: gitgayHashes, Type: SourceM3U, Proxied: false},
+	// Otro IPNS de hashes por filebase (ver filebaseHashes). 58 hashes, 25
+	// nuevos respecto a las fuentes m3u de arriba.
+	{Name: "ipfs_hashes", URL: filebaseHashes, Type: SourceM3U, Proxied: false},
 	// Fuentes que NO deben volver:
 	//
 	// - fuera_iptv: mismo repo y mismo contenido que listaplana (400 hashes
@@ -87,7 +99,9 @@ var sources = []Source{
 	// - hashes.m3u: mismos 126 hashes que hashes_acestream.m3u.
 	// - canales_acestream.m3u: byte-idéntico a platinsportCanales.
 	// - cualquier URL de gateway IPFS que no sea ipfs.filebase.io: dweb.link,
-	//   w3s.link, ipfs.io e inbrowser.link ya no sirven contenido por HTTP.
+	//   w3s.link, ipfs.io e inbrowser.link ya no sirven contenido por HTTP
+	//   (429 service-worker-only, o 403 con challenge de Cloudflare). Probado
+	//   también el IPNS k51qzi5uqu5di462: solo filebase lo resuelve.
 }
 
 var reElcanoBaseHref = regexp.MustCompile(`(?i)<base\s[^>]*href\s*=\s*["']([^"']+)["']`)

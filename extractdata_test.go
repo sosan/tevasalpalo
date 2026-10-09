@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -135,6 +136,7 @@ func TestSourcesSinURLsConocidasMuertas(t *testing.T) {
 		{"git.gay/TokyoGhoulles/AceStream_IDs", "404: repo movido; lo sustituye tokyo_elcano"},
 		{"ipns.dweb.link", "dweb.link ya solo es service-worker-gateway"},
 		{"ipfs.inbrowser.link", "solo sirve un bootstrap JS; el contenido va por pares"},
+		{"ipfs.io/ipns", "429 service-worker-only; este IPNS se sirve por filebase"},
 		{"/hashes.m3u", "mismos 126 hashes que hashes_acestream.m3u"},
 		{"lista_fuera_iptv", "mismos 400 hashes y nombres que listaplana"},
 	}
@@ -144,6 +146,34 @@ func TestSourcesSinURLsConocidasMuertas(t *testing.T) {
 				t.Errorf("la fuente %q usa una URL retirada (%s: %s)", s.Name, m.patron, m.motivo)
 			}
 		}
+	}
+}
+
+// TestFuenteIPFSHashesSirveHTTPPlain comprueba contra la red que la fuente
+// ipfs_hashes responde con hashes de verdad. Los gateways grandes (ipfs.io,
+// dweb.link, w3s.link) devuelven 429/403 con este IPNS, y sin este test un
+// fallo de filebase pasaría por una fuente viva y vacía en cada arranque.
+func TestFuenteIPFSHashesSirveHTTPPlain(t *testing.T) {
+	if testing.Short() {
+		t.Skip("requiere red")
+	}
+	resp, err := http.Get(filebaseHashes)
+	if err != nil {
+		t.Fatalf("GET %s: %v", filebaseHashes, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, se esperaba 200 (gateway service-worker-only?)", resp.StatusCode)
+	}
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(body), "acestream://") {
+		t.Fatal("la respuesta no contiene enlaces acestream://")
+	}
+	if n := strings.Count(string(body), "acestream://"); n < 10 {
+		t.Errorf("solo %d enlaces acestream://, se esperaban más", n)
 	}
 }
 
