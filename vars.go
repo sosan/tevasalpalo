@@ -1041,8 +1041,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SKY SPORTS MX": {
 		Logo: "skysports.png",
 		Links: []string{
-			"p;http://181.78.106.127:9000/play/ca028/index.m3u8", //
-			"p;http://181.78.106.127:9000/play/ca030/index.m3u8", //
+			// "p;http://181.78.106.127:9000/play/ca028/index.m3u8", //
 			"p;http://45.5.117.57:8200/play/a050/index.m3u8",
 			"p;http://179.60.224.196:8000/play/a0i7/index.m3u8",
 		},
@@ -1061,7 +1060,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	"SKY SPORTS": {
 		Logo: "skysports.png",
 		Links: []string{
-			"p;http://181.78.106.127:9000/play/ca028/index.m3u8", //
+			// "p;http://181.78.106.127:9000/play/ca028/index.m3u8", //
 		"p;http://181.78.106.127:9000/play/ca030/index.m3u8", //
 		"p;http://45.5.117.57:8200/play/a050/index.m3u8",
 		"p;http://179.60.224.196:8000/play/a0i7/index.m3u8",
@@ -1078,7 +1077,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "d58f619d860d29cd47720055b9bb842199971da1",
 			// "e9975d38aaa4475ac0b1fa0faa541bbadd85a662",
 			// "a9bddffdff085cdc18b34218d5dc1093b88e3c0a",
-			"p;http://181.78.106.127:9000/play/ca028/index.m3u8", //
+			// "p;http://181.78.106.127:9000/play/ca028/index.m3u8", //
 		"p;http://181.78.106.127:9000/play/ca030/index.m3u8", //
 		"p;http://45.5.117.57:8200/play/a050/index.m3u8",
 		"p;http://179.60.224.196:8000/play/a0i7/index.m3u8",

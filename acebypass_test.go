@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestIsDeadHost(t *testing.T) {
@@ -458,14 +459,18 @@ func TestBypassDialSinWarpVaDirecto(t *testing.T) {
 	if got["via_direct"] != 1 {
 		t.Errorf("via_direct = %d, se esperaba 1", got["via_direct"])
 	}
-	if got["via_warp"] != 0 {
-		t.Errorf("via_warp = %d, se esperaba 0 con WARP apagado", got["via_warp"])
+	if got["dns_doh"] != 0 {
+		t.Errorf("dns_doh = %d, se esperaba 0 con WARP apagado", got["dns_doh"])
+	}
+	if got["dns_fail"] != 0 {
+		t.Errorf("dns_fail = %d, se esperaba 0 con WARP apagado (no se intenta DoH)", got["dns_fail"])
 	}
 }
 
 // TestBypassDialWarpCaidoCaeADirecto comprueba el caso que importa para no
-// romper la reproducción: WARP habilitado pero el túnel aún no levantado
-// (es on-demand). El motor debe salir directo, no quedarse sin conexión.
+// romper la reproducción: WARP habilitado pero el túnel aún no levantado. El
+// motor debe salir directo, no quedarse sin conexión. Con un nombre de host
+// agota los reintentos (dns_fail) y cae a la IP directa.
 func TestBypassDialWarpCaidoCaeADirecto(t *testing.T) {
 	t.Setenv("WARP", "1")
 	// WARP_SOCKS_ADDR apunta a un puerto sin nada escuchando.
@@ -487,7 +492,13 @@ func TestBypassDialWarpCaidoCaeADirecto(t *testing.T) {
 	}()
 
 	engineBypassStats = &bypassStats{}
-	conn, err := bypassDial("tcp", ln.Addr().String())
+	// "localhost" obliga a pasar por la rama de resolución: es un nombre, no
+	// una IP, así que se intenta DoH y luego se cae a directo.
+	_, port, err := net.SplitHostPort(ln.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn, err := bypassDial("tcp", net.JoinHostPort("localhost", port))
 	if err != nil {
 		t.Fatalf("con WARP caído el motor debe caer a directo: %v", err)
 	}
@@ -497,8 +508,49 @@ func TestBypassDialWarpCaidoCaeADirecto(t *testing.T) {
 	if got["via_direct"] != 1 {
 		t.Errorf("via_direct = %d, se esperaba 1 (reserva)", got["via_direct"])
 	}
-	if got["via_warp"] != 0 {
-		t.Errorf("via_warp = %d, se esperaba 0 con el túnel caído", got["via_warp"])
+	if got["dns_fail"] != 1 {
+		t.Errorf("dns_fail = %d, se esperaba 1 (DoH reintentado y caído)", got["dns_fail"])
+	}
+	if got["dns_doh"] != 0 {
+		t.Errorf("dns_doh = %d, se esperaba 0 con el túnel caído", got["dns_doh"])
+	}
+}
+
+// TestBypassDialConIPNoResuelve comprueba que una IP literal no dispara la
+// resolución: no hay nada que preguntar y debe ir directa sin esperar.
+func TestBypassDialConIPNoResuelve(t *testing.T) {
+	t.Setenv("WARP", "1")
+	t.Setenv("WARP_SOCKS_ADDR", "127.0.0.1:1")
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ln.Close()
+	go func() {
+		for {
+			c, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			c.Close()
+		}
+	}()
+
+	engineBypassStats = &bypassStats{}
+	start := time.Now()
+	conn, err := bypassDial("tcp", ln.Addr().String()) // ya es host:IP
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn.Close()
+	// Con una IP no debe agotar los dnsWaitAttempts.
+	if elapsed := time.Since(start); elapsed > time.Second {
+		t.Errorf("tardó %s en dialar una IP: no debería esperar a WARP", elapsed)
+	}
+	got := engineBypassStats.snapshot()
+	if got["dns_doh"] != 0 || got["dns_fail"] != 0 {
+		t.Errorf("con IP literal no debe haber intentos de DoH: %v", got)
 	}
 }
 

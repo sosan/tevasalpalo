@@ -133,7 +133,6 @@ type bypassStats struct {
 	plain      int
 	deadDNS    int
 	emptyVAST  int
-	viaWARP    int
 	viaDirect  int
 	dnsDoH     int
 	dnsFail    int
@@ -149,7 +148,6 @@ func (s *bypassStats) snapshot() map[string]int {
 		"plain":       s.plain,
 		"dead_dns":    s.deadDNS,
 		"empty_vast":  s.emptyVAST,
-		"via_warp":    s.viaWARP,
 		"via_direct":  s.viaDirect,
 		"dns_doh":     s.dnsDoH,
 		"dns_fail":    s.dnsFail,
@@ -169,8 +167,6 @@ func (s *bypassStats) add(field string) {
 		s.deadDNS++
 	case "empty_vast":
 		s.emptyVAST++
-	case "via_warp":
-		s.viaWARP++
 	case "via_direct":
 		s.viaDirect++
 	case "dns_doh":
@@ -185,37 +181,65 @@ func (s *bypassStats) add(field string) {
 // engineBypassStats son los contadores del proxy en marcha.
 var engineBypassStats = &bypassStats{}
 
-// bypassDial abre los túneles del motor. Si WARP está habilitado pero su SOCKS
-// no está levantado (es on-demand), cae a conexión directa: mejor que dejar al
-// motor sin salida. Los contadores viaWARP/viaDirect dicen por dónde salió cada
-// petición, que es como se comprueba en runtime que el tráfico del motor está
-// saliendo por el túnel.
+// Espera a que WARP esté levantado antes de rendirse al DNS del ISP.
+//
+// WARP es on-demand (lo arranca WarpStreamStart al entrar un stream) y además
+// se levanta en una goroutine, así que durante los primeros segundos el motor
+// pregunta por un SOCKS que todavía no escucha. Con un solo intento, la
+// resolución caía al resolver del sistema, que es justo el que el ISP corta.
+//
+// dnsWaitAttempts * dnsWaitInterval dan ~2,5 s de margen: suficiente para el
+// arranque del túnel sin colgar el motor si WARP no levantara nunca.
+const (
+	dnsWaitAttempts = 5
+	dnsWaitInterval = 500 * time.Millisecond
+)
+
+// bypassDial abre las conexiones del motor.
+//
+// Solo el DNS va por WARP: el ISP corta por DNS, así que la resolución cifrada
+// por el túnel es lo que importa. El resto de la conexión va directa a
+// propósito: meter los streams en un túnel añade latencia y, si WARP no está
+// levantado, rompería la reproducción.
+//
+// Cuando host es un nombre, se resuelve por DoH dentro de WARP y se conecta a
+// la IP directa. Cuando ya es una IP, no hay nada que resolver y se va directo.
 func bypassDial(network, addr string) (net.Conn, error) {
-	if warpEnabled() {
-		if dialCtx, err := socksDialContext(warpSocksAddr()); err == nil {
-			// El motor suele pedir CONNECT host:puerto. Si el nombre llega al
-			// SOCKS sin resolver, xray lo resuelve DENTRO del túnel y no hay
-			// nada que hacer. Pero para no depender de eso, y para tapar el
-			// caso de que xray resuelva con el DNS del sistema, se resuelve por
-			// DoH dentro del túnel y se conecta a la IP.
-			if host, _, err2 := net.SplitHostPort(addr); err2 == nil && net.ParseIP(host) == nil {
-				if ip, err3 := dohResolveOverWARP(dialCtx, host); err3 == nil {
-					if c, err4 := dialCtx(context.Background(), network, net.JoinHostPort(ip, portOf(addr))); err4 == nil {
-						engineBypassStats.add("via_warp")
-						engineBypassStats.add("dns_doh")
-						return c, nil
-					}
-				}
-				engineBypassStats.add("dns_fail")
-			}
-			if c, err2 := dialCtx(context.Background(), network, addr); err2 == nil {
-				engineBypassStats.add("via_warp")
-				return c, nil
-			}
+	host, _, splitErr := net.SplitHostPort(addr)
+	if splitErr == nil && net.ParseIP(host) == nil && warpEnabled() {
+		if ip, err := resolveOverWARPWithWait(host); err == nil {
+			engineBypassStats.add("dns_doh")
+			engineBypassStats.add("via_direct")
+			return (&net.Dialer{Timeout: 20 * time.Second}).Dial(network, net.JoinHostPort(ip, portOf(addr)))
+		} else {
+			engineBypassStats.add("dns_fail")
 		}
 	}
 	engineBypassStats.add("via_direct")
 	return (&net.Dialer{Timeout: 20 * time.Second}).Dial(network, addr)
+}
+
+// resolveOverWARPWithWait resuelve host por DoH esperando a que WARP esté
+// levantado. Espera en el SOCKS, no en el nombre: si el túnel no está, el dial
+// falla rápido y no se pierde tiempo.
+func resolveOverWARPWithWait(host string) (string, error) {
+	var lastErr error
+	for i := 0; i < dnsWaitAttempts; i++ {
+		if i > 0 {
+			time.Sleep(dnsWaitInterval)
+		}
+		dialCtx, err := socksDialContext(warpSocksAddr())
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		ip, err := dohResolveOverWARP(dialCtx, host)
+		if err == nil {
+			return ip, nil
+		}
+		lastErr = err
+	}
+	return "", lastErr
 }
 
 // portOf devuelve el puerto de un destino "host:puerto", o 443 si no lo trae.
