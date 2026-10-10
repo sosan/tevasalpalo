@@ -20,7 +20,6 @@ func TestIsDeadHost(t *testing.T) {
 		"TORRENTSTREAM.ORG",
 		"router.acestream.me",
 		"cdn.torrentstream.org",
-		"54.36.163.2",
 		"tracker.TorrentStream.org:8080",
 	}
 	for _, h := range dead {
@@ -34,11 +33,74 @@ func TestIsDeadHost(t *testing.T) {
 		"nottorrentstream.org.example.com",
 		"acestream.me",
 		"retrouter.acestream.me.example.org",
+		// Los servidores de publicidad NO se cortan: el motor los usa para su
+		// chequeo de salubridad y, si fallan, cree que hay un bloqueador.
+		"acestream.org",
+		"acestream.net",
+		"ads.acestream.net",
+		"www.acestream.org",
 	}
 	for _, h := range alive {
 		if isDeadHost(h) {
 			t.Errorf("isDeadHost(%q) = true, se esperaba false", h)
 		}
+	}
+}
+
+func TestIsAdServerHost(t *testing.T) {
+	yes := []string{"acestream.org", "acestream.net", "ads.acestream.net", "ACESTREAM.ORG:443"}
+	for _, h := range yes {
+		if !isAdServerHost(h) {
+			t.Errorf("isAdServerHost(%q) = false, se esperaba true", h)
+		}
+	}
+	for _, h := range []string{"example.com", "torrentstream.org", "", "acestream.me"} {
+		if isAdServerHost(h) {
+			t.Errorf("isAdServerHost(%q) = true, se esperaba false", h)
+		}
+	}
+}
+
+// TestBypassAdServerRespondeNoCorta es la regresión del mensaje "Se ha detectado
+// un bloqueador de anuncios": el motor hace un chequeo contra acestream.org/net
+// y, si el proxy devuelve 502, cree que hay un adblock y suspende la
+// reproducción. Debe devolver 200 con documento vacío.
+func TestBypassAdServerRespondeNoCorta(t *testing.T) {
+	_, addr := startTestBypass(t)
+	client := &http.Client{Transport: &http.Transport{Proxy: proxyURL(t, addr)}}
+
+	for _, host := range []string{"acestream.org", "ads.acestream.net"} {
+		resp, err := client.Get("http://" + host + "/vast.php")
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Errorf("%s: status = %d, se esperaba 200 (un 502 dispara el aviso de bloqueador)", host, resp.StatusCode)
+		}
+		if !strings.Contains(string(body), "<VAST") {
+			t.Errorf("%s: cuerpo sin VAST: %q", host, body)
+		}
+	}
+}
+
+// TestBypassVastGanaAlDeadDNS fija el orden: vast.php sobre torrentstream.org
+// debe devolver el VAST vacío, no el 502 del corte por DNS.
+func TestBypassVastGanaAlDeadDNS(t *testing.T) {
+	_, addr := startTestBypass(t)
+	client := &http.Client{Transport: &http.Transport{Proxy: proxyURL(t, addr)}}
+	resp, err := client.Get("http://torrentstream.org/vast.php")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, se esperaba 200: la respuesta vacía debe ganar al corte", resp.StatusCode)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	if !strings.Contains(string(body), "<VAST") {
+		t.Errorf("cuerpo = %q, se esperaba el VAST vacío", body)
 	}
 }
 

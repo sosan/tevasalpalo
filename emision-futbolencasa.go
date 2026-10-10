@@ -229,28 +229,38 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 }
 
 func getCompetition(req CompetitionRequest) ([]DayView, error) {
-	// Las webs de horarios son públicas y en directo responden mucho antes que
-	// por la cadena xray/Tor, así que se prueban directo primero y el proxy
-	// queda como reserva (por si el directo está bloqueado desde tu IP).
-	// Cada transporte reintenta 10 veces antes de pasar al siguiente.
+	// Se empieza por el proxy y no por directo: con el ISP cortando por DNS,
+	// el directo se come los 10 intentos (y los timeouts) antes de llegar al
+	// proxy que sí funciona. Con el proxy primero, un origen que responde va
+	// al primer intento y uno bloqueado en directo tarda la mitad que antes.
+	//
+	// Dentro de cada transporte solo se reintenta si el error puede resolverlo un
+	// reintento (transporte/DNS): un 404 o un 403 no se arregla repetidos 10
+	// veces, y así se evita el minuto y medio de reintentos inútiles.
 	type attempt struct {
 		proxied bool
 		label   string
 	}
-	attempts := []attempt{{false, "direct"}}
-	if req.Proxied {
-		attempts = append(attempts, attempt{true, "proxy"})
+	attempts := []attempt{{true, "proxy"}, {false, "direct"}}
+	if !req.Proxied {
+		attempts = attempts[1:]
 	}
+
+	const intentosPorTransporte = 5
 
 	var body []byte
 	for _, a := range attempts {
 		var err error
-		for i := 1; i <= 10; i++ {
+		for i := 1; i <= intentosPorTransporte; i++ {
 			body, err = FetchWebDataTimeout(req.URL, a.proxied, req.Timeout)
 			if err == nil && len(body) != 0 {
-				if a.label != "direct" {
-					log.Printf("🔄 [%s] directo falló, recuperado vía %s", req.Name, a.label)
+				if a.label == "proxy" {
+					log.Printf("🔄 [%s] recuperado vía proxy (intento %d/%d)", req.Name, i, intentosPorTransporte)
 				}
+				break
+			}
+			if !retryWorthIt(err) {
+				log.Printf("❌ [%s] fallo no recuperable en %s: %v", req.Name, a.label, err)
 				break
 			}
 			log.Printf("Intento FALLIDO %d [%s/%s]: Obteniendo datos de %s (proxied=%v) error=%v", i, req.Name, a.label, req.URL, a.proxied, err)
@@ -262,6 +272,24 @@ func getCompetition(req CompetitionRequest) ([]DayView, error) {
 
 	dayviews, err := prepareMatchDay(body)
 	return dayviews, err
+}
+
+// retryWorthIt decide si merece la pena repetir. Los fallos de red, DNS y
+// timeout se reintentan siempre. Entre los estados HTTP solo se reintenta lo que
+// puede cambiar por sí solo: 429 (rate limit) y 5xx (error del servidor). Un 4xx
+// —404, 403, 410— es una respuesta definitiva y repetirlo solo multiplica la
+// espera.
+func retryWorthIt(err error) bool {
+	if err == nil {
+		return true
+	}
+	msg := err.Error()
+	// Errores que no son de estado HTTP: red, DNS, timeouts. Se reintenta.
+	if !strings.Contains(msg, "status code error") {
+		return true
+	}
+	// 429 (rate limit) y 5xx pueden mejorar solos.
+	return strings.Contains(msg, "429") || strings.Contains(msg, " 5")
 }
 
 func prepareMatchDay(body []byte) ([]DayView, error) {

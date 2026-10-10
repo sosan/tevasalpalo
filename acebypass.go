@@ -46,10 +46,39 @@ const bypassAddrEnv = "ACE_BYPASS_ADDR"
 // deadHosts son los hosts que no resuelven en la práctica. Bloquearlos aquí
 // evita el timeout de resolución, tanto si el motor llega por CONNECT como si
 // resuelve el nombre antes de abrir el túnel.
+//
+// Solo DNS realmente muerto. Los servidores de publicidad (acestream.org /
+// acestream.net) NO van aquí: el motor hace un chequeo de salubridad contra
+// ellos y, si no responden, cree que hay un bloqueador de anuncios y suspende la
+// reproducción. Se atienden con una respuesta vacía válida (ver isAdServerHost).
 var deadHosts = []string{
 	"torrentstream.org",
 	"router.acestream.me",
-	"54.36.163.2",
+}
+
+// adServerHosts son los servidores de publicidad/salubridad del motor. No se
+// cortan: se les responde con un documento vacío válido para que el motor
+// interprete "no hay anuncios" en vez de "bloqueado".
+//
+// Es el error que hizo que el motor mostrara "Se ha detectado un bloqueador de
+// anuncios": devolver 502 a estos hosts es exactamente lo que hace un adblock.
+var adServerHosts = []string{
+	"acestream.org",
+	"acestream.net",
+}
+
+// isAdServerHost dice si el host es de publicidad/salubridad del motor.
+func isAdServerHost(host string) bool {
+	h := strings.ToLower(hostOnly(host))
+	if h == "" {
+		return false
+	}
+	for _, d := range adServerHosts {
+		if h == d || strings.HasSuffix(h, "."+d) {
+			return true
+		}
+	}
+	return false
 }
 
 // deadVASTPaths se cortan con un documento XML vacío y válido, replicando
@@ -137,6 +166,7 @@ type bypassStats struct {
 	dnsDoH     int
 	dnsFail    int
 	emptyNotif int
+	adPassthru int
 }
 
 // snapshot devuelve una copia de los contadores para leerlos sin bloquear.
@@ -144,14 +174,15 @@ func (s *bypassStats) snapshot() map[string]int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return map[string]int{
-		"connect":     s.connect,
-		"plain":       s.plain,
-		"dead_dns":    s.deadDNS,
-		"empty_vast":  s.emptyVAST,
-		"via_direct":  s.viaDirect,
-		"dns_doh":     s.dnsDoH,
-		"dns_fail":    s.dnsFail,
-		"empty_notif": s.emptyNotif,
+		"connect":        s.connect,
+		"plain":          s.plain,
+		"dead_dns":       s.deadDNS,
+		"empty_vast":     s.emptyVAST,
+		"via_direct":     s.viaDirect,
+		"dns_doh":        s.dnsDoH,
+		"dns_fail":       s.dnsFail,
+		"empty_notif":    s.emptyNotif,
+		"ad_passthrough": s.adPassthru,
 	}
 }
 
@@ -175,6 +206,8 @@ func (s *bypassStats) add(field string) {
 		s.dnsFail++
 	case "empty_notif":
 		s.emptyNotif++
+	case "ad_passthrough":
+		s.adPassthru++
 	}
 }
 
@@ -356,8 +389,25 @@ func (h *bypassHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		host = r.URL.Host
 	}
 	h.count("plain")
+	// El orden importa: la respuesta vacía gana al corte. Sivast.php llegara
+	// antes a dead_dns (torrentstream.org), el motor recibiría un 502 en vez de
+	// un VAST vacío y podría tomarlo por un bloqueador de anuncios.
+	if isNotifURL(host, r.URL.Path) {
+		// Notificaciones: el APK devuelve {"notifications":[]} (JSON), no un
+		// VAST. Servirle XML a un endpoint que espera JSON no hace el bypass.
+		h.count("empty_notif")
+		writeEmptyNotif(w)
+		return
+	}
+	if isDeadPath(r.URL.Path) || isAdServerHost(host) {
+		// VAST y servidores de publicidad: documento vacío y válido. Nunca un
+		// error, para que el motor no lo lea como bloqueo de anuncios.
+		h.count("empty_vast")
+		writeEmptyVAST(w)
+		return
+	}
 	if isDeadHost(hostOnly(host)) {
-		// DNS muerto: el motor no espera el timeout de resolución.
+		// DNS muerto de verdad: el motor no espera el timeout de resolución.
 		h.count("dead_dns")
 		w.WriteHeader(http.StatusBadGateway)
 		return
@@ -404,6 +454,11 @@ func (h *bypassHandler) count(field string) {
 
 // serveConnect hace de túnel CONNECT: bloqueo inmediato para hosts muertos y
 // túnel transparente para el resto.
+//
+// Los servidores de publicidad NO se tocan en CONNECT: no se ve la ruta dentro
+// del TLS, así que no hay forma de responder con un VAST vacío, y cortarlos
+// haría que el motor crea que hay un bloqueador. Se dejan pasar tal cual: el
+// chequeo de salubridad necesita una respuesta real.
 func (h *bypassHandler) serveConnect(w http.ResponseWriter, r *http.Request) {
 	target := r.Host
 	if target == "" {
@@ -414,10 +469,13 @@ func (h *bypassHandler) serveConnect(w http.ResponseWriter, r *http.Request) {
 		host, port = target, "443"
 	}
 	h.count("connect")
-	if isDeadHost(host) {
+	if isDeadHost(host) && !isAdServerHost(host) {
 		h.count("dead_dns")
 		w.WriteHeader(http.StatusBadGateway)
 		return
+	}
+	if isAdServerHost(host) {
+		h.count("ad_passthrough")
 	}
 	hj, ok := w.(http.Hijacker)
 	if !ok {
