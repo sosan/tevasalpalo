@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -272,10 +274,44 @@ func clientForTransport(name string) (*http.Client, error) {
 	return clientForTransportTimeout(name, timeTimeout)
 }
 
+// directDialer fuerza IPv4 en las conexiones directas.
+//
+// Sin esto Go usa su dialer por defecto, que devuelve el AAAA primero si el host
+// lo tiene. En una red sin IPv6 eso no falla rápido con "sin IPv6" sino con
+// "network is unreachable" tras agotar el timeout, y cada reintento cuesta lo
+// mismo que uno que sí iba a funcionar. Se vio con ipfs.filebase.io:
+// "dial tcp [2001:41d0:700:7828::1]:443: connect: network is unreachable".
+//
+// tcp4 hace que se pregunte solo por A. Un host sin AAAA seguiría funcionando:
+// Go devuelve error de resolución y no hay pérdida.
+var directDialer = &net.Dialer{
+	Timeout:   20 * time.Second,
+	KeepAlive: 30 * time.Second,
+}
+
+func directDialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+	// Se reescribe "tcp" a "tcp4" para que no se intente el AAAA.
+	if network == "tcp" || network == "" {
+		network = "tcp4"
+	}
+	return directDialer.DialContext(ctx, network, addr)
+}
+
+// directTransport es el transporte HTTP para conexiones directas, con IPv4
+// forzado.
+func directTransport() *http.Transport {
+	return &http.Transport{
+		DialContext:         directDialContext,
+		MaxIdleConns:        100,
+		IdleConnTimeout:     30 * time.Second,
+		TLSHandshakeTimeout: 15 * time.Second,
+	}
+}
+
 func clientForTransportTimeout(name string, timeout time.Duration) (*http.Client, error) {
 	switch name {
 	case "direct":
-		return &http.Client{Timeout: timeout}, nil
+		return &http.Client{Timeout: timeout, Transport: directTransport()}, nil
 	case "socks5":
 		return newSOCKS5ClientTimeout(socks5Addr(), timeout)
 	case "warp":

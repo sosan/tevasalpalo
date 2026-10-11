@@ -6,6 +6,7 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"testing"
 )
 
@@ -140,8 +141,21 @@ func TestProxyChain(t *testing.T) {
 
 func TestClientForTransport(t *testing.T) {
 	t.Setenv("SOCKS5_ADDR", "127.0.0.1:1")
-	if c, err := clientForTransport("direct"); err != nil || c.Transport != nil {
-		t.Fatalf("direct = %v, %v", c, err)
+	// El cliente "direct" sí lleva Transport propio (ver directTransport): es
+	// lo que fuerza IPv4, porque el dialer por defecto de Go intenta el AAAA y
+	// en una red sin IPv6 cada reintento se pierde el timeout entero. El test
+	// exigía Transport == nil, que era la invariante anterior al forzado de
+	// IPv4; ahora se exige que sea el transporte con DialContext.
+	c, err := clientForTransport("direct")
+	if err != nil {
+		t.Fatalf("direct error: %v", err)
+	}
+	tr, ok := c.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("direct: Transport = %T, se esperaba *http.Transport", c.Transport)
+	}
+	if tr.DialContext == nil {
+		t.Fatal("direct: el transporte no fija DialContext, se perdería el IPv4 forzado")
 	}
 	if _, err := clientForTransport("tor"); err != nil {
 		t.Fatalf("tor error: %v", err)
