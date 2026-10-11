@@ -428,13 +428,31 @@ func StartWebServer() (*fiber.App, error) {
 			pid = fmt.Sprintf("%d", time.Now().Unix())
 		}
 
+		// Lista de enlaces del mismo canal/recurrencia, para poder saltar de
+		// uno a otro sin volver a la portada. Viene separada por comas en
+		// "all"; el enlace actual se marca para saber cuál está sonando.
+		all := c.Query("all")
+		var altLinks []string
+		if all != "" {
+			altLinks = strings.Split(all, ",")
+		}
+		currentLink := 0
+		for i, l := range altLinks {
+			if l == link {
+				currentLink = i
+				break
+			}
+		}
+
 		if content == "" {
 			btn := c.Query("btn")
 			return c.Render("player", fiber.Map{
-				"linkid":  link,
-				"btntext": btn,
-				"pid":     pid,
-				"error":   nil,
+				"linkid":      link,
+				"btntext":     btn,
+				"pid":         pid,
+				"error":       nil,
+				"altlinks":    altLinks,
+				"currentlink": currentLink,
 			})
 		}
 
@@ -452,6 +470,8 @@ func StartWebServer() (*fiber.App, error) {
 			"btntext":         btn,
 			"pid":             pid,
 			"error":           nil,
+			"altlinks":        altLinks,
+			"currentlink":     currentLink,
 		})
 	})
 

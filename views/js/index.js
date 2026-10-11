@@ -356,12 +356,18 @@ function formatBroadcasters(broadcasters, eventName, competitionName) {
         html += `<span class="broadcaster-name">${broadcaster.name.trim()} </span>`;
 
         if (links && Array.isArray(links) && links.length > 0) {
+            // Todos los enlaces válidos del canal, para que el player ofrezca
+            // botones y se pueda saltar de uno a otro sin volver atrás.
+            const validLinks = links.filter(l => typeof l === 'string' && l.length > 0);
+            const allLinks = validLinks.join(',');
+
             const linksHtml = links.map((link, linkIndex) => {
                 if (link && typeof link === 'string') {
                     const encriptedContent = setEncriptedContent(broadcaster.name, eventName, competitionName);
                     const btnText = `Link ${linkIndex + 1}`;
                     countPID++;
-                    return `<a href="/player/index.html?link=${link}&content=${encriptedContent}&pid=${countPID}&btn=${encodeURIComponent(btnText)}" target="_blank" class="broadcaster-link">${btnText}</a>`;
+                    const all = validLinks.length > 1 ? `&all=${encodeURIComponent(allLinks)}` : '';
+                    return `<a href="/player/index.html?link=${encodeURIComponent(link)}&content=${encriptedContent}&pid=${countPID}&btn=${encodeURIComponent(btnText)}${all}" target="_blank" class="broadcaster-link">${btnText}</a>`;
                 } else if (link === undefined || link === null || link === '') {
                     if (broadcaster.name && (broadcaster.name.includes("APLAZADO") || broadcaster.name.includes("POS"))) {
                         return `<span>${broadcaster.name}</span>`;

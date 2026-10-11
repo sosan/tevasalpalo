@@ -28,6 +28,21 @@
             {{ if .btntext }}🔗 {{ .btntext }}{{ end }}
         </span>
 
+        {{ if .altlinks }}
+        {{ if gt (len .altlinks) 1 }}
+        <div class="alt-links" id="altLinks">
+            <span class="alt-links-label">🔀 Enlaces del evento:</span>
+            {{ $current := .currentlink }}
+            {{ range $i, $l := .altlinks }}
+            <button type="button"
+                    class="alt-link-btn{{ if eq $i $current }} active{{ end }}"
+                    data-index="{{ $i }}"
+                    data-link="{{ $l }}">{{ $i }}</button>
+            {{ end }}
+        </div>
+        {{ end }}
+        {{ end }}
+
         <div class="video-container">
             <video id="videoPlayer" autoplay muted controls></video>
             <!-- <div id="statusMessage">Cargando reproductor...</div> -->
@@ -628,6 +643,63 @@
         console.log("Botón 'Aplicar Configuración' presionado.");
         loadVideo();
     });
+
+    // Cambio rápido entre los enlaces del mismo evento, sin recargar la página.
+    // Se reutiliza loadVideo() cambiando el enlace que usa: el reproductor se
+    // reconstruye igual que al pulsar "Reintentar".
+    function switchToLink(newLink) {
+        const video = document.getElementById('videoPlayer');
+        if (video) {
+            // Corta el stream anterior antes de montar el nuevo: si no, el HLS
+            // antiguo sigue descargando en segundo plano.
+            try { video.pause(); } catch (e) { }
+            if (video.hls) {
+                try { video.hls.destroy(); } catch (e) { }
+                video.hls = null;
+            }
+            video.removeAttribute('src');
+            try { video.load(); } catch (e) { }
+        }
+        currentLinkID = newLink;
+        loadVideoForLink();
+    }
+
+    // loadVideo() del template usa el enlace embebido; esta versión acepta el
+    // enlace como argumento para poder alternar sin tocar el DOM del servidor.
+    function loadVideoForLink() {
+        let linkID = currentLinkID || "{{ .linkid }}";
+        const pid = "{{ .pid }}";
+        if (linkID == "") { return; }
+        hideErrorOverlay();
+        if (linkID.includes(";") === true) {
+            const splitted = linkID.split(";")[1];
+            let decoded = fromBase64Url(splitted);
+            if (decoded.includes("p;")) {
+                loadHlsVideo(`/api/iptv/${linkID}`, linkID, pid, 0);
+            } else {
+                loadHlsVideo(decoded, linkID, pid, 0);
+            }
+            return;
+        }
+        if (!isValidAceId(linkID)) {
+            showErrorOverlay('ID de stream inválido', `El identificador "${linkID}" no es un hash válido y no se puede cargar.`);
+            return;
+        }
+        loadHlsVideo(buildHlsUrl(linkID, "{{ .pid }}"), linkID, "{{ .pid }}", 0);
+    }
+
+    let currentLinkID = "{{ .linkid }}";
+
+    document.addEventListener('click', function (ev) {
+        const btn = ev.target.closest('.alt-link-btn');
+        if (!btn) return;
+        const newLink = btn.getAttribute('data-link');
+        if (!newLink) return;
+        document.querySelectorAll('.alt-link-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        switchToLink(newLink);
+    });
+
     window.addEventListener("DOMContentLoaded", loadVideo);
 
 </script>

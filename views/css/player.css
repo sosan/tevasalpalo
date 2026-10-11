@@ -28,6 +28,46 @@ body {
   color: #333;
 }
 
+/* Botones para saltar entre los enlaces del mismo evento. */
+.alt-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 10px 0;
+}
+
+.alt-links-label {
+  font-size: 13px;
+  font-weight: bold;
+  color: #666;
+  margin-right: 4px;
+}
+
+.alt-link-btn {
+  min-width: 34px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: bold;
+  color: #333;
+  background: #f2f2f2;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.alt-link-btn:hover {
+  background: #e3e3e3;
+  border-color: #6f9a55;
+}
+
+.alt-link-btn.active {
+  background: #6f9a55;
+  border-color: #4d7039;
+  color: #fff;
+}
+
 .video-container {
   width: 75%;
   background: #000;
