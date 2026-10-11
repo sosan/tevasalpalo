@@ -343,12 +343,33 @@ func warpLink(ident *warpIdentity, endpoint string) (string, error) {
 	q.Set("address", strings.Join(addrs, ","))
 	q.Set("mtu", strconv.Itoa(warpMTU))
 	q.Set("keepalive", strconv.Itoa(warpKeepAlive))
-	// WARP+ usa la licencia del account como pre-shared key.
-	if ident.WarpPlus && ident.License != "" {
-		q.Set("presharedkey", ident.License)
+	// WARP+ usa la licencia de la cuenta como pre-shared key, pero el campo
+	// "license" de /reg no siempre lo es: en cuentas gratuitas viene con otro
+	// contenido. Mandarlo tal cual hacía que xray abortara con
+	// "failed to set preshared key: hex string does not fit the slice" y luego
+	// entrara en pánico ("close of closed channel"), tumbando la app entera.
+	// Una PSK válida son exactamente 32 bytes en hex (64 caracteres).
+	if psk := strings.TrimSpace(ident.License); validWarpPSK(psk) {
+		q.Set("presharedkey", psk)
 	}
 	return fmt.Sprintf("wireguard://%s@%s?%s#warp",
 		url.PathEscape(ident.PrivateKey), endpoint, q.Encode()), nil
+}
+
+// validWarpPSK indica si s es una pre-shared key utilizable: 64 caracteres hex
+// (32 bytes). Cualquier otra cosa hace fallar el túnel, así que mejor no
+// mandarla que dejarla y que reviente el proceso.
+func validWarpPSK(s string) bool {
+	if len(s) != 64 {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') && (c < 'A' || c > 'F') {
+			return false
+		}
+	}
+	return true
 }
 
 // ---------------------------------------------------------------------------

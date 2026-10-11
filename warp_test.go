@@ -243,7 +243,7 @@ func TestWarpLinkPlusUsesLicenseAsPsk(t *testing.T) {
 		Reserved:   []byte{1, 2, 3},
 		AddressV4:  "172.16.0.2",
 		WarpPlus:   true,
-		License:    "q89TSs73-0Tv593Lh-U68lB29J",
+		License:    strings.Repeat("c0", 32), // 64 hex: PSK válida
 	}
 	ep, err := parseXrayLink(mustWarpLink(t, ident, "162.159.192.9:2408"))
 	if err != nil {
@@ -251,6 +251,51 @@ func TestWarpLinkPlusUsesLicenseAsPsk(t *testing.T) {
 	}
 	if ep.WgPsk != ident.License {
 		t.Fatalf("psk = %q, want licencia %q", ep.WgPsk, ident.License)
+	}
+}
+
+// TestWarpLinkIgnoraLicenseNoPSK es la regresión del crash: el campo "license"
+// de /reg no es siempre una pre-shared key. En cuentas gratuitas trae otra
+// cosa, y mandarla hacía que xray abortara con "failed to set preshared key"
+// y luego entrara en pánico tumbando la app.
+func TestWarpLinkIgnoraLicenseNoPSK(t *testing.T) {
+	bad := []struct {
+		nombre  string
+		license string
+	}{
+		{"licencia de WARP+ real (no es hex)", "q89TSs73-0Tv593Lh-U68lB29J"},
+		{"hex demasiado corto", "abcd"},
+		{"hex con caracteres no hex", strings.Repeat("z", 64)},
+		{"vacía", ""},
+	}
+	for _, c := range bad {
+		ident := &warpIdentity{
+			PrivateKey: "cHJpdmF0YS1rZXk=",
+			PeerPublic: "cGVlci1wdWJsaWM=",
+			Reserved:   []byte{1, 2, 3},
+			AddressV4:  "172.16.0.2",
+			WarpPlus:   true,
+			License:    c.license,
+		}
+		ep, err := parseXrayLink(mustWarpLink(t, ident, "162.159.192.9:2408"))
+		if err != nil {
+			t.Fatalf("%s: %v", c.nombre, err)
+		}
+		if ep.WgPsk != "" {
+			t.Errorf("%s: se mandó una PSK inválida %q; debe omitirse", c.nombre, ep.WgPsk)
+		}
+	}
+}
+
+func TestValidWarpPSK(t *testing.T) {
+	buena := strings.Repeat("ab", 32)
+	if !validWarpPSK(buena) {
+		t.Errorf("una PSK de 64 hex debería valer: %q", buena)
+	}
+	for _, mala := range []string{"", "abcd", strings.Repeat("a", 63), strings.Repeat("g", 64)} {
+		if validWarpPSK(mala) {
+			t.Errorf("no debería valer %q", mala)
+		}
 	}
 }
 
