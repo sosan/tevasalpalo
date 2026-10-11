@@ -157,6 +157,7 @@ func StartWebServer() (*fiber.App, error) {
 		// activa el túnel en el cliente Android (http_stream_start). Los
 		// manifests y comandos del webui no lo activan.
 		isAceStream := isAceStreamPath(acePath)
+		traceLog("/ace/* ruta=%q -> isAceStream=%v (WARP=%v)", acePath, isAceStream, warpEnabled())
 		if isAceStream {
 			WarpStreamStart()
 		}
@@ -611,6 +612,7 @@ func copyHeaders(c fiber.Ctx, resp *http.Response) {
 
 func fetchAndProxy(c fiber.Ctx, targetURL string) error {
 	// WARP on-demand: equivalencia de http_stream_start en el cliente Android.
+	traceLog("fetchAndProxy: %s (WARP=%v)", targetURL, warpEnabled())
 	WarpStreamStart()
 	resp, finalURL, err := openUpstream(targetURL, c.Get("Range"), mediaTransports())
 	if err != nil {

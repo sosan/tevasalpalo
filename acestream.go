@@ -307,7 +307,10 @@ func RunAceStream() (*exec.Cmd, error) {
 		} else {
 			env = append(env, engineProxyEnv(addr)...)
 			log.Printf("🛡️ Bypass DNS/VAST del motor activo en %s", addr)
+			traceLog("bypass escuchando en %s; el motor recibe HTTP_PROXY/HTTPS_PROXY", addr)
 		}
+	} else {
+		traceLog("bypass desactivado con %s=0", hooksEnabledEnv)
 	}
 	if runtime.GOOS != "windows" {
 		// El motor de Linux enlaza sus .so desde runtime/lib (así lo hace su

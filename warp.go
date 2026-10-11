@@ -480,8 +480,10 @@ var warp warpState
 // Equivale a ensureRunning() de WarpManager.
 func WarpStreamStart() {
 	if !warpEnabled() {
+		traceLog("WarpStreamStart: WARP deshabilitado, no se hace nada")
 		return
 	}
+	traceLog("WarpStreamStart: WARP habilitado, registrando stream")
 	warp.streamsMu.Lock()
 	warp.streams++
 	first := warp.streams == 1
@@ -491,21 +493,29 @@ func WarpStreamStart() {
 	if warp.timer != nil {
 		warp.timer.Stop()
 		warp.timer = nil
+		traceLog("WarpStreamStart: cancelado el temporizador de parada")
 	}
 	running := warp.handle != nil
 	warp.mu.Unlock()
 
-	if running || !first {
-		// Ya está en marcha, o el arranque ya lo pidió otro stream.
+	if running {
+		traceLog("WarpStreamStart: el túnel ya está en marcha")
 		return
 	}
+	if !first {
+		traceLog("WarpStreamStart: no es el primer stream, otro ya pidió el arranque")
+		return
+	}
+	traceLog("WarpStreamStart: primer stream, lanzando startWarp()")
 	go func() {
 		h, err := startWarp()
 		if err != nil {
 			log.Printf("⚠️  WARP no disponible, se continúa sin él: %v", err)
+			traceLog("startWarp falló: %v", err)
 			return
 		}
 		log.Printf("🛡️  WARP activo: %s vía SOCKS %s", h.desc, h.socksAddr)
+		traceLog("startWarp OK: %s en %s", h.desc, h.socksAddr)
 	}()
 }
 
@@ -563,7 +573,10 @@ func startWarp() (*warpHandle, error) {
 		return nil, err
 	}
 	addr := net.JoinHostPort(listen, strconv.Itoa(port))
-	for _, ep := range warpEndpointCandidates(ident) {
+	eps := warpEndpointCandidates(ident)
+	traceLog("startWarp: %d endpoint(s) candidato(s), SOCKS en %s", len(eps), addr)
+	for _, ep := range eps {
+		traceLog("startWarp: probando endpoint %s", ep)
 		link, err := warpLink(ident, ep)
 		if err != nil {
 			log.Printf("⚠️  WARP: config inválida para %s: %v", ep, err)
@@ -577,13 +590,17 @@ func startWarp() (*warpHandle, error) {
 		inst, err := startXrayInstance(endpoint, listen, port)
 		if err != nil {
 			log.Printf("⚠️  WARP %s no arranca: %v", ep, err)
+			traceLog("startWarp %s: xray no arrancó: %v", ep, err)
 			continue
 		}
+		traceLog("startWarp %s: xray arrancado, probando tráfico real por el túnel", ep)
 		if !probeEndpoint(addr) {
 			log.Printf("⚠️  WARP %s sin tráfico, probando siguiente...", ep)
+			traceLog("startWarp %s: la prueba de tráfico falló (handshake rechazado o sin salida)", ep)
 			_ = inst.Close()
 			continue
 		}
+		traceLog("startWarp %s: la prueba de tráfico pasó", ep)
 		h := &warpHandle{instance: inst, desc: "wireguard " + ep, socksAddr: addr}
 		warp.mu.Lock()
 		warp.ident = ident
@@ -591,6 +608,7 @@ func startWarp() (*warpHandle, error) {
 		warp.mu.Unlock()
 		return h, nil
 	}
+	traceLog("startWarp: agotados los %d endpoint(s), WARP no disponible", len(eps))
 	return nil, fmt.Errorf("ningún endpoint WARP responde")
 }
 

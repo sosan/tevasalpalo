@@ -240,13 +240,18 @@ const (
 func bypassDial(network, addr string) (net.Conn, error) {
 	host, _, splitErr := net.SplitHostPort(addr)
 	if splitErr == nil && net.ParseIP(host) == nil && warpEnabled() {
+		traceLog("dial %s: nombre, WARP activo -> intento DoH", host)
 		if ip, err := resolveOverWARPWithWait(host); err == nil {
 			engineBypassStats.add("dns_doh")
 			engineBypassStats.add("via_direct")
+			traceLog("dial %s: DoH OK -> %s (conexión directa)", host, ip)
 			return (&net.Dialer{Timeout: 20 * time.Second}).Dial(network, net.JoinHostPort(ip, portOf(addr)))
 		} else {
 			engineBypassStats.add("dns_fail")
+			traceLog("dial %s: DoH falló (%v) -> DNS del ISP", host, err)
 		}
+	} else if warpEnabled() && splitErr == nil {
+		traceLog("dial %s: ya es IP, sin resolución que hacer", addr)
 	}
 	engineBypassStats.add("via_direct")
 	return (&net.Dialer{Timeout: 20 * time.Second}).Dial(network, addr)
@@ -389,13 +394,16 @@ func (h *bypassHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		host = r.URL.Host
 	}
 	h.count("plain")
-	// El orden importa: la respuesta vacía gana al corte. Sivast.php llegara
+	// El orden importa: la respuesta vacía gana al corte. Si vast.php llegara
 	// antes a dead_dns (torrentstream.org), el motor recibiría un 502 en vez de
 	// un VAST vacío y podría tomarlo por un bloqueador de anuncios.
+	traceOnce("bypass-primera", "bypass: primera petición en claro del motor (HTTP_PROXY funciona)")
+	traceLog("bypass plain %s%s host=%q", r.Method, r.URL.Path, host)
 	if isNotifURL(host, r.URL.Path) {
 		// Notificaciones: el APK devuelve {"notifications":[]} (JSON), no un
 		// VAST. Servirle XML a un endpoint que espera JSON no hace el bypass.
 		h.count("empty_notif")
+		traceLog("bypass NOTIF -> JSON vacío: %s%s", host, r.URL.Path)
 		writeEmptyNotif(w)
 		return
 	}
@@ -403,12 +411,14 @@ func (h *bypassHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// VAST y servidores de publicidad: documento vacío y válido. Nunca un
 		// error, para que el motor no lo lea como bloqueo de anuncios.
 		h.count("empty_vast")
+		traceLog("bypass VAST vacío: %s%s", host, r.URL.Path)
 		writeEmptyVAST(w)
 		return
 	}
 	if isDeadHost(hostOnly(host)) {
 		// DNS muerto de verdad: el motor no espera el timeout de resolución.
 		h.count("dead_dns")
+		traceLog("bypass DNS muerto (502): %s%s", host, r.URL.Path)
 		w.WriteHeader(http.StatusBadGateway)
 		return
 	}
@@ -469,13 +479,16 @@ func (h *bypassHandler) serveConnect(w http.ResponseWriter, r *http.Request) {
 		host, port = target, "443"
 	}
 	h.count("connect")
+	traceLog("bypass CONNECT %s:%s", host, port)
 	if isDeadHost(host) && !isAdServerHost(host) {
 		h.count("dead_dns")
+		traceLog("bypass CONNECT DNS muerto (502): %s:%s", host, port)
 		w.WriteHeader(http.StatusBadGateway)
 		return
 	}
 	if isAdServerHost(host) {
 		h.count("ad_passthrough")
+		traceLog("bypass CONNECT publicidad: se deja pasar %s:%s", host, port)
 	}
 	hj, ok := w.(http.Hijacker)
 	if !ok {
