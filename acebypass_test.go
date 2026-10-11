@@ -62,27 +62,68 @@ func TestIsAdServerHost(t *testing.T) {
 }
 
 // TestBypassAdServerRespondeNoCorta es la regresión del mensaje "Se ha detectado
-// un bloqueador de anuncios": el motor hace un chequeo contra acestream.org/net
-// y, si el proxy devuelve 502, cree que hay un adblock y suspende la
-// reproducción. Debe devolver 200 con documento vacío.
+// un bloqueador de anuncios". El APK (assets/engine/main.py) solo devuelve VAST
+// vacío para torrentstream.org, vast.php y vast/wrapper; el resto de
+// acestream.org/net lo deja pasar. Servir un <VAST> a /get, /getsettings o /init
+// hace que el motor no reciba lo que espera y lo lea como bloqueo.
 func TestBypassAdServerRespondeNoCorta(t *testing.T) {
-	_, addr := startTestBypass(t)
-	client := &http.Client{Transport: &http.Transport{Proxy: proxyURL(t, addr)}}
+	// Un servidor real detrás del proxy: si el proxy no lo intercepta, el
+	// upstream recibe la petición y devuelve SU contenido, no un VAST vacío.
+	var gotPath string
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		io.WriteString(w, "respuesta real del motor")
+	}))
+	defer upstream.Close()
 
-	for _, host := range []string{"acestream.org", "ads.acestream.net"} {
-		resp, err := client.Get("http://" + host + "/vast.php")
-		if err != nil {
-			t.Fatal(err)
-		}
-		body, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			t.Errorf("%s: status = %d, se esperaba 200 (un 502 dispara el aviso de bloqueador)", host, resp.StatusCode)
-		}
-		if !strings.Contains(string(body), "<VAST") {
-			t.Errorf("%s: cuerpo sin VAST: %q", host, body)
-		}
+	// Se enruta el host real del upstream a través del proxy, de modo que
+	// isAdServerHost(h) sea true y la ruta sea /get.
+	addr := proxyForUpstream(t, upstream.Listener.Addr().String())
+	client := &http.Client{Transport: &http.Transport{Proxy: proxyURL(t, addr)}}
+	resp, err := client.Get("http://acestream.org/get")
+	if err != nil {
+		t.Fatal(err)
 	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if gotPath != "/get" {
+		t.Errorf("el upstream recibió %q: la petición de publicidad no debe llegar al proxy como VAST", gotPath)
+	}
+	if strings.Contains(string(body), "<VAST") {
+		t.Errorf("a /get se le respondió un VAST vacío: %q", body)
+	}
+	if string(body) != "respuesta real del motor" {
+		t.Errorf("cuerpo = %q, se esperaba la respuesta real del upstream", body)
+	}
+}
+
+// proxyForUpstream levanta el proxy con un upstream forzado para el host de
+// prueba, de forma que isAdServerHost(h) dé true sin tocar la red.
+func proxyForUpstream(t *testing.T, upstreamAddr string) string {
+	t.Helper()
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	host, port, err := net.SplitHostPort(upstreamAddr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stats := &bypassStats{}
+	h := &bypassHandler{stats: stats}
+	// Dial fijo al upstream: tanto el túnel CONNECT como el reenvío en claro
+	// van ahí, para no tocar la red real.
+	dial := func(_ context.Context, network, _ string) (net.Conn, error) {
+		return (&net.Dialer{}).Dial(network, net.JoinHostPort(host, port))
+	}
+	h.dial = func(network, addr string) (net.Conn, error) { return dial(context.Background(), network, addr) }
+	prev := bypassDialContext
+	bypassDialContext = dial
+	t.Cleanup(func() { bypassDialContext = prev })
+	srv := &http.Server{Handler: h}
+	go srv.Serve(ln)
+	t.Cleanup(func() { srv.Close() })
+	return ln.Addr().String()
 }
 
 // TestBypassVastGanaAlDeadDNS fija el orden: vast.php sobre torrentstream.org

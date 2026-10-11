@@ -47,27 +47,28 @@ const bypassAddrEnv = "ACE_BYPASS_ADDR"
 // evita el timeout de resolución, tanto si el motor llega por CONNECT como si
 // resuelve el nombre antes de abrir el túnel.
 //
-// Solo DNS realmente muerto. Los servidores de publicidad (acestream.org /
-// acestream.net) NO van aquí: el motor hace un chequeo de salubridad contra
-// ellos y, si no responden, cree que hay un bloqueador de anuncios y suspende la
-// reproducción. Se atienden con una respuesta vacía válida (ver isAdServerHost).
+// Solo DNS realmente muerto: *.torrentstream.org y router.acestream.me, los
+// dos del APK. Los servidores de publicidad NO van aquí (ver isAdServerHost).
 var deadHosts = []string{
 	"torrentstream.org",
 	"router.acestream.me",
 }
 
 // adServerHosts son los servidores de publicidad/salubridad del motor. No se
-// cortan: se les responde con un documento vacío válido para que el motor
-// interprete "no hay anuncios" en vez de "bloqueado".
+// cortan ni se responden con contenido vacío: se les deja pasar tal cual.
 //
-// Es el error que hizo que el motor mostrara "Se ha detectado un bloqueador de
-// anuncios": devolver 502 a estos hosts es exactamente lo que hace un adblock.
+// Importante: el APK solo devuelve VAST vacío para "torrentstream.org",
+// "vast.php" y "vast/wrapper" (assets/engine/main.py). Cualquier otra ruta de
+// acestream.org/net la deja pasar. Servir un <VAST> a /get, /getsettings o /init
+// hace que el motor no reciba lo que espera y lo interprete como bloqueo de
+// anuncios, que es justo lo que dispara el aviso de "bloqueador detectado".
 var adServerHosts = []string{
 	"acestream.org",
 	"acestream.net",
 }
 
-// isAdServerHost dice si el host es de publicidad/salubridad del motor.
+// isAdServerHost dice si el host es de publicidad/salubridad del motor. Se usa
+// solo para dejar pasar esas peticiones, nunca para responderlas.
 func isAdServerHost(host string) bool {
 	h := strings.ToLower(hostOnly(host))
 	if h == "" {
@@ -227,6 +228,12 @@ const (
 	dnsWaitAttempts = 5
 	dnsWaitInterval = 500 * time.Millisecond
 )
+
+// bypassDialContext es el DialContext del reenvío en claro. Es una variable
+// para que los tests puedan sustituirlo; en producción es bypassDial.
+var bypassDialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+	return bypassDial(network, addr)
+}
 
 // bypassDial abre las conexiones del motor.
 //
@@ -407,13 +414,21 @@ func (h *bypassHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeEmptyNotif(w)
 		return
 	}
-	if isDeadPath(r.URL.Path) || isAdServerHost(host) {
-		// VAST y servidores de publicidad: documento vacío y válido. Nunca un
-		// error, para que el motor no lo lea como bloqueo de anuncios.
+	if isDeadPath(r.URL.Path) {
+		// Solo las rutas que el APK corta: torrentstream.org, vast.php y
+		// vast/wrapper. El resto de acestream.org/net se deja pasar: /init,
+		// /get y /getsettings son peticiones normales del motor y responderles
+		// un VAST vacío rompe su flujo y acaba en "bloqueador detectado".
 		h.count("empty_vast")
 		traceLog("bypass VAST vacío: %s%s", host, r.URL.Path)
 		writeEmptyVAST(w)
 		return
+	}
+	if isAdServerHost(host) {
+		// Se cuenta para ver en runtime cuánto pasa por aquí, pero no se
+		// intercepta: estas peticiones necesitan una respuesta real.
+		h.count("ad_passthrough")
+		traceLog("bypass publicidad pasa de largo: %s%s", host, r.URL.Path)
 	}
 	if isDeadHost(hostOnly(host)) {
 		// DNS muerto de verdad: el motor no espera el timeout de resolución.
@@ -439,7 +454,13 @@ func (h *bypassHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if outReq.URL.Scheme == "" {
 		outReq.URL.Scheme = "http"
 	}
-	resp, err := (&http.Client{Timeout: 60 * time.Second}).Do(outReq)
+	// El reenvío usa el mismo dial que el túnel CONNECT: si no, las peticiones
+	// en claro saldrían por otro camino y el bypass del DNS (DoH por WARP) no se
+	// aplicaría a ellas.
+	resp, err := (&http.Client{
+		Timeout:   60 * time.Second,
+		Transport: &http.Transport{DialContext: bypassDialContext},
+	}).Do(outReq)
 	if err != nil {
 		w.WriteHeader(http.StatusBadGateway)
 		return
