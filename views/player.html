@@ -370,8 +370,16 @@
     const MAX_RETRIES = 2;
 
     function buildHlsUrl(linkID, pid) {
-        const hostname = window.location.hostname
-        return `http://${hostname}:6878/ace/manifest.m3u8?id=${linkID}&pid=${pid}`;
+        // Pasa por el proxy de esta misma app (puerto 3000) en vez de ir
+        // directo al motor (puerto 6878).
+        //
+        // Al pedírselo a /ace/, el proxy reescribe el manifest para que los
+        // segmentos también pasen por aquí, y así se activa el túnel WARP al
+        // vuelo (WarpStreamStart). Con la URL directa al 6878 nos saltábamos
+        // esa capa entera y WARP nunca se lanzaba.
+        //
+        // Para volver al acceso directo: `http://${window.location.hostname}:6878/ace/...`
+        return `${window.location.origin}/ace/manifest.m3u8?id=${linkID}&pid=${pid}`;
     }
 
     function isValidAceId(id) {
