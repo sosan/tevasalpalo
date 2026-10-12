@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"runtime"
 	"sync"
 	"syscall"
 	"time"
@@ -28,6 +29,42 @@ func init() {
 }
 
 func main() {
+	// Herramienta de build: generar el contenedor cifrado de secretos. Se
+	// atiende antes que nada porque no arranca la app, solo escribe los
+	// -ldflags en stdout.
+	for _, arg := range os.Args[1:] {
+		if arg == "--genera-secretos" || arg == "--generar-secretos" {
+			if err := generarSecretosIncrustados(); err != nil {
+				log.Fatal("❌ ", err)
+			}
+			return
+		}
+	}
+
+	// Telemetría antes de nada más: a partir de aquí todo lo que escriba el
+	// log (incluido lo de arranque) queda en fichero, buffer y central.
+	telVersion = update.VersionBuild
+	if telVersion == "" {
+		telVersion = "dev"
+	}
+	telOS = runtime.GOOS
+	telArch = runtime.GOARCH
+
+	// Secretos incrustados antes que el resto: pueden traer la configuración
+	// de Infisical y otras variables que la telemetría necesita. Solo rellena
+	// lo que esté vacío, así que el entorno gana siempre.
+	aplicarSecretosIncrustados()
+
+	// Secrets antes de la telemetría: el token de Grafana puede venir de
+	// Infisical, y para entonces el log global todavía no está redirigido (por
+	// si hay que avisar de algo). Es no bloqueante para el arranque: si falla,
+	// se sigue con lo que haya en el entorno.
+	if os.Getenv("INFISICAL_ENABLED") != "0" {
+		FetchSecretsFromInfisical()
+	}
+
+	InitTelemetry()
+
 	avisoEnlacesXray()
 
 	// log.Println("📡 Iniciando Tor...")
@@ -131,6 +168,10 @@ func main() {
 	} else if aceCmd != nil {
 		log.Println("✅ Cerrado ace correctamente")
 	}
+
+	// Último envío al central: sin esto se pierden justo los eventos del
+	// cierre, que suelen ser los que explican un fallo.
+	ShutdownTelemetry(3 * time.Second)
 }
 
 // avisoEnlacesXray recuerda dónde pegar los enlaces de proxy, para no tener que

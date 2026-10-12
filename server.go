@@ -18,6 +18,7 @@ import (
 	"main/update"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -411,6 +412,96 @@ func StartWebServer() (*fiber.App, error) {
 			"warp_socks": warpSocksAddr(),
 			"stats":      engineBypassStats.snapshot(),
 		})
+	})
+
+	// Telemetría del navegador. El player no habla nunca con el central
+	// directamente: postea aquí y el servidor reenvía, para que las
+	// credenciales de Loki no salgan del servidor. La IP se hashea con el
+	// salt local antes de enviar nada.
+	// El player manda lotes: {"events":[{"event":..,"fields":{..}}]}. Se
+	// acepta también el formato de un solo evento para no romper clientes
+	// viejos. Límites duros porque esto está abierto a cualquiera de la red
+	// local: sin tope, un bucle de reintentos de HLS.js podría meter miles de
+	// líneas en la cola central.
+	app.Post("/api/telemetry", func(c fiber.Ctx) error {
+		if n := len(c.Body()); n > telMaxBody {
+			return c.Status(413).JSON(fiber.Map{"error": "cuerpo demasiado grande"})
+		}
+		var body struct {
+			Event  string    `json:"event"`
+			Fields fiber.Map `json:"fields"`
+			Events []struct {
+				Event  string    `json:"event"`
+				Fields fiber.Map `json:"fields"`
+			} `json:"events"`
+		}
+		if err := json.Unmarshal(c.Body(), &body); err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": "JSON inválido"})
+		}
+
+		ip := c.IP()
+		aceptados := 0
+		registrar := func(event string, fields fiber.Map) {
+			event = strings.TrimSpace(event)
+			if event == "" || len(event) > telMaxEventLen {
+				return
+			}
+			f := map[string]any{}
+			for k, v := range fields {
+				if len(k) > telMaxFieldLen {
+					continue
+				}
+				f[k] = v
+			}
+			RecordPlayer(event, f, ip)
+			aceptados++
+		}
+
+		if len(body.Events) > 0 {
+			for _, ev := range body.Events {
+				if aceptados >= telMaxEvents {
+					break
+				}
+				registrar(ev.Event, ev.Fields)
+			}
+		} else {
+			registrar(body.Event, body.Fields)
+		}
+		if aceptados == 0 {
+			return c.Status(400).JSON(fiber.Map{"error": "ningún evento válido"})
+		}
+		return c.JSON(fiber.Map{"ok": true, "aceptados": aceptados})
+	})
+
+	// Últimas líneas del log en memoria, para pegar en un bug report sin
+	// tener que buscar el fichero. ?lines=N (por defecto 200, tope 2000).
+	//
+	// El servidor escucha en 0.0.0.0, así que esto solo se sirve a loopback o
+	// con token: el log lleva URLs y hashes literales y no cualquiera de la
+	// red debería poder leerlos.
+	app.Get("/api/logs", func(c fiber.Ctx) error {
+		if !telAutorizado(c) {
+			return c.Status(403).JSON(fiber.Map{
+				"error": "requiere TELEMETRY_API_TOKEN o conexión desde localhost",
+			})
+		}
+		lines := envIntTel("API_LOG_LINES", 200)
+		if v := c.Query("lines"); v != "" {
+			if n, err := strconv.Atoi(v); err == nil && n > 0 {
+				lines = n
+			}
+		}
+		if lines > 2000 {
+			lines = 2000
+		}
+		out := fiber.Map{
+			"config": telemetryConfigSnapshot(),
+			"lines":  tailRecent(lines),
+		}
+		if telBatch != nil {
+			out["exporter"] = telBatch.stats()
+		}
+		return c.JSON(out)
 	})
 
 	app.Post("/api/warp", func(c fiber.Ctx) error {
