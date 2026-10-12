@@ -8,8 +8,10 @@ package main
 
 import (
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
+	"time"
 )
 
 // aplicarSecretosIncrustadosCon es la versión con parámetros explícitos, para
@@ -244,5 +246,68 @@ func TestGeneradorExigeLoBasico(t *testing.T) {
 	t.Setenv("INFISICAL_ENV", "prod")
 	if err := generarSecretosIncrustados(); err == nil {
 		t.Error("generó sin clave")
+	}
+}
+
+// El snippet de build que se imprime tiene que funcionar tal cual. Ejecutarlo
+// ya ha fallado dos veces: una por el $(date) con espacios dentro de las
+// comillas de -X, y otra por el + que se había caído del formato de fecha.
+// Ninguna de las dos daba error visible: el linker soltaba su usage, y luego
+// la fecha vacía.
+func TestSnippetBuildEsEjecutable(t *testing.T) {
+	valor := "-X 'main.embebidoSecretos=v1:BBBB' -X 'main.claveSecretos=cccc'"
+	snippet := construirSnippetBuild(valor)
+
+	// La fecha debe llevar el + inicial.
+	if !strings.Contains(snippet, `"+%Y-%m-%dT%H:%M:%SZ"`) {
+		t.Errorf("falta el + del formato de fecha:\n%s", snippet)
+	}
+	// No puede haber un $(date...) dentro de las comillas de -X: el parser de
+	// -ldflags lo toma como un único token y el linker se queja.
+	if strings.Contains(snippet, "-X 'main/update.VersionBuild=$(") {
+		t.Errorf("la sustitución de fecha no debe ir dentro de -X:\n%s", snippet)
+	}
+	// El valor va entre comillas dobles porque lleva simples dentro.
+	if !strings.Contains(snippet, `TELEMETRY_LDFLAGS="`) {
+		t.Errorf("TELEMETRY_LDFLAGS debe ir entre comillas dobles:\n%s", snippet)
+	}
+	for _, linea := range strings.Split(strings.TrimSpace(snippet), "\n") {
+		recortada := strings.TrimSpace(linea)
+		if !strings.HasPrefix(recortada, "VERSION_BUILD=") &&
+			!strings.HasPrefix(recortada, "TELEMETRY_LDFLAGS=") &&
+			!strings.HasPrefix(recortada, "go build") {
+			t.Errorf("línea inesperada en el snippet: %q", linea)
+		}
+	}
+}
+
+// La línea de la fecha debe Expandirse a un valor utilizable, que es el
+// requisito real del bloque.
+func TestLaFechaDelSnippetSeEvalua(t *testing.T) {
+	snippet := construirSnippetBuild("-X 'main.embebidoSecretos=v1:BBBB' -X 'main.claveSecretos=cccc'")
+	var linea string
+	for _, l := range strings.Split(snippet, "\n") {
+		if strings.HasPrefix(strings.TrimSpace(l), "VERSION_BUILD=") {
+			linea = l
+		}
+	}
+	if linea == "" {
+		t.Fatal("no hay línea de VERSION_BUILD")
+	}
+	// Se ejecuta en un shell de verdad: es la única forma de saber si el
+	// quoting aguanta. Una asignación no escribe nada en stdout, así que se
+	// añade el echo; si la línea no asignara nada, esto imprimiría vacío y el
+	// test lo detectaría.
+	out, err := exec.Command("bash", "-c", linea+`; echo "$VERSION_BUILD"`).Output()
+	if err != nil {
+		t.Fatalf("la línea falla: %v", err)
+	}
+	got := strings.TrimSpace(string(out))
+	if got == "" {
+		t.Fatal("VERSION_BUILD ha quedado vacío")
+	}
+	// Formato RFC3339 en UTC, que es lo que espera TransformStringDatetoTime.
+	if _, err := time.Parse("2006-01-02T15:04:05Z", got); err != nil {
+		t.Errorf("VERSION_BUILD = %q no tiene el formato esperado: %v", got, err)
 	}
 }

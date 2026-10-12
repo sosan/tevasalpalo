@@ -250,6 +250,21 @@ func setenvSiVacio(nombre, valor string) {
 	_ = os.Setenv(nombre, valor)
 }
 
+// construirSnippetBuild monta el bloque de shell que se imprime para compilar
+// en local. Va en su propia función para poder testearlo: esto ya ha fallado
+// dos veces por cosas que solo se ven al ejecutar el bloque de verdad.
+func construirSnippetBuild(valor string) string {
+	// El + inicial no es opcional: sin él, date dice "fecha no válida" y
+	// VERSION_BUILD acaba vacío, que es peor que no ponerlo porque el binario
+	// compila igual pero la comprobación de actualizaciones se queda tonta.
+	const formatoFecha = "+%Y-%m-%dT%H:%M:%SZ"
+
+	return `   VERSION_BUILD=$(date -u "` + formatoFecha + `")
+   TELEMETRY_LDFLAGS="` + valor + `"
+   go build -ldflags="-X 'main/update.VersionBuild=${VERSION_BUILD}' ${TELEMETRY_LDFLAGS}" -o ./build/portable .
+`
+}
+
 // generarSecretosIncrustados implementa la bandera --genera-secretos: lee la
 // configuración del entorno, la cifra y escribe por stdout la línea de -ldflags
 // para el build.
@@ -304,7 +319,20 @@ func generarSecretosIncrustados() error {
 	fmt.Println()
 	fmt.Println("2) Build local:")
 	fmt.Println()
-	fmt.Println(`   go build -ldflags="-X 'main/update.VersionBuild=$(date -u +%Y-%m-%dT%H:%M:%SZ) ` + valor + `" -o ./build/portable .`)
+	// OJO: aquí no se pone $(date ...) dentro de las comillas de -X. El
+	// parser de -ldflags de Go trata '...' como un único token, así que
+	// cualquier espacio dentro (y `date -u +%Y` tiene) rompe el definición y
+	// el linker se queja con el volcado de su usage.
+	snippetBuild := construirSnippetBuild(valor)
+
+	// El valor de TELEMETRY_LDFLAGS va entre comillas dobles porque él mismo
+	// lleva comillas simples dentro; con simples, la asignación se cortaría
+	// por la mitad.
+	//
+	// WriteString y no Print, con la fecha en una constante: el %d del formato
+	// no es una directiva de formato, pero vet lo toma por una y obligaría a
+	// escaparlo.
+	os.Stdout.WriteString(snippetBuild)
 	fmt.Println()
 	fmt.Println("   En CI ya está hecho: buidandtest.yaml concatena ${TELEMETRY_LDFLAGS} a los -ldflags.")
 
