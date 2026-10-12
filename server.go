@@ -117,6 +117,14 @@ func StartWebServer() (*fiber.App, error) {
 	engine := html.NewFileSystem(http.FS(sub), ".html")
 	engine.AddFunc("b64", encodeContent)
 	engine.AddFunc("add", func(a, b int) int { return a + b })
+	// "join" y "urlencode" para pasar la lista de enlaces del canal al player
+	// (views/broadcasters.html): el player pinta un botón por enlace.
+	engine.AddFunc("join", func(sep string, items []string) string {
+		return strings.Join(items, sep)
+	})
+	engine.AddFunc("urlencode", func(s string) string {
+		return url.QueryEscape(s)
+	})
 	if err := engine.Load(); err != nil {
 		log.Fatalf("failed to load views: %v", err)
 	}
