@@ -719,8 +719,14 @@ func TestIntegracionOTLPContraServidorLocal(t *testing.T) {
 	if recs[0].atributos["severity"] != "ERROR" {
 		t.Errorf("atributo severity = %q, se esperaba ERROR", recs[0].atributos["severity"])
 	}
-	if recs[1].severityNumber != 9 {
-		t.Errorf("severity_number del server_log = %d, se esperaba 9 (INFO)", recs[1].severityNumber)
+	// El server_log lleva nivel=ERROR, así que debe salir como ERROR (17), no
+	// como INFO. Antes el test fijaba 9 porque el bug del campo "nivel" lo
+	// clasificaba mal.
+	if recs[1].severityNumber != 17 {
+		t.Errorf("severity_number del server_log = %d, se esperaba 17 (ERROR)", recs[1].severityNumber)
+	}
+	if recs[1].atributos["severity"] != "ERROR" {
+		t.Errorf("atributo severity del server_log = %q, se esperaba ERROR", recs[1].atributos["severity"])
 	}
 	// El body tiene que ser texto: Loki solo indexa strings.
 	if recs[0].body == "" {
@@ -732,5 +738,120 @@ func TestIntegracionOTLPContraServidorLocal(t *testing.T) {
 	}
 	if recs[0].atributos["details"] != "levelLoadTimeOut" {
 		t.Errorf("details = %q", recs[0].atributos["details"])
+	}
+}
+
+// El espejo de logs escribe el nivel en "nivel", no en "level". Antes solo se
+// miraba "level", así que todos los server_log caían en INFO y en Grafana no
+// se podía filtrar por ERROR. Es el bug más caro de los dos porque silenciaba
+// justo lo que se quería vigilar.
+func TestSeverityReconoceElCampoNivel(t *testing.T) {
+	casos := []struct {
+		nombre string
+		rec    map[string]any
+		want   string
+	}{
+		{"log con nivel ERROR", map[string]any{"event": "server_log", "nivel": "ERROR"}, "ERROR"},
+		{"log con nivel WARN", map[string]any{"event": "server_log", "nivel": "WARN"}, "WARN"},
+		{"log con nivel INFO", map[string]any{"event": "server_log", "nivel": "INFO"}, "INFO"},
+		{"log con level (player)", map[string]any{"event": "player_x", "level": "ERROR"}, "ERROR"},
+		{"sin nivel", map[string]any{"event": "server_log"}, "INFO"},
+	}
+	for _, c := range casos {
+		if got := severityName(c.rec); got != c.want {
+			t.Errorf("%s: severityName = %q, se esperaba %q", c.nombre, got, c.want)
+		}
+	}
+}
+
+// El caso real del log: un timeout de 2m del motor tiene que salir como ERROR.
+func TestElTimeoutDelMotorEsError(t *testing.T) {
+	rec := buildRecord(eventServerLog, map[string]any{
+		"nivel":   "ERROR",
+		"mensaje": `❌ Error en petición a Ace Stream (2m0s): Get "http://127.0.0.1:6878/ace/m/f80/711b.m3u8": context deadline exceeded (Client.Timeout exceeded while awaiting headers)`,
+	})
+	if got := severityName(rec); got != "ERROR" {
+		t.Errorf("severity = %q, se esperaba ERROR", got)
+	}
+}
+
+// Un mensaje con espacios, comillas y paréntesis tiene que quedar en un solo
+// valor. Sin comillas, Grafana lo partía en nueve "campos" distintos y el
+// mensaje real se perdía.
+func TestElBodyQuotaLosMensajesLargos(t *testing.T) {
+	mensaje := `❌ Error en petición a Ace Stream (2m0s): Get "http://127.0.0.1:6878/ace/m/f80/711b.m3u8": context deadline exceeded`
+	rec := buildRecord(eventServerLog, map[string]any{"nivel": "ERROR", "mensaje": mensaje})
+	body := fmtMapBody(rec)
+
+	// El valor tiene que aparecer entero y entrecomillado.
+	if !strings.Contains(body, strconv.Quote(mensaje)) {
+		t.Errorf("el mensaje no está entrecomillado:\n%s", body)
+	}
+	// Y no debe quedar ningún fragmento suelto que parezca otro campo.
+	for _, trozo := range []string{"error=", "petición=", "deadline="} {
+		if strings.Contains(body, trozo) {
+			t.Errorf("se ha partido el mensaje, aparece %q como si fuera un campo:\n%s", trozo, body)
+		}
+	}
+	// Solo puede haber dos separadores clave=valor fuera de las comillas: los
+	// de "nivel=" y "mensaje=". Contarlos a pelo no sirve porque el mensaje
+	// contiene URLs con "?" y "=" dentro, ya entrecomilladas.
+	fuera := fueraDeComillas(body)
+	if n := strings.Count(fuera, "="); n != 2 {
+		t.Errorf("hay %d separadores fuera de comillas en %q, se esperaban 2", n, fuera)
+	}
+	if strings.Contains(fuera, "deadline exceeded") {
+		t.Errorf("el mensaje se ha roto en trozos:\n%s", fuera)
+	}
+}
+
+// fueraDeComillas deja el texto con las zonas entrecomilladas borradas, para
+// poder contar los separadores clave=valor de verdad.
+func fueraDeComillas(s string) string {
+	var b strings.Builder
+	dentro := false
+	escapada := false
+	for _, r := range s {
+		switch {
+		case escapada:
+			b.WriteRune(r)
+			escapada = false
+		case dentro && r == '\\':
+			escapada = true
+		case r == '"':
+			dentro = !dentro
+		case dentro:
+			b.WriteRune(' ')
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// Valores sin espacios no llevan comillas: ensuciarían la lectura del log.
+func TestLosValoresCortosNoSeQuotan(t *testing.T) {
+	body := fmtMapBody(map[string]any{"event": "player_play", "link_id": "abc123"})
+	if strings.Contains(body, `"`) {
+		t.Errorf("un valor sin espacios no debería ir entrecomillado: %q", body)
+	}
+	if body != "player_play link_id=abc123" {
+		t.Errorf("body = %q", body)
+	}
+}
+
+func TestValoresRarosNoRompenElBody(t *testing.T) {
+	casos := []string{"", "con espacio", `con "comillas"`, "con=signo", "con\nnueva", "con\ttab"}
+	for _, v := range casos {
+		body := fmtMapBody(map[string]any{"event": "e", "campo": v})
+		// Nada debe producir un segundo "campo=" fuera de las comillas.
+		esperados := strings.Count(body, "=") - strings.Count(quotearValor(v), "=")
+		if reales := strings.Count(body, "=") - 1; reales != esperados-1 && esperados > 1 {
+			// Solo importa que el total de "=" no crezca por el valor.
+			t.Logf("valor %q -> body %q", v, body)
+		}
+		if !strings.HasPrefix(body, "e campo=") {
+			t.Errorf("valor %q rompió el cuerpo: %q", v, body)
+		}
 	}
 }

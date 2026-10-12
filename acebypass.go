@@ -567,3 +567,27 @@ func engineProxyEnv(addr string) []string {
 		"https_proxy=" + addr,
 	}
 }
+
+// SeemsHTML indica si un cuerpo descargado es una página web en vez del fichero
+// que se pedía.
+//
+// El caso real: las fuentes con IPNS publican un índice HTML con
+// <base href>, y si el resolver falla y se baja ese índice en su lugar,
+// devuelve 200 y parece una lista válida. Sin esta comprobación, el parser
+// recorre el HTML línea a línea y avisa de cada una.
+func SeemsHTML(body []byte) bool {
+	// Solo se mira el principio: un HTML puede tener líneas en blanco o un
+	// BOM antes del doctype, pero no 4 KB.
+	cabeza := body
+	if len(cabeza) > 4096 {
+		cabeza = cabeza[:4096]
+	}
+	texto := strings.ToLower(string(cabeza))
+	texto = strings.TrimSpace(strings.TrimPrefix(texto, "\ufeff"))
+	for _, marca := range []string{"<!doctype html", "<html", "<head>", "<body"} {
+		if strings.Contains(texto, marca) {
+			return true
+		}
+	}
+	return false
+}

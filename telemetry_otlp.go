@@ -26,6 +26,7 @@ import (
 	"log"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -553,7 +554,17 @@ func severityFor(rec map[string]any) otellog.Severity {
 
 // severityName es el nombre de la severidad, que es lo que se ve en Grafana.
 func severityName(rec map[string]any) string {
-	if lvl, ok := rec["level"].(string); ok {
+	// Ojo con el nombre del campo: el espejo de logs escribe "nivel" y el
+	// player puede mandar "level". Antes solo se miraba "level", así que
+	// todos los server_log de error acababan como INFO: el nombre del evento
+	// ("server_log") no contiene "error" y caían en el valor por defecto.
+	// El resultado era que filtrar por ERROR en Grafana no sacaba ni un
+	// timeout del motor.
+	for _, clave := range []string{"level", "nivel", "severity"} {
+		lvl, ok := rec[clave].(string)
+		if !ok {
+			continue
+		}
 		switch strings.ToUpper(strings.TrimSpace(lvl)) {
 		case "ERROR", "FATAL", "CRITICAL":
 			return "ERROR"
@@ -562,13 +573,13 @@ func severityName(rec map[string]any) string {
 		case "DEBUG", "TRACE":
 			return "DEBUG"
 		case "INFO", "INFORMATIONAL", "NOTICE":
-			// Un level explícito gana siempre sobre el nombre del evento: si
+			// Un nivel explícito gana siempre sobre el nombre del evento: si
 			// alguien dice que es INFO, es INFO aunque el evento se llame
 			// player_hls_error.
 			return "INFO"
 		}
 	}
-	// Sin field explícito, heurística por el nombre del evento.
+	// Sin campo explícito, heurística por el nombre del evento.
 	e := strings.ToLower(fmt.Sprint(rec["event"]))
 	switch {
 	case strings.Contains(e, "error"), strings.Contains(e, "fatal"):
@@ -609,7 +620,25 @@ func fmtMapBody(rec map[string]any) string {
 		b.WriteString(" ")
 		b.WriteString(k)
 		b.WriteString("=")
-		b.WriteString(scalarString(rec[k]))
+		b.WriteString(quotearValor(scalarString(rec[k])))
 	}
 	return b.String()
+}
+
+// quotearValor entrecomilla los valores que romperían el formato clave=valor.
+//
+// Sin esto, un mensaje de error normal como "Error en petición a Ace Stream
+// (2m0s): context deadline exceeded" se parte en nueve trozos y Grafana los
+// interpreta como otros tantos campos: en vez de mensaje=... aparecía
+// mensaje=❌ y luego un montón de campos basura con el resto de la frase. Los
+// mensajes de error son casi siempre frases, así que el caso era el habitual y
+// no la excepción.
+func quotearValor(v string) string {
+	if v == "" {
+		return `""`
+	}
+	if strings.ContainsAny(v, " \t\r\n\"=") {
+		return strconv.Quote(v)
+	}
+	return v
 }

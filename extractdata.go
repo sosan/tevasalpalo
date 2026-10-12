@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -111,6 +112,10 @@ var sources = []Source{
 
 var reElcanoBaseHref = regexp.MustCompile(`(?i)<base\s[^>]*href\s*=\s*["']([^"']+)["']`)
 
+// fetchParaTest permite sustituir el transporte en los tests del resolver.
+// En producción es FetchWebDataTimeout directamente.
+var fetchParaTest = FetchWebDataTimeout
+
 // resolveElcanoFileURL devuelve un resolver que traduce la raíz del IPNS de
 // elcano en la URL real de un fichero publicado. El index es HTML con
 // <base href=".../<cid-actual>/"> y los enlaces son relativos a ese base, así
@@ -118,9 +123,31 @@ var reElcanoBaseHref = regexp.MustCompile(`(?i)<base\s[^>]*href\s*=\s*["']([^"']
 // publicación y fijarlo en el código lo deja muerto (403) en la siguiente.
 func resolveElcanoFileURL(file string) func(string) (string, error) {
 	return func(index string) (string, error) {
-		body, err := FetchWebDataTimeout(index, false, timeTimeout)
-		if err != nil {
-			return "", fmt.Errorf("no se pudo leer el índice %s: %w", index, err)
+		// El índice se lee por el mismo transporte que después bajará el
+		// fichero. Antes era siempre en directo, así que cuando el ISP corta
+		// la conexión directa (connection reset contra este worker, que pasa
+		// con frecuencia) el resolver fallaba siempre, aunque la descarga
+		// principal fuera a salir por proxy. Resultado: la fuente se quedaba
+		// sin resolver y el fallback acababa bajando el índice en HTML.
+		body, err := fetchParaTest(index, false, timeTimeout)
+		if err != nil || len(body) == 0 {
+			// Reserva por proxy: es la misma salida que usará la descarga.
+			var errDirecto error
+			if err != nil {
+				errDirecto = err
+			} else {
+				errDirecto = errors.New("el índice vino vacío")
+			}
+			proxy, errProxy := fetchParaTest(index, true, timeTimeout)
+			if errProxy != nil || len(proxy) == 0 {
+				if errProxy != nil {
+					return "", fmt.Errorf("no se pudo leer el índice %s (directo: %v; proxy: %v)",
+						index, errDirecto, errProxy)
+				}
+				return "", fmt.Errorf("no se pudo leer el índice %s (directo: %v; proxy: índice vacío)",
+					index, errDirecto)
+			}
+			body = proxy
 		}
 		m := reElcanoBaseHref.FindSubmatch(body)
 		if m == nil {
@@ -316,10 +343,26 @@ func fetchSourceBodyPolitica(s Source, isDev bool, maxAttempts int, backoff fetc
 		// persistente); otra salida vía proxy (Tor/xray) lo salva.
 		log.Printf("🔄 [%s] directa agotada, último recurso vía proxy...", s.Name)
 		for pAttempt := 1; pAttempt <= 3; pAttempt++ {
+			// Si la fuente tiene resolver, hay que resolverla ANTES de
+			// descargar. Antes, si el resolver fallaba se dejaba fetchURL en
+			// s.URL y se bajaba el índice: para elcano eso es una página HTML,
+			// que devuelve 200 y se aceptaba como si fuera la lista. El
+			// resultado eran 16 entradas basura y cientos de líneas de aviso.
+			// Aquí, si no se resuelve, se pasa al siguiente intento en vez de
+			// descargar algo que no es la lista.
 			if s.Resolve != nil {
-				if resolved, rErr := s.Resolve(s.URL); rErr == nil {
-					fetchURL = resolved
+				resolved, rErr := s.Resolve(s.URL)
+				if rErr != nil {
+					res.err = rErr
+					if isDev {
+						log.Printf("⚠️  [%s] proxy intento %d/3 sin URL resuelta: %v", s.Name, pAttempt, rErr)
+					}
+					if pAttempt < 3 {
+						time.Sleep(time.Duration(pAttempt) * 5 * time.Second)
+					}
+					continue
 				}
+				fetchURL = resolved
 			}
 			body, err := fetchWebData(fetchURL, true)
 			if err == nil && len(body) != 0 {
@@ -536,6 +579,15 @@ func normalizarNombreACB(nombre string) string {
 
 func extractDataFromWebTxtRaw(body []byte) map[string][]string {
 	extractedData := make(map[string][]string)
+	// Guarda contra el spam: si lo que llega es una página HTML en vez de la
+	// lista, avisar por cada línea genera cientos de mensajes que entierran
+	// el log y no explican nada. Se detecta una vez y se dice una vez.
+	if SeemsHTML(body) {
+		log.Printf("⚠️  txtRaw: la respuesta es HTML, no la lista (%.1f KB). "+
+			"Lo normal es haber bajado el índice en vez del fichero.",
+			float64(len(body))/1024)
+		return extractedData
+	}
 	rawLines := strings.Split(string(body), "\n")
 	// Una pasada de limpieza: cabeceras/ruido de tokyo_elcano y similares (el
 	// fichero mezcla español e inglés y algunas cabeceras no empiezan por

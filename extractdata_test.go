@@ -500,3 +500,87 @@ func TestSourcesTipoValido(t *testing.T) {
 		}
 	}
 }
+
+// SeemsHTML tiene que pillar un índice HTML sin dar falsos positivos con las
+// listas de verdad, que también llevan texto plano con "<" suelto.
+func TestSeemsHTML(t *testing.T) {
+	html := []byte(`<!DOCTYPE html><html lang="es"><head><title>Elcano.top</title></head><body>x</body></html>`)
+	if !SeemsHTML(html) {
+		t.Error("no detectó un HTML normal")
+	}
+	if !SeemsHTML([]byte("\xef\xbb\xbf  <html>")) {
+		t.Error("no detectó HTML con BOM y espacios delante")
+	}
+	if !SeemsHTML([]byte("<body>directo sin doctype")) {
+		t.Error("no detectó HTML que empieza por <body>")
+	}
+
+	listas := []string{
+		"=== ACESTREAM IDS ===\nM+ DEPORTES 1\nacestream://0123456789abcdef\n",
+		"Generado: 2026-10-13\nTotal: 32\n\nM+ LALIGA\np; acestream://abc\n",
+		"",
+	}
+	for _, l := range listas {
+		if SeemsHTML([]byte(l)) {
+			t.Errorf("falso positivo con una lista: %q", l)
+		}
+	}
+}
+
+// Si a una fuente txtRaw le llega el índice en vez del fichero, tiene que
+// devolver vacío y decirlo una vez. Antes devolvía basura (el HTML parseado
+// como pares nombre/enlace) y llenaba el log de avisos.
+func TestTxtRawRechazaHTML(t *testing.T) {
+	html := []byte(`<!DOCTYPE html>
+<html><head><base href="https://ejemplo/ipfs/cid/"></head><body>
+<div class="copy-buttons"><button onclick="copy('hashes.txt')">Copiar</button></div>
+<a href="hashes_acestream.m3u">M3U</a>
+</body></html>`)
+
+	got := extractDataFromWebTxtRaw(html)
+	if len(got) != 0 {
+		t.Errorf("una página HTML produjo %d canales: %v", len(got), got)
+	}
+}
+
+// El camino feliz: el fichero de verdad sigue parseando igual.
+func TestTxtRawSigueParseandoLaLista(t *testing.T) {
+	ok := []byte("=== ACESTREAM IDS ===\nM+ DEPORTES 1\nacestream://0123456789abcdef0123456789abcdef01234567\n")
+	got := extractDataFromWebTxtRaw(ok)
+	if len(got) != 1 {
+		t.Fatalf("entradas = %d: %v", len(got), got)
+	}
+	if hashes := got["M+ DEPORTES 1"]; len(hashes) != 1 ||
+		hashes[0] != "0123456789abcdef0123456789abcdef01234567" {
+		t.Errorf("hashes = %v", got)
+	}
+}
+
+// El resolver debe poder leer el índice por proxy cuando el directo falla. Si
+// no, contra un worker que corta la conexión directa la fuente se queda sin
+// resolver siempre y el fallback acaba bajando el HTML del índice.
+func TestResolveElcanoUsaProxySiElDirectoFalla(t *testing.T) {
+	idx := `<html><head><base href="https://ejemplo/ipfs/cid-sub/"></head></head></html>`
+	llamadas := 0
+	antiguo := fetchParaTest
+	fetchParaTest = func(url string, proxied bool, timeout time.Duration) ([]byte, error) {
+		llamadas++
+		if !proxied {
+			return nil, errors.New("connection reset by peer")
+		}
+		return []byte(idx), nil
+	}
+	defer func() { fetchParaTest = antiguo }()
+
+	resolve := resolveElcanoFileURL("hashes.txt")
+	got, err := resolve("https://ejemplo/ipfs/cid/")
+	if err != nil {
+		t.Fatalf("resolver falló: %v", err)
+	}
+	if want := "https://ejemplo/ipfs/cid-sub/hashes.txt"; got != want {
+		t.Errorf("URL resuelta = %q, se esperaba %q", got, want)
+	}
+	if llamadas < 2 {
+		t.Errorf("solo se hicieron %d llamadas: no se intentó el proxy", llamadas)
+	}
+}
