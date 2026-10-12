@@ -385,6 +385,66 @@
 
     const MAX_RETRIES = 2;
 
+    // Telemetría del player. No habla nunca con el central: postea a
+    // /api/telemetry de esta misma app y el servidor reenvía, para que las
+    // credenciales no lleguen al navegador. Todo el que sigue es "best effort":
+    // si falla, no interrumpe la reproducción ni ensucia la consola.
+const tel = (() => {
+        const cola = [];
+        let enviando = false;
+        let timer = null;
+        const LOTACAO = 20;
+
+        function vaciar() {
+            if (enviando || cola.length === 0) return;
+            enviando = true;
+            if (timer) { clearTimeout(timer); timer = null; }
+            // Cada evento conserva su propio nombre y sus campos. Antes se
+            // mandaban todos mezclados bajo el nombre del primero, así que un
+            // lote con 5 errores distintos y un play llegaba como un único
+            // evento con los campos de todos: en Grafana no se podía saber qué
+            // había pasado realmente.
+            const lote = cola.splice(0, LOTACAO);
+            fetch('/api/telemetry', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ events: lote })
+            }).catch(() => {
+                // Central o servidor caído: se pierde este lote, no la reproducción.
+            }).finally(() => {
+                enviando = false;
+                if (cola.length > 0) vaciar();
+                else programar();
+            });
+        }
+
+        // Un solo timer para toda la cola: antes cada evento programaba su
+        // propio setTimeout y con errores repetidos se acumulaban cientos de
+        // temporizadores vivos.
+        function programar() {
+            if (timer || cola.length === 0) return;
+            timer = setTimeout(() => { timer = null; vaciar(); }, 5000);
+        }
+
+        return {
+            // send agrupa por tipo de error para no inundar: HLS.js puede emitir
+            // cientos de levelLoadTimeOut iguales por minuto.
+            send(event, fields, cadaN) {
+                try {
+                    if (cadaN) {
+                        const n = (tel.contadores[event] = (tel.contadores[event] || 0) + 1);
+                        if (n % cadaN !== 0) return;
+                        fields = Object.assign({ repeticiones: n }, fields);
+                    }
+                    cola.push({ event, fields });
+                    if (cola.length >= LOTACAO) vaciar();
+                    else programar();
+                } catch (e) { /* la telemetría nunca rompe el player */ }
+            },
+            contadores: {},
+        };
+    })();
+
     function buildHlsUrl(linkID, pid) {
         // Pasa por el proxy de esta misma app (puerto 3000) en vez de ir
         // directo al motor (puerto 6878).
@@ -545,11 +605,20 @@ maxBufferHole: 10,
 
             hls.on(Hls.Events.MEDIA_ATTACHED, function () {
                 console.log("HLS.js: Media attached");
+                tel.send('player_media_attached', { link_id: linkID, pid: pid });
             });
 
             hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
                 console.log("HLS.js: Manifest parsed. Niveles de calidad: ", data.levels.length);
                 console.log('Pistas de audio:', hls.audioTracks);
+                // Cuánto tardó el motor en dar el manifest: si esto crece, el
+                // problema es el arranque del motor, no el player.
+                tel.send('player_manifest_parsed', {
+                    link_id: linkID,
+                    pid: pid,
+                    niveles: data.levels.length,
+                    ms_desde_inicio: Math.round(performance.now()),
+                });
                 if (hls.audioTracks && hls.audioTracks.length > 0) {
                     hls.audioTrack = 0;
                     console.log(`🔊 Pista de audio seleccionada: ${hls.audioTracks[0].name || 'default'}`);
@@ -557,8 +626,10 @@ maxBufferHole: 10,
                 setTimeout(() => {
                     video.play().then(() => {
                         console.log("Reproducción iniciada automáticamente.");
+                        tel.send('player_play', { link_id: linkID, pid: pid });
                     }).catch(e => {
                         console.warn("Autoplay bloqueado o fallido:", e);
+                        tel.send('player_autoplay_blocked', { link_id: linkID, motivo: String(e && e.name || e) });
                     });
                 }, settings.prebufferTime * 1000);
             });
@@ -581,7 +652,21 @@ maxBufferHole: 10,
         return recuperables.includes(details);
     }
 
+    window.tel = tel; // útil desde la consola para volcar/forzar envíos
+
     hls.on(Hls.Events.ERROR, function (event, data) {
+                // Todo error HLS va al central, fatal o no, agrupado cada 10
+                // repeticiones del mismo tipo: así se ve la causa raíz
+                // (levelLoadTimeOut, bufferAppendNoProgress...) sin miles de
+                // líneas idénticas.
+                tel.send('player_hls_error', {
+                    link_id: linkID,
+                    fatal: !!data.fatal,
+                    type: data.type,
+                    details: data.details,
+                    url: data.frag ? data.frag.url : (data.response ? data.response.url : undefined),
+                }, 10);
+
                 if (data.fatal) {
                     switch (data.type) {
                         case Hls.ErrorTypes.NETWORK_ERROR:
@@ -740,7 +825,9 @@ maxBufferHole: 10,
             video.removeAttribute('src');
             try { video.load(); } catch (e) { }
         }
+        const anterior = currentLinkID;
         currentLinkID = newLink;
+        tel.send('player_switch_link', { desde: anterior, hacia: newLink });
         loadVideoForLink();
     }
 
