@@ -112,6 +112,34 @@ if (iniDefault === -1) {
         fallos++;
     }
 
+// Regresión: al cambiar de Link hay que destruir la instancia VIVA, que se
+// guarda en window.hlsPlayer. switchToLink miraba video.hls (que nunca se
+// asigna), así que el player anterior seguía vivo: seguía pidiendo sus
+// manifests,reatachando MediaSource encima del <video> compartido y
+// robándole el buffer al player nuevo. De ahí los "Media attached" repetidos
+// y los parones al alternar entre enlaces.
+const switchFn = html.match(/function switchToLink\(newLink\) \{[\s\S]*?\n {4}\}/);
+if (!switchFn) {
+    console.error("  FALLO: no se encontró switchToLink() en el player");
+    fallos++;
+} else {
+    const cuerpoSwitch = switchFn[0];
+    if (!cuerpoSwitch.includes("window.hlsPlayer")) {
+        console.error(
+            "  FALLO: switchToLink no destruye window.hlsPlayer; el HLS " +
+                "anterior sigue vivo al cambiar de enlace (zombis pidiendo manifests)"
+        );
+        fallos++;
+    }
+    if (!cuerpoSwitch.includes("detachMedia()")) {
+        console.error(
+            "  FALLO: switchToLink no llama detachMedia(); el MediaSource " +
+                "anterior queda enganchado al <video> compartido"
+        );
+        fallos++;
+    }
+}
+
 if (fallos > 0) {
     console.error(`\n${fallos} fallo(s)`);
     process.exit(1);

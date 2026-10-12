@@ -22,28 +22,26 @@
 <body>
     <div class="player-container">
         <span class="player-title">
-            <span class="player-title-text">
-                {{ if .competitionname }}🏆 {{ .competitionname }} |{{ end }}
-                {{ if .eventname }}📺 {{ .eventname }} |{{ end }}
-                {{ if .broadcastername }}🎙️ {{ .broadcastername }} {{ end }}
-                {{ if .btntext }}🔗 {{ .btntext }}{{ end }}
-            </span>
-            {{ if .altlinks }}
-            {{ if gt (len .altlinks) 1 }}
-            <div class="alt-links" id="altLinks">
-                <span class="alt-links-label">Enlaces del evento:</span>
-                {{ $current := .currentlink }}
-                {{ range $i, $l := .altlinks }}
-                <button type="button"
-                        class="alt-link-btn{{ if eq $i $current }} active{{ end }}"
-                        data-index="{{ add $i 1 }}"
-                        data-link="{{ $l }}">{{ add $i 1 }}</button>
-                {{ end }}
-            </div>
-            {{ end }}
-            {{ end }}
+            {{ if .competitionname }}🏆 {{ .competitionname }} |{{ end }}
+            {{ if .eventname }}📺 {{ .eventname }} |{{ end }}
+            {{ if .broadcastername }}🎙️ {{ .broadcastername }} {{ end }}
+            {{ if .btntext }}🔗 {{ .btntext }}{{ end }}
         </span>
 
+        {{ if .altlinks }}
+        {{ if gt (len .altlinks) 1 }}
+        <div class="alt-links" id="altLinks">
+            <span class="alt-links-label">Enlaces del evento:</span>
+            {{ $current := .currentlink }}
+            {{ range $i, $l := .altlinks }}
+            <button type="button"
+                    class="alt-link-btn{{ if eq $i $current }} active{{ end }}"
+                    data-index="{{ add $i 1 }}"
+                    data-link="{{ $l }}">{{ add $i 1 }}</button>
+            {{ end }}
+        </div>
+        {{ end }}
+        {{ end }}
 
         <div class="video-container">
             <video id="videoPlayer" autoplay muted controls></video>
@@ -716,6 +714,17 @@
             // Corta el stream anterior antes de montar el nuevo: si no, el HLS
             // antiguo sigue descargando en segundo plano.
             try { video.pause(); } catch (e) { }
+            // La instancia viva está en window.hlsPlayer (ver loadHlsVideo).
+            // Antes se miraba video.hls, que nunca se asigna: la comprobación
+            // fallaba siempre y los players antiguos seguían vivos, pidiendo
+            // sus manifests y compitiendo por el buffer del <video>. De ahí
+            // los "Media attached" repetidos y los parones al alternar.
+            if (window.hlsPlayer) {
+                try { window.hlsPlayer.detachMedia(); } catch (e) { }
+                try { window.hlsPlayer.destroy(); } catch (e) { }
+                window.hlsPlayer = null;
+            }
+            // Cualquier instancia colgada en el elemento también se corta.
             if (video.hls) {
                 try { video.hls.destroy(); } catch (e) { }
                 video.hls = null;
