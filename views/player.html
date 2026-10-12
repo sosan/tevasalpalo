@@ -22,30 +22,31 @@
 <body>
     <div class="player-container">
         <span class="player-title">
-            {{ if .competitionname }}🏆 {{ .competitionname }} |{{ end }}
-            {{ if .eventname }}📺 {{ .eventname }} |{{ end }}
-            {{ if .broadcastername }}🎙️ {{ .broadcastername }} {{ end }}
-            {{ if .btntext }}🔗 {{ .btntext }}{{ end }}
+            <span class="player-title-text">
+                {{ if .competitionname }}🏆 {{ .competitionname }} |{{ end }}
+                {{ if .eventname }}📺 {{ .eventname }} |{{ end }}
+                {{ if .broadcastername }}🎙️ {{ .broadcastername }} {{ end }}
+                {{ if .btntext }}🔗 {{ .btntext }}{{ end }}
+            </span>
+            {{ if .altlinks }}
+            {{ if gt (len .altlinks) 1 }}
+            <div class="alt-links" id="altLinks">
+                <span class="alt-links-label">Enlaces del evento:</span>
+                {{ $current := .currentlink }}
+                {{ range $i, $l := .altlinks }}
+                <button type="button"
+                        class="alt-link-btn{{ if eq $i $current }} active{{ end }}"
+                        data-index="{{ add $i 1 }}"
+                        data-link="{{ $l }}">{{ add $i 1 }}</button>
+                {{ end }}
+            </div>
+            {{ end }}
+            {{ end }}
         </span>
 
-        {{ if .altlinks }}
-        {{ if gt (len .altlinks) 1 }}
-        <div class="alt-links" id="altLinks">
-            <span class="alt-links-label">🔀 Enlaces del evento:</span>
-            {{ $current := .currentlink }}
-            {{ range $i, $l := .altlinks }}
-            <button type="button"
-                    class="alt-link-btn{{ if eq $i $current }} active{{ end }}"
-                    data-index="{{ $i }}"
-                    data-link="{{ $l }}">{{ $i }}</button>
-            {{ end }}
-        </div>
-        {{ end }}
-        {{ end }}
 
         <div class="video-container">
             <video id="videoPlayer" autoplay muted controls></video>
-            <!-- <div id="statusMessage">Cargando reproductor...</div> -->
         </div>
         <div class="playback-settings">
             <h3><i class="fas fa-sliders-h"></i> Configuración de Reproducción</h3>
@@ -556,13 +557,46 @@
                 }, settings.prebufferTime * 1000);
             });
 
-            hls.on(Hls.Events.ERROR, function (event, data) {
+// isNetworkRetryable dice si un fallo de red merece un reintento o si el
+    // stream está muerto de verdad. El motor AceStream retiene las peticiones
+    // de manifest/playlist a la espera de pares P2P, así que los timeouts son
+    // habituales y no implican que no haya vídeo.
+    function isNetworkRetryable(details) {
+        if (!details) return false;
+        const recuperables = [
+            'levelLoadTimeOut',   // manifest o playlist no llegó a tiempo
+            'manifestLoadTimeOut',
+            'playlistLoadTimeOut',
+            'fragLoadTimeOut',
+            'fragLoadError',
+            'manifestLoadError',
+            'playlistLoadError'
+        ];
+        return recuperables.includes(details);
+    }
+
+    hls.on(Hls.Events.ERROR, function (event, data) {
                 if (data.fatal) {
                     switch (data.type) {
                         case Hls.ErrorTypes.NETWORK_ERROR:
                             console.error("HLS.js: Error de red fatal", data);
 
-                            if (retryCount < MAX_RETRIES) {
+                            // Un fallo recuperable se resuelve con startLoad(), que reintenta
+                            // el manifest conservando el buffer ya descargado.
+                            // Recargar desde cero (loadHlsVideo) pierde todo lo
+                            // ya buffered y provoca el parón visible.
+                            if (isNetworkRetryable(data.details) && retryCount < MAX_RETRIES) {
+                                console.log(`Reintentando... (intento ${retryCount + 1}/${MAX_RETRIES})`);
+                                try {
+                                    hls.startLoad();
+                                    break;
+                                } catch (e) {
+                                    console.error("startLoad falló, recargando:", e);
+                                    setTimeout(() => {
+                                        loadHlsVideo(hlsUrl, linkID, pid, retryCount + 1);
+                                    }, 2000 * (retryCount + 1));
+                                }
+                            } else if (retryCount < MAX_RETRIES) {
                                 console.log(`Reintentando... (intento ${retryCount + 1}/${MAX_RETRIES})`);
                                 setTimeout(() => {
                                     loadHlsVideo(hlsUrl, linkID, pid, retryCount + 1);
@@ -604,6 +638,35 @@
                             break;
                         default:
                             console.error("HLS.js: Error fatal", data);
+                            // Un error de red en el manifest (levelLoadTimeOut)
+                            // NO significa que el stream esté muerto: el motor
+                            // AceStream retiene el manifest hasta que aparecen
+                            // pares P2P, y hay momentos en que tarda más que
+                            // el timeout del cliente. Antes este caso caía
+                            // aquí y destruía HLS.js, obligando a recargar
+                            // desde cero; eso era justo lo que cortaba la
+                            // reproducción de forma intermitente. Ahora se
+                            // reintenta la carga conservando el estado y se
+                            // avisa al usuario si insiste.
+                            if (isNetworkRetryable(data.details)) {
+                                hls._networkErrorCount = (hls._networkErrorCount || 0) + 1;
+                                console.warn(`HLS.js: fallo de red recuperable (${data.details}), intento ${hls._networkErrorCount}`);
+                                if (hls._networkErrorCount <= 6) {
+                                    // startLoad() reintenta el manifest/playlist
+                                    // sin tirar el buffer ya descargado.
+                                    try {
+                                        hls.startLoad();
+                                        break;
+                                    } catch (e) {
+                                        console.error("startLoad falló:", e);
+                                    }
+                                }
+                                showErrorOverlay('No se pudo cargar el stream',
+                                    `El canal no responde tras varios intentos.<br><br>` +
+                                    `Los enlaces <b>p;</b> dependen de otros usuarios conectados (P2P); ` +
+                                    `si están todos desconectados no hay vídeo que reproducir.<br><br>` +
+                                    `Prueba con otro <b>Link</b> del evento.`);
+                            }
                             hls.destroy();
                             window.hlsPlayer = null;
                             break;

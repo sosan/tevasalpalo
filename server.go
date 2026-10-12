@@ -192,7 +192,7 @@ func StartWebServer() (*fiber.App, error) {
 
 		// Hacer la petición (directa a loopback; a remoto, cadena proxy
 		// solo con el interruptor proxy-media ON)
-		resp, via, err := aceDo(targetURL, proxyMediaEnabled(), func(client *http.Client) (*http.Response, error) {
+		resp, via, err := aceDoTimeout(targetURL, proxyMediaEnabled(), aceTimeoutFor(acePath), func(client *http.Client) (*http.Response, error) {
 			return client.Do(req)
 		})
 		if err != nil {

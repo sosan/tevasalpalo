@@ -33,6 +33,11 @@ type Source struct {
 	URL     string
 	Type    SourceType
 	Proxied bool
+	// ProxyFirst intenta descargar vía proxy antes que en directo. Para hosts
+	// que el ISP bloquea o estrangula en la salida directa (ipfs/filebase),
+	// que el proxy resuelva por su cuenta es más fiable que esperar a la
+	// política directa-con-reintentos.
+	ProxyFirst bool
 	// Resolve opcional: si no es nil, se llama antes de cada fetch para obtener
 	// la URL real. Necesario en fuentes cuyo path cambia en cada publicación
 	// (el subdirectorio del worker de elcano rota al republicar).
@@ -78,7 +83,7 @@ const (
 )
 
 var sources = []Source{
-	{Name: "listaplana", URL: listaplana, Type: SourceTxtRaw, Proxied: false},
+	{Name: "listaplana", URL: listaplana, Type: SourceTxtRaw, Proxied: true, ProxyFirst: true},
 	{Name: "peticiones", URL: peticiones, Type: SourceM3U, Proxied: false},
 	{Name: "platinsport", URL: platinsport, Type: SourceM3U, Proxied: false},
 	{Name: "platinsport_canales", URL: platinsportCanales, Type: SourceM3U, Proxied: false},
@@ -88,7 +93,7 @@ var sources = []Source{
 	{Name: "gitgay_hashes", URL: gitgayHashes, Type: SourceM3U, Proxied: false},
 	// Otro IPNS de hashes por filebase (ver filebaseHashes). 58 hashes, 25
 	// nuevos respecto a las fuentes m3u de arriba.
-	{Name: "ipfs_hashes", URL: filebaseHashes, Type: SourceM3U, Proxied: false},
+	{Name: "ipfs_hashes", URL: filebaseHashes, Type: SourceM3U, Proxied: true, ProxyFirst: true},
 	// Fuentes que NO deben volver:
 	//
 	// - fuera_iptv: mismo repo y mismo contenido que listaplana (400 hashes
@@ -158,8 +163,13 @@ func resolveAndFetch(s Source) ([]byte, error) {
 		}
 		fetchURL = resolved
 	}
-	return FetchWebData(fetchURL, s.Proxied)
+	return fetchWebData(fetchURL, s.Proxied)
 }
+
+// fetchWebData permite a los tests sustituir el transporte para verificar la
+// política de reintentos sin tocar la red. En producción siempre vale
+// FetchWebData.
+var fetchWebData = FetchWebData
 
 // fetchSourceBody descarga una fuente con reintentos y, como último recurso, vía
 // proxy. La política de reintento NO depende de si el fallo vino del resolver o
@@ -168,7 +178,53 @@ func resolveAndFetch(s Source) ([]byte, error) {
 // el resolver marcaba fatal4xx siempre, así que un 429 en el índice de elcano
 // mataba la fuente en el intento 1 sin reintentar ni probar el proxy.
 func fetchSourceBody(s Source, isDev bool) fetchResult {
+	// Fuentes marcadas como ProxyFirst (ipfs/filebase)': el ISP bloquea o
+	// ralentiza la IP directa contra estos hosts (timeouts de client),
+	// así que se intenta por proxy (xray/Tor) primero y, si tras varios
+	// intentos no sale, se cae a directo como reserva.
+	if s.ProxyFirst {
+		return fetchSourceBodyProxyFirst(s, isDev)
+	}
 	return fetchSourceBodyConPolitica(s, isDev, maxFetchAttempts, defaultFetchBackoff)
+}
+
+// fetchSourceBodyProxyFirst invierte el orden respecto a
+// fetchSourceBodyConPolitica: primero descarga vía proxy, y solo si la fuente
+// se queda sin respuesta pasa a intentarlo en directo.
+func fetchSourceBodyProxyFirst(s Source, isDev bool) fetchResult {
+	var res fetchResult
+	fetchURL := s.URL
+
+	// Fase 1: proxy (máx 3 intentos, igual que el fallback directo->proxy
+	// que ya existía pero en orden contrario).
+	for pAttempt := 1; pAttempt <= 3; pAttempt++ {
+		res.attempts = pAttempt
+		if isDev {
+			log.Printf("📡 [%s] proxy intento %d/3 %s (proxied=true)", s.Name, pAttempt, fetchURL)
+		}
+		body, err := fetchWebData(fetchURL, true)
+		if err == nil && len(body) != 0 {
+			log.Printf("✅ [%s] ok vía proxy (intento %d/3)", s.Name, pAttempt)
+			return fetchResult{body: body, attempts: res.attempts}
+		}
+		res.err = err
+		if isFatalFetchErr(err) {
+			res.fatal4xx = true
+			break
+		}
+		if isDev {
+			log.Printf("⚠️  [%s] proxy intento %d/3 fallo: %v", s.Name, pAttempt, err)
+		}
+		if pAttempt < 3 {
+			time.Sleep(time.Duration(pAttempt) * 3 * time.Second)
+		}
+	}
+
+	// Fase 2: reserva directa (una pasada corta con la política estándar).
+	log.Printf("🔄 [%s] proxy agotado, último recurso directo...", s.Name)
+	direct := s
+	direct.Proxied = false
+	return fetchSourceBodyPolitica(direct, isDev, maxNetworkRetries, defaultFetchBackoff, false)
 }
 
 // maxFetchAttempts: intentos contra la misma salida antes de rendirse.
@@ -187,6 +243,14 @@ func defaultFetchBackoff(attempt int) time.Duration {
 }
 
 func fetchSourceBodyConPolitica(s Source, isDev bool, maxAttempts int, backoff fetchBackoff) fetchResult {
+	return fetchSourceBodyPolitica(s, isDev, maxAttempts, backoff, true)
+}
+
+// fetchSourceBodyPolitica es fetchSourceBodyConPolitica con la opción de no
+// volver a caer al proxy al final. La fase de reserva directa de una fuente
+// ProxyFirst la usa con permitirFallbackProxy=false: el proxy ya se agotó antes
+// y reintentar por ahí duplicaba el peor caso hasta ~70s por fuente.
+func fetchSourceBodyPolitica(s Source, isDev bool, maxAttempts int, backoff fetchBackoff, permitirFallbackProxy bool) fetchResult {
 	var res fetchResult
 	netErrs := 0
 	fetchURL := s.URL
@@ -247,7 +311,7 @@ func fetchSourceBodyConPolitica(s Source, isDev bool, maxAttempts int, backoff f
 		}
 	}
 
-	if shouldProxyFallback(s, res.success(), res.fatal4xx) {
+	if permitirFallbackProxy && shouldProxyFallback(s, res.success(), res.fatal4xx) {
 		// Último recurso: la IP directa puede estar limitada (429
 		// persistente); otra salida vía proxy (Tor/xray) lo salva.
 		log.Printf("🔄 [%s] directa agotada, último recurso vía proxy...", s.Name)
@@ -257,7 +321,7 @@ func fetchSourceBodyConPolitica(s Source, isDev bool, maxAttempts int, backoff f
 					fetchURL = resolved
 				}
 			}
-			body, err := FetchWebData(fetchURL, true)
+			body, err := fetchWebData(fetchURL, true)
 			if err == nil && len(body) != 0 {
 				log.Printf("✅ [%s] recuperada vía proxy (intento %d/3)", s.Name, pAttempt)
 				return fetchResult{body: body, attempts: res.attempts}

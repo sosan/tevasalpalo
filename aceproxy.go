@@ -253,11 +253,39 @@ func doUpstream(client *http.Client, targetURL, rangeHeader string) (*http.Respo
 	return resp, req.URL.String(), nil
 }
 
+// aceTimeoutSegmento es el timeout para datos de medio (/ace/c/*.ts). Corto a
+// propósito: un segmento que no llega en 30s no va a llegar, y colgarse aquí
+// retiene la conexión del player.
+const aceTimeoutSegmento = 30 * time.Second
+
+// aceTimeoutManifest es el timeout para manifests, incluidos los anidados
+// (/ace/m/*.m3u8). El engine los retiene esperando a que aparezcan pares
+// P2P, así que suelen tardar bastante más que un segmento: con el timeout de
+// 30s morían siempre y el player se quedaba sin nivel de medio, lo que
+// cortaba la carga aunque los segmentos que sí llegaran fluyeran bien.
+const aceTimeoutManifest = 120 * time.Second
+
+// aceTimeoutFor elige el timeout según la ruta de /ace/. Los manifests
+// (incluidos los anidados /ace/m/*.m3u8) necesitan margen largo porque el
+// engine espera a los pares; los segmentos, no.
+func aceTimeoutFor(acePath string) time.Duration {
+	p := strings.ToLower(acePath)
+	if strings.HasSuffix(p, ".m3u8") || strings.Contains(p, "/m/") {
+		return aceTimeoutManifest
+	}
+	return aceTimeoutSegmento
+}
+
 // aceDo ejecuta la petición contra el engine: directa a loopback siempre;
 // a remoto, cadena proxy (xray/Tor) si allowProxy o directa si no.
 // Devuelve el transporte usado. Solo rota ante errores de transporte, no
 // ante errores HTTP del engine (se propagan tal cual).
 func aceDo(targetURL string, allowProxy bool, do func(*http.Client) (*http.Response, error)) (*http.Response, string, error) {
+	return aceDoTimeout(targetURL, allowProxy, aceTimeoutSegmento, do)
+}
+
+// aceDoTimeout es aceDo con timeout explícito por petición.
+func aceDoTimeout(targetURL string, allowProxy bool, timeout time.Duration, do func(*http.Client) (*http.Response, error)) (*http.Response, string, error) {
 	transports := []string{"direct"}
 	loopback := isLoopbackURL(targetURL)
 	if !loopback && allowProxy {
@@ -265,7 +293,7 @@ func aceDo(targetURL string, allowProxy bool, do func(*http.Client) (*http.Respo
 	}
 	lastErr := fmt.Errorf("sin transportes disponibles")
 	for _, tr := range transports {
-		client := &http.Client{Timeout: 30 * time.Second}
+		client := &http.Client{Timeout: timeout}
 		if tr != "direct" {
 			var err error
 			client, err = clientForTransport(tr)
