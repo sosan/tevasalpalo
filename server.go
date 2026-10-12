@@ -192,16 +192,26 @@ func StartWebServer() (*fiber.App, error) {
 
 		// Hacer la petición (directa a loopback; a remoto, cadena proxy
 		// solo con el interruptor proxy-media ON)
-		resp, via, err := aceDoTimeout(targetURL, proxyMediaEnabled(), aceTimeoutFor(acePath), func(client *http.Client) (*http.Response, error) {
+		//
+		// Los manifests (incluidos los anidados /ace/m/*.m3u8) se retienen
+		// esperando pares P2P, así que van con timeout largo; los segmentos,
+		// con uno corto. Se traza el timeout efectivo porque si un manifest
+		// muere a los ~30s el síntoma es idéntico al de un binario viejo
+		// compilado antes de que existiera el timeout largo.
+		aceTimeout := aceTimeoutFor(acePath)
+		traceLog("/ace/* ruta=%q timeout=%v", acePath, aceTimeout)
+		inicio := time.Now()
+		resp, via, err := aceDoTimeout(targetURL, proxyMediaEnabled(), aceTimeout, func(client *http.Client) (*http.Response, error) {
 			return client.Do(req)
 		})
 		if err != nil {
 			if isAceStream {
 				WarpStreamStop()
 			}
-			log.Printf("❌ Error en petición a Ace Stream: %v", err)
+			log.Printf("❌ Error en petición a Ace Stream (%v): %v", time.Since(inicio).Round(time.Second), err)
 			return c.Status(502).SendString("Error conectando con Ace Stream: " + err.Error())
 		}
+		traceLog("/ace/* ruta=%q respondida en %v vía %s", acePath, time.Since(inicio).Round(time.Millisecond), via)
 		defer func() {
 			resp.Body.Close()
 			if isAceStream {
