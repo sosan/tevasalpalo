@@ -199,8 +199,24 @@ jobs:
           # llevaba GOARCH=amd64 hardcodeado mientras el log anunciaba el
           # GOARCH de .env.prod, así que un binario de 32 bits habría salido
           # amd64 sin que nadie se enterase.
+          #
+          # TELEMETRY_LDFLAGS lleva el contenedor cifrado de secretos
+          # (-X 'main.embebidoSecretos=...' -X 'main.claveSecretos=...'), tal
+          # y como lo imprime "portable --genera-secretos". Va como secret de
+          # Actions, NO en .env.prod: ese fichero se carga con xargs y sus
+          # valores acaban en el log del build.
+          #
+          # Si el secret no está definido se compila sin secretos, así que el
+          # repo sigue siendo compilable sin credenciales (forks, PRs).
+          if [ -z "${TELEMETRY_LDFLAGS}" ]; then
+              echo "ℹ️  TELEMETRY_LDFLAGS vacío: la telemetría irá por entorno."
+          fi
+
           echo "🚀 Compilando para ${{ matrix.goos }}/${{ matrix.goarch }}..."
-          CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-X 'main/update.VersionBuild=${VERSION_BUILD}'" -o ./build/${{ matrix.artifact_name }}
+          CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
+            go build \
+              -ldflags="-X 'main/update.VersionBuild=${VERSION_BUILD}' ${TELEMETRY_LDFLAGS}" \
+              -o ./build/${{ matrix.artifact_name }}
           echo "✅ Compilación exitosa: ./build/${{ matrix.artifact_name }}"
 
       - name: Vet
@@ -282,7 +298,19 @@ jobs:
       - name: Build
         run: |
           export VERSION_BUILD=$(date -u "+%Y-%m-%dT%H:%M:%SZ")
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-X 'main/update.VersionBuild=${VERSION_BUILD}'" -o ./build/portable .
+
+          # Mismo criterio que el build de Windows: TELEMETRY_LDFLAGS es el
+          # contenedor cifrado de secretos y viene de un secret. Si no está
+          # definido, el binario sale sin secretos y la telemetría se
+          # configura por entorno.
+          if [ -z "${TELEMETRY_LDFLAGS}" ]; then
+              echo "ℹ️  TELEMETRY_LDFLAGS vacío: la telemetría irá por entorno."
+          fi
+
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+            go build \
+              -ldflags="-X 'main/update.VersionBuild=${VERSION_BUILD}' ${TELEMETRY_LDFLAGS}" \
+              -o ./build/portable .
 
       - name: Unit tests
         run: |

@@ -10,3 +10,4 @@ openspec/*
 .agents/*
 xray-links.txt
 settings.json
+.telemetry.env
