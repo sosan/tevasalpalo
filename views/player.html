@@ -480,7 +480,13 @@
                 maxMaxBufferLength: settings.maxMaxBufferLength,
                 backBufferLength: settings.backBufferLength,
                 maxBufferSize: 60 * 1000 * 1000, // 60 MB
-                maxBufferHole: 0.5,
+                // Tolerancia de hueco en el buffer, en segundos. Antes era 0.5, demasiado
+// agresiva para AceStream: los segmentos llegan por P2P y casi siempre hay
+// huecos pequeños entre ellos. Con 0.5, HLS.js daba el buffer por perdido
+// (bufferSeekOverHole) y saltaba hacia adelante, lo que se ve como un
+// parón. Con 10s tolera los huecos normales del P2P y salta solo si el
+// stream está realmente parado.
+maxBufferHole: 10,
                 fragLoadPolicy: {
                     default: {
                         maxTimeToFirstByteMs: 30000,

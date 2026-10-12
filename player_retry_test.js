@@ -140,6 +140,33 @@ if (!switchFn) {
     }
 }
 
+// maxBufferHole con AceStream. Los segmentos llegan por P2P y hay huecos
+// pequeños entre ellos; con 0.5s HLS.js declaraba el buffer perdido
+// (bufferSeekOverHole) y saltaba hacia adelante, lo que se ve como un parón.
+const mBH = html.match(/maxBufferHole:\s*([0-9.]+)/);
+if (!mBH) {
+    console.error("  FALLO: no se encontró maxBufferHole en la config de Hls()");
+    fallos++;
+} else {
+    const valor = parseFloat(mBH[1]);
+    if (valor < 5) {
+        console.error(
+            `  FALLO: maxBufferHole = ${valor}s es demasiado agresivo para ` +
+                "P2P; los huecos normales entre segmentos se cuentan como " +
+                "buffer perdido (bufferSeekOverHole) y provocan saltos"
+        );
+        fallos++;
+    }
+}
+
+// El buffer de reproducción debe ser suficiente para sobrevivir a una pausa
+// de P2P sin quedarse sin datos a mitad.
+const mBuf = html.match(/maxBufferLength:\s*settings\.maxBufferLength/);
+if (!mBuf) {
+    console.error("  FALLO: maxBufferLength ya no usa el valor configurado");
+    fallos++;
+}
+
 if (fallos > 0) {
     console.error(`\n${fallos} fallo(s)`);
     process.exit(1);
