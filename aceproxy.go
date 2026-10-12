@@ -278,7 +278,7 @@ const aceTimeoutAnidado = 8 * time.Second
 // porque es long-poll, y los segmentos van cortos.
 func aceTimeoutFor(acePath string) time.Duration {
 	p := strings.ToLower(acePath)
-	if strings.Contains(p, "/m/") {
+	if isAceNestedManifest(p) {
 		return aceTimeoutAnidado
 	}
 	if strings.HasSuffix(p, ".m3u8") {
@@ -288,11 +288,17 @@ func aceTimeoutFor(acePath string) time.Duration {
 }
 
 // isAceNestedManifest indica si la ruta es un manifest anidado /ace/m/*.m3u8.
-// Cuando estos fallan hay que responder 204 en lugar de 502: HLS.js trata el
-// 502 como error fatal de red y detiene la carga.
+// El path que entrega Fiber no lleva barra inicial ("m/aa42/711b.m3u8"), así
+// que se compara por segmento y no con un Contains con barras, que nunca
+// casaría. Cuando estos fallan hay que responder 204 en lugar de 502: HLS.js
+// trata el 502 como error fatal de red y detiene la carga.
 func isAceNestedManifest(acePath string) bool {
 	p := strings.ToLower(acePath)
-	return strings.Contains(p, "/m/") && strings.HasSuffix(p, ".m3u8")
+	if !strings.HasSuffix(p, ".m3u8") {
+		return false
+	}
+	rest := strings.TrimPrefix(p, "/")
+	return rest == "m" || strings.HasPrefix(rest, "m/")
 }
 
 // aceDo ejecuta la petición contra el engine: directa a loopback siempre;
