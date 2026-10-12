@@ -26,8 +26,8 @@ func RunTor() (*exec.Cmd, error) {
 		log.Fatal("No se pudo obtener la ruta del ejecutable: ", err)
 	}
 	execDir := filepath.Dir(exePath)
-	if err != nil {
-		return nil, err
+	if execDir == "" {
+		log.Fatal("No se pudo obtener el directorio del ejecutable")
 	}
 
 	var zipTorFile string

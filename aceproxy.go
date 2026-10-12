@@ -258,22 +258,41 @@ func doUpstream(client *http.Client, targetURL, rangeHeader string) (*http.Respo
 // retiene la conexión del player.
 const aceTimeoutSegmento = 30 * time.Second
 
-// aceTimeoutManifest es el timeout para manifests, incluidos los anidados
-// (/ace/m/*.m3u8). El engine los retiene esperando a que aparezcan pares
-// P2P, así que suelen tardar bastante más que un segmento: con el timeout de
-// 30s morían siempre y el player se quedaba sin nivel de medio, lo que
-// cortaba la carga aunque los segmentos que sí llegaran fluyeran bien.
+// aceTimeoutManifest es el timeout para el manifest principal
+// (/ace/manifest.m3u8). Es una long-poll del engine: se retiene esperando a
+// que aparezcan pares P2P, así que tarda bastante más que un segmento. Con el
+// timeout de 30s moría siempre y el player se quedaba sin nivel de medio.
 const aceTimeoutManifest = 120 * time.Second
 
-// aceTimeoutFor elige el timeout según la ruta de /ace/. Los manifests
-// (incluidos los anidados /ace/m/*.m3u8) necesitan margen largo porque el
-// engine espera a los pares; los segmentos, no.
+// aceTimeoutAnidado es el timeout para los manifests anidados /ace/m/*.m3u8.
+// A diferencia del principal, estos no llegan nunca: el engine los retiene
+// indefinidamente aunque el flujo principal sí advanced (los .ts llegan bien).
+// Esperar 120s solo servía para retener la conexión y, al expirar, HLS.js lo
+// escalaba a error fatal y tumbaba toda la carga. Retenerlos 8s y responder
+// 204 (no hay actualización) mantiene vivo el player con el último playlist
+// bueno mientras el manifest principal sigue fluyendo.
+const aceTimeoutAnidado = 8 * time.Second
+
+// aceTimeoutFor elige el timeout según la ruta de /ace/: los anidados
+// /ace/m/ fallan rápido a propósito, el manifest principal tolera largo
+// porque es long-poll, y los segmentos van cortos.
 func aceTimeoutFor(acePath string) time.Duration {
 	p := strings.ToLower(acePath)
-	if strings.HasSuffix(p, ".m3u8") || strings.Contains(p, "/m/") {
+	if strings.Contains(p, "/m/") {
+		return aceTimeoutAnidado
+	}
+	if strings.HasSuffix(p, ".m3u8") {
 		return aceTimeoutManifest
 	}
 	return aceTimeoutSegmento
+}
+
+// isAceNestedManifest indica si la ruta es un manifest anidado /ace/m/*.m3u8.
+// Cuando estos fallan hay que responder 204 en lugar de 502: HLS.js trata el
+// 502 como error fatal de red y detiene la carga.
+func isAceNestedManifest(acePath string) bool {
+	p := strings.ToLower(acePath)
+	return strings.Contains(p, "/m/") && strings.HasSuffix(p, ".m3u8")
 }
 
 // aceDo ejecuta la petición contra el engine: directa a loopback siempre;

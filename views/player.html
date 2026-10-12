@@ -22,26 +22,28 @@
 <body>
     <div class="player-container">
         <span class="player-title">
+            <span>
             {{ if .competitionname }}🏆 {{ .competitionname }} |{{ end }}
             {{ if .eventname }}📺 {{ .eventname }} |{{ end }}
             {{ if .broadcastername }}🎙️ {{ .broadcastername }} {{ end }}
             {{ if .btntext }}🔗 {{ .btntext }}{{ end }}
+            </span>
+            {{ if .altlinks }}
+            {{ if gt (len .altlinks) 1 }}
+            <span class="alt-links" id="altLinks">
+                <span class="alt-links-label">Enlaces del evento:</span>
+                {{ $current := .currentlink }}
+                {{ range $i, $l := .altlinks }}
+                <button type="button"
+                        class="alt-link-btn{{ if eq $i $current }} active{{ end }}"
+                        data-index="{{ add $i 1 }}"
+                        data-link="{{ $l }}">{{ add $i 1 }}</button>
+                {{ end }}
+            </span>
+            {{ end }}
+            {{ end }}
         </span>
 
-        {{ if .altlinks }}
-        {{ if gt (len .altlinks) 1 }}
-        <div class="alt-links" id="altLinks">
-            <span class="alt-links-label">Enlaces del evento:</span>
-            {{ $current := .currentlink }}
-            {{ range $i, $l := .altlinks }}
-            <button type="button"
-                    class="alt-link-btn{{ if eq $i $current }} active{{ end }}"
-                    data-index="{{ add $i 1 }}"
-                    data-link="{{ $l }}">{{ add $i 1 }}</button>
-            {{ end }}
-        </div>
-        {{ end }}
-        {{ end }}
 
         <div class="video-container">
             <video id="videoPlayer" autoplay muted controls></video>

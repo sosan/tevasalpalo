@@ -208,6 +208,17 @@ func StartWebServer() (*fiber.App, error) {
 			if isAceStream {
 				WarpStreamStop()
 			}
+			// Un manifest anidado /ace/m/*.m3u8 que no responde no es un
+			// fallo de reproducción: el engine lo retiene indefinidamente
+			// aunque los .ts sí llegan. Devolver 502 aquí lo convierte en
+			// error fatal de red en HLS.js y tumba el stream entero, así que
+			// se responde 204 ("sin actualización") para que mantenga el
+			// último playlist bueno.
+			if isAceNestedManifest(acePath) {
+				traceLog("/ace/* anidado %q sin respuesta tras %v, se responde 204", acePath, time.Since(inicio).Round(time.Second))
+				c.Set("Cache-Control", "no-store")
+				return c.SendStatus(fiber.StatusNoContent)
+			}
 			log.Printf("❌ Error en petición a Ace Stream (%v): %v", time.Since(inicio).Round(time.Second), err)
 			return c.Status(502).SendString("Error conectando con Ace Stream: " + err.Error())
 		}

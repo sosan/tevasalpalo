@@ -23,14 +23,22 @@ func TestTimeoutDeManifestEsMasLargoQueElDeSegmento(t *testing.T) {
 	}
 }
 
+func TestTimeoutDeAnidadoEsCorto(t *testing.T) {
+	// Los anidados no llegan nunca: retenerlos solo rompe el player.
+	if aceTimeoutAnidado >= aceTimeoutSegmento {
+		t.Fatalf("el manifest anidado (%v) debe fallar antes que un segmento (%v)",
+			aceTimeoutAnidado, aceTimeoutSegmento)
+	}
+}
+
 func TestAceTimeoutForDistingueManifestDeSegmento(t *testing.T) {
 	casos := []struct {
 		ruta string
 		want time.Duration
 	}{
 		{"manifest.m3u8", aceTimeoutManifest},
-		{"m/c1959a27edb0b94c5005a2dea93b7a70d4312f1c/711b4ac7.m3u8", aceTimeoutManifest},
-		{"/m/711b4ac7.M3U8", aceTimeoutManifest},
+		{"m/c1959a27edb0b94c5005a2dea93b7a70d4312f1c/711b4ac7.m3u8", aceTimeoutAnidado},
+		{"/m/711b4ac7.M3U8", aceTimeoutAnidado},
 		{"c/c1959a27edb0b94c5005a2dea93b7a70d4312f1c/0.ts", aceTimeoutSegmento},
 		{"c/c1959a27/12.ts", aceTimeoutSegmento},
 		{"", aceTimeoutSegmento},
@@ -42,11 +50,31 @@ func TestAceTimeoutForDistingueManifestDeSegmento(t *testing.T) {
 	}
 }
 
+// El manifest anidado es el único que debe responder 204 en vez de 502:
+// un 502 lo convierte en error fatal de red en HLS.js.
+func TestIsAceNestedManifest(t *testing.T) {
+	casos := []struct {
+		ruta string
+		want bool
+	}{
+		{"m/aa42/711b.m3u8", true},
+		{"/m/aa42/711b.M3U8", true},
+		{"manifest.m3u8", false},
+		{"c/aa42/0.ts", false},
+		{"", false},
+	}
+	for _, c := range casos {
+		if got := isAceNestedManifest(c.ruta); got != c.want {
+			t.Errorf("isAceNestedManifest(%q) = %v, se esperaba %v", c.ruta, got, c.want)
+		}
+	}
+}
+
 // Un manifest anidado en minúsculas también cuenta: el navegador puede
 // pedirlo con cualquier capitalización.
 func TestAceTimeoutForIgnoraMayusculas(t *testing.T) {
-	if got := aceTimeoutFor("M/ABC.M3U8"); got != aceTimeoutManifest {
-		t.Errorf("un manifest en mayúsculas debería usar el timeout largo, hubo %v", got)
+	if got := aceTimeoutFor("M/ABC.M3U8"); got != aceTimeoutAnidado {
+		t.Errorf("un manifest anidado en mayúsculas debería usar el timeout corto, hubo %v", got)
 	}
 }
 
