@@ -489,6 +489,10 @@ func FetchUpdatedList() error {
 
 	// Transformar una sola vez al final
 	broadcasterToAcestream = transformUriSafeBroadcasters(broadcasterToAcestream)
+
+	// Poner el hash más probable primero en cada canal, para que el player no
+	// se coma un timeout probando uno que ya sabemos que está muerto.
+	ordenarListadoEnVivo(broadcasterToAcestream)
 	log.Printf("✅ Fuentes procesadas: %d/%d", fetchedCount, len(sources))
 
 	// Guardar el resultado en la base de datos: sirve para el arranque

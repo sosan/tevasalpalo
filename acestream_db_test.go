@@ -29,7 +29,7 @@ func storeDePrueba(t *testing.T) *store {
 	})
 	// Los buckets los crea abrirStore; aquí se replican para no duplicar su lógica.
 	db.Update(func(tx *bolt.Tx) error {
-		for _, b := range []string{bucketChannels, bucketSources, bucketHistory, bucketMeta} {
+		for _, b := range []string{bucketChannels, bucketSources, bucketHistory, bucketHashes, bucketMeta} {
 			if _, err := tx.CreateBucketIfNotExists([]byte(b)); err != nil {
 				return err
 			}
@@ -231,7 +231,7 @@ func TestElHistoricoSePoda(t *testing.T) {
 	defer db.Close()
 	s.db = db
 	db.Update(func(tx *bolt.Tx) error {
-		for _, b := range []string{bucketChannels, bucketSources, bucketHistory, bucketMeta} {
+		for _, b := range []string{bucketChannels, bucketSources, bucketHistory, bucketHashes, bucketMeta} {
 			if _, err := tx.CreateBucketIfNotExists([]byte(b)); err != nil {
 				return err
 			}
@@ -547,5 +547,160 @@ func TestLaPausaNoSeAutoIncrementa(t *testing.T) {
 	if trasPausa.CiclosSinAportar > pausada.CiclosSinAportar {
 		t.Errorf("el contador subió estando en pausa: %d -> %d",
 			pausada.CiclosSinAportar, trasPausa.CiclosSinAportar)
+	}
+}
+
+// ---- disponibilidad y estado de los hashes ----
+
+func TestRegistroDeHashes(t *testing.T) {
+	s := storeDePrueba(t)
+
+	const h = "aa11bb22cc33dd44ee55ff6677889900aabbccdd"
+
+	// Un acierto, un fallo y otro acierto: el hash sigue vivo y, lo
+	// importante, el último acierto deja los fallos seguidos a cero. Si vuelve
+	// a funcionar, no estaba muerto y no debe seguir castigado.
+	s.registrarHashResultado(h, true)
+	s.registrarHashResultado(h, false)
+	s.registrarHashResultado(h, true)
+
+	reg := s.hash(h)
+	if reg.Intentos != 3 || reg.OK != 2 || reg.Fallos != 1 {
+		t.Errorf("contadores = %+v", reg)
+	}
+	if !reg.vivo() {
+		t.Error("con 2 aciertos y 1 fallo debería seguir vivo")
+	}
+	if reg.FallosSeguros != 0 {
+		t.Errorf("el acierto no reinició los fallos seguidos: %d", reg.FallosSeguros)
+	}
+}
+
+func TestHashConTresFallosEstaMuerto(t *testing.T) {
+	s := storeDePrueba(t)
+	h := "0011223344556677889900aabbccddeeff00112233"
+	for i := 0; i < fallosParaDarPorMuerto; i++ {
+		s.registrarHashResultado(h, false)
+	}
+	reg := s.hash(h)
+	if reg.vivo() {
+		t.Error("con tres fallos seguidos debería estar muerto")
+	}
+	if reg.FallosSeguros != fallosParaDarPorMuerto {
+		t.Errorf("FallosSeguros = %d", reg.FallosSeguros)
+	}
+}
+
+// La disponibilidad de la API manda cuando no hay fallos recientes. Es el
+// dato que evita pedirle un stream que el motor ya sabe muerto.
+func TestDisponibilidadCeroMataElHash(t *testing.T) {
+	s := storeDePrueba(t)
+	h := "ffeeddccbbaa99887766554433221100ffeeddcc"
+	if err := s.actualizarDisponibilidad(h, 0, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if s.hash(h).vivo() {
+		t.Error("disponibilidad 0 debería marcarlo muerto")
+	}
+
+	h2 := "0011223344556677889900aabbccddeeff00112233"
+	s.actualizarDisponibilidad(h2, 0.99, time.Now())
+	if !s.hash(h2).vivo() {
+		t.Error("disponibilidad 0.99 debería dejarlo vivo")
+	}
+}
+
+// Un hash sin ningún dato no se descarta: no se puede matar un stream por no
+// saber nada de él.
+func TestHashSinDatosEstaVivo(t *testing.T) {
+	s := storeDePrueba(t)
+	h := "0011223344556677889900aabbccddeeff00112233"
+	if !s.hash(h).vivo() {
+		t.Error("un hash sin datos debería considerarse vivo")
+	}
+}
+
+// El punto es lo que ordena la lista: el mejor hash primero.
+func TestOrdenarHashesPorPuntuacion(t *testing.T) {
+	s := storeDePrueba(t)
+	malo := "0000000000000000000000000000000000000001"
+	medio := "0000000000000000000000000000000000000002"
+	bueno := "0000000000000000000000000000000000000003"
+
+	s.actualizarDisponibilidad(malo, 0.05, time.Now())
+	s.actualizarDisponibilidad(bueno, 0.99, time.Now())
+	s.registrarHashResultado(medio, true)
+	s.registrarHashResultado(medio, true)
+	s.registrarHashResultado(medio, false)
+
+	entrada := []string{malo, medio, bueno}
+	salida := s.ordenarHashesPuntuados(entrada)
+
+	if salida[0] != bueno {
+		t.Errorf("primero = %s, se esperaba el de mayor disponibilidad", salida[0])
+	}
+	if salida[len(salida)-1] != malo {
+		t.Errorf("último = %s, se esperaba el de menor disponibilidad", salida[len(salida)-1])
+	}
+	// Y el orden original se conserva a igualdad de puntos.
+	iguales := []string{"0000000000000000000000000000000000000004",
+		"0000000000000000000000000000000000000005"}
+	if got := s.ordenarHashesPuntuados(iguales); got[0] != iguales[0] {
+		t.Errorf("a igualdad debe mantener el orden de entrada: %v", got)
+	}
+}
+
+// La importación desde el JSON de la API: idempotente y sin pisar mediciones
+// más viejas con una copia guardada.
+func TestImportarDisponibilidadDesdeJSON(t *testing.T) {
+	s := storeDePrueba(t)
+	json := `[{"infohash":"aabbccddeeff00112233445566778899aabbccdd","name":"X","availability":0.8,"availability_updated_at":1700000000,"categories":["tv"]}]`
+
+	nuevos, act, ign, err := s.importarDisponibilidad([]byte(json))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if nuevos != 1 || act != 0 || ign != 0 {
+		t.Errorf("primera importación: nuevos=%d act=%d ign=%d", nuevos, act, ign)
+	}
+	if !s.hash("aabbccddeeff00112233445566778899aabbccdd").Conocida {
+		t.Error("no se guardó la disponibilidad")
+	}
+
+	// Reimportar lo mismo no cambia nada.
+	nuevos, act, ign, _ = s.importarDisponibilidad([]byte(json))
+	if nuevos != 0 {
+		t.Errorf("reimportar creó %d nuevos", nuevos)
+	}
+
+	// Una medición más vieja no pisa la que ya hay.
+	viejo := `[{"infohash":"aabbccddeeff00112233445566778899aabbccdd","availability":0.1,"availability_updated_at":1600000000}]`
+	if _, _, ign, _ = s.importarDisponibilidad([]byte(viejo)); ign != 1 {
+		t.Errorf("una medición vieja debería ignorarse, ignorados=%d", ign)
+	}
+	if g := s.hash("aabbccddeeff00112233445566778899aabbccdd").Disponibilidad; g != 0.8 {
+		t.Errorf("la medición vieja pisó la nueva: %v", g)
+	}
+
+	// Una nueva sí actualiza.
+	nuevo := `[{"infohash":"aabbccddeeff00112233445566778899aabbccdd","availability":0.3,"availability_updated_at":1800000000}]`
+	if _, act, _, _ = s.importarDisponibilidad([]byte(nuevo)); act != 1 {
+		t.Error("una medición más nueva debería actualizar")
+	}
+}
+
+func TestImportarDisponibilidadConBasura(t *testing.T) {
+	s := storeDePrueba(t)
+	if _, _, _, err := s.importarDisponibilidad([]byte("esto no es json")); err == nil {
+		t.Error("debería fallar con basura")
+	}
+	// Sin disponibilidad no cuenta nada, pero no rompe.
+	n, _, ign, err := s.importarDisponibilidad([]byte(
+		`[{"infohash":"aabbccddeeff00112233445566778899aabbccdd"},{"infohash":"","availability":0.5}]`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 0 || ign != 2 {
+		t.Errorf("nuevos=%d ignorados=%d, se esperaban 0 y 2", n, ign)
 	}
 }

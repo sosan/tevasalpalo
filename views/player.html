@@ -383,7 +383,13 @@
 
     // }
 
-    const MAX_RETRIES = 2;
+    // Intentos de recuperación ante un error de red recuperable (el engine
+    // retiene los manifests hasta que aparecen pares P2P). Con 2 el player se
+    // rendía en ~40s, pero cada intento cuesta lo que tarda el timeout del
+    // manifest anidado (8s) y no los 2m que costaba antes de que el proxy
+    // respetara el redirect: 5 intentos dan margen de sobra para que entren
+    // pares sin alargar la espera cuando el canal está muerto de verdad.
+    const MAX_RETRIES = 5;
 
     // Telemetría del player. No habla nunca con el central: postea a
     // /api/telemetry de esta misma app y el servidor reenvía, para que las

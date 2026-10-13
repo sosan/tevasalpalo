@@ -165,6 +165,13 @@ func StartWebServer() (*fiber.App, error) {
 		// WARP on-demand: /ace/* con datos de stream es justo el caso que
 		// activa el túnel en el cliente Android (http_stream_start). Los
 		// manifests y comandos del webui no lo activan.
+		// Anotación del resultado del hash. /ace/getstream?id=<hash> es la
+		// petición que decide si ese stream está vivo, así que es el punto
+		// exacto donde se aprende. Con esto la base sabe qué hashes probar
+		// primero y cuáles no ofrecer, en vez de descubrirlo a base de
+		// timeouts de 30 a 120 segundos.
+		hashProbado := hashDePeticionAce(acePath, queryString)
+
 		isAceStream := isAceStreamPath(acePath)
 		traceLog("/ace/* ruta=%q -> isAceStream=%v (WARP=%v)", acePath, isAceStream, warpEnabled())
 		if isAceStream {
@@ -204,9 +211,30 @@ func StartWebServer() (*fiber.App, error) {
 		aceTimeout := aceTimeoutFor(acePath)
 		traceLog("/ace/* ruta=%q timeout=%v", acePath, aceTimeout)
 		inicio := time.Now()
-		resp, via, err := aceDoTimeout(targetURL, proxyMediaEnabled(), aceTimeout, func(client *http.Client) (*http.Response, error) {
-			return client.Do(req)
+		// Los redirects los sigue aceDoTimeout con timeout propio por salto,
+		// así que aquí hay que poder reconstruir la petición para una URL que
+		// no es la original. El primer salto reutiliza req ya construida (y
+		// ya validada) para no perder el 500 con "Error creando petición".
+		resp, via, finalURL, err := aceDoTimeout(targetURL, proxyMediaEnabled(), aceTimeout, func(u string, client *http.Client) (*http.Response, error) {
+			if u == targetURL {
+				return client.Do(req)
+			}
+			saltado, err := http.NewRequest("GET", u, nil)
+			if err != nil {
+				return nil, err
+			}
+			for key, values := range req.Header {
+				for _, value := range values {
+					saltado.Header.Add(key, value)
+				}
+			}
+			return client.Do(saltado)
 		})
+		// Un manifest principal que redirige a /ace/m/... sigue siendo, a
+		// efectos del player, un manifest anidado: si expira hay que
+		// responder 204, no 502, aunque la ruta de entrada no lo parezca.
+		rutaFinal := acePathFromURL(finalURL)
+		esAnidado := isAceNestedManifest(acePath) || isAceNestedManifest(rutaFinal)
 		if err != nil {
 			if isAceStream {
 				WarpStreamStop()
@@ -217,27 +245,35 @@ func StartWebServer() (*fiber.App, error) {
 			// error fatal de red en HLS.js y tumba el stream entero, así que
 			// se responde 204 ("sin actualización") para que mantenga el
 			// último playlist bueno.
-			if isAceNestedManifest(acePath) {
+			if hashProbado != "" {
+				// Falló la petición de datos del stream: el hash está muerto.
+				storeGlobal.registrarHashResultado(hashProbado, false)
+			}
+			if esAnidado {
 				esperado := time.Since(inicio).Round(time.Second)
 				// No es traceLog: el 204 es el resultado esperado cada vez que
 				// el engine retiene un manifest anidado, pero si falla el
 				// timeout (por ejemplo si colara por la ruta del principal)
 				// el tiempo delataría el problema. Por eso el aviso va siempre.
-				log.Printf("↩️  Manifest anidado retenido por el engine (%v), respondo 204 para no tumbar el player: %q",
-					esperado, acePath)
+				log.Printf("↩️  Manifest anidado retenido por el engine (%v), respondo 204 para no tumbar el player: %q -> %q",
+					esperado, acePath, rutaFinal)
 				c.Set("Cache-Control", "no-store")
 				return c.SendStatus(fiber.StatusNoContent)
 			}
 			// La ruta y el timeout van en el mensaje a propósito. Con solo
-			// "(2m0s)" no se distinguishable un manifest principal de uno
+			// "(2m0s)" no se distingue un manifest principal de uno
 			// anidado, y ambos dan 120s si la clasificación falla: el mismo
 			// síntoma para dos causas distintas, imposible de diagnosticar
 			// desde fuera.
-			log.Printf("❌ Error en petición a Ace Stream ruta=%q timeout=%v tras %v: %v",
-				acePath, aceTimeout, time.Since(inicio).Round(time.Second), err)
+			log.Printf("❌ Error en petición a Ace Stream ruta=%q (final=%q) timeout=%v tras %v: %v",
+				acePath, rutaFinal, aceTimeout, time.Since(inicio).Round(time.Second), err)
 			return c.Status(502).SendString("Error conectando con Ace Stream: " + err.Error())
 		}
 		traceLog("/ace/* ruta=%q respondida en %v vía %s", acePath, time.Since(inicio).Round(time.Millisecond), via)
+		if hashProbado != "" {
+			// Llegó la petición de datos del stream: vive.
+			storeGlobal.registrarHashResultado(hashProbado, true)
+		}
 		defer func() {
 			resp.Body.Close()
 			if isAceStream {

@@ -79,9 +79,9 @@ func TestRewriteAceManifestLine(t *testing.T) {
 	}
 }
 
-func aceTestDo(target string) func(*http.Client) (*http.Response, error) {
-	return func(c *http.Client) (*http.Response, error) {
-		req, err := http.NewRequest("GET", target, nil)
+func aceTestDo(target string) aceReqFunc {
+	return func(u string, c *http.Client) (*http.Response, error) {
+		req, err := http.NewRequest("GET", u, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -89,8 +89,8 @@ func aceTestDo(target string) func(*http.Client) (*http.Response, error) {
 	}
 }
 
-func aceFakeDo(calls *int, failFirst bool) func(*http.Client) (*http.Response, error) {
-	return func(*http.Client) (*http.Response, error) {
+func aceFakeDo(calls *int, failFirst bool) aceReqFunc {
+	return func(string, *http.Client) (*http.Response, error) {
 		*calls++
 		if failFirst && *calls == 1 {
 			return nil, errAceTestBoom
@@ -247,7 +247,7 @@ func TestAceDoRemoteAllFail(t *testing.T) {
 	t.Setenv("SOCKS5_ADDR", "127.0.0.1:1")
 	t.Setenv("PROXY_FALLBACK_DIRECT", "")
 	calls := 0
-	_, _, err := aceDo("http://203.0.113.10/ace/x", true, func(*http.Client) (*http.Response, error) {
+	_, _, err := aceDo("http://203.0.113.10/ace/x", true, func(string, *http.Client) (*http.Response, error) {
 		calls++
 		return nil, errAceTestBoom
 	})

@@ -301,16 +301,64 @@ func isAceNestedManifest(acePath string) bool {
 	return rest == "m" || strings.HasPrefix(rest, "m/")
 }
 
+// aceReqFunc construye y ejecuta la petición de un salto. Recibe la URL del
+// salto y no solo el cliente porque los redirects se siguen aquí y no dentro
+// de http.Client: el timeout se decide por ruta, y el cliente arrastraría el
+// timeout del manifest principal (2m) al anidado al que este redirige.
+type aceReqFunc func(url string, client *http.Client) (*http.Response, error)
+
+// aceRedirectsMax acota los saltos de redirección. El engine usa uno
+// (manifest.m3u8 -> /ace/m/<hash>/<hash>.m3u8); el tope está para que un
+// bucle no se convierta en una espera infinita.
+const aceRedirectsMax = 5
+
 // aceDo ejecuta la petición contra el engine: directa a loopback siempre;
 // a remoto, cadena proxy (xray/Tor) si allowProxy o directa si no.
 // Devuelve el transporte usado. Solo rota ante errores de transporte, no
 // ante errores HTTP del engine (se propagan tal cual).
-func aceDo(targetURL string, allowProxy bool, do func(*http.Client) (*http.Response, error)) (*http.Response, string, error) {
-	return aceDoTimeout(targetURL, allowProxy, aceTimeoutSegmento, do)
+func aceDo(targetURL string, allowProxy bool, do aceReqFunc) (*http.Response, string, error) {
+	resp, via, _, err := aceDoTimeout(targetURL, allowProxy, aceTimeoutSegmento, do)
+	return resp, via, err
 }
 
-// aceDoTimeout es aceDo con timeout explícito por petición.
-func aceDoTimeout(targetURL string, allowProxy bool, timeout time.Duration, do func(*http.Client) (*http.Response, error)) (*http.Response, string, error) {
+// aceDoTimeout es aceDo con timeout explícito por el primer salto. Sigue los
+// redirects recalculando el timeout de cada destino, y devuelve la URL final
+// (la alcanzada, también si el salto falla) para que el llamador pueda
+// clasificar el fallo por la ruta por la que realmente se acabó pidiendo.
+//
+// Sin esto, /ace/manifest.m3u8?id=<id> responde 302 hacia /ace/m/<hash>/*.m3u8
+// en ~200ms y el cliente directo lo seguía con el timeout del principal (2m),
+// contra un manifest que el engine retiene indefinidamente esperando pares:
+// 120s y un 502 que HLS.js trata como error fatal de red. Es la diferencia
+// entre un arranque de stream y ninguno.
+func aceDoTimeout(targetURL string, allowProxy bool, timeout time.Duration, do aceReqFunc) (*http.Response, string, string, error) {
+	actual := targetURL
+	via := ""
+	for salto := 0; ; salto++ {
+		resp, tr, err := aceDoSalto(actual, timeout, allowProxy, do)
+		if err != nil {
+			return nil, "", actual, err
+		}
+		via = tr
+		siguiente := aceRedirectTarget(resp)
+		if siguiente == "" || salto >= aceRedirectsMax {
+			if siguiente != "" {
+				log.Printf("⚠️  ACE: demasiados redirects, sigo en %s", actual)
+			}
+			return resp, via, actual, nil
+		}
+		resp.Body.Close()
+		timeout = aceTimeoutFor(acePathFromURL(siguiente))
+		actual = siguiente
+		traceLog("↪️  ACE redirect -> %s (timeout=%v)", actual, timeout)
+	}
+}
+
+// aceDoSalto ejecuta un único salto con rotación de transportes. El cliente
+// directo no sigue redirects (los lleva aceDoTimeout, que recalcula el
+// timeout por ruta); si los siguiera, el timeout del primer salto manda
+// sobre todos los siguientes.
+func aceDoSalto(targetURL string, timeout time.Duration, allowProxy bool, do aceReqFunc) (*http.Response, string, error) {
 	transports := []string{"direct"}
 	loopback := isLoopbackURL(targetURL)
 	if !loopback && allowProxy {
@@ -318,7 +366,15 @@ func aceDoTimeout(targetURL string, allowProxy bool, timeout time.Duration, do f
 	}
 	lastErr := fmt.Errorf("sin transportes disponibles")
 	for _, tr := range transports {
-		client := &http.Client{Timeout: timeout}
+		client := &http.Client{
+			Timeout: timeout,
+			// Los redirects los lleva aceDoTimeout, que recalcula el timeout
+			// por ruta. Si los siguiera el cliente, el timeout del primer
+			// salto mandaría sobre el anidado al que redirige.
+			CheckRedirect: func(*http.Request, []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+		}
 		if tr != "direct" {
 			var err error
 			client, err = clientForTransport(tr)
@@ -327,7 +383,7 @@ func aceDoTimeout(targetURL string, allowProxy bool, timeout time.Duration, do f
 				continue
 			}
 		}
-		resp, err := do(client)
+		resp, err := do(targetURL, client)
 		if err != nil {
 			lastErr = err
 			if len(transports) > 1 {
@@ -338,6 +394,36 @@ func aceDoTimeout(targetURL string, allowProxy bool, timeout time.Duration, do f
 		return resp, tr, nil
 	}
 	return nil, "", lastErr
+}
+
+// aceRedirectTarget devuelve la URL absoluta a la que redirige resp, o "" si
+// no es una redirección con Location. Resuelve Locations relativos contra la
+// URL del propio salto.
+func aceRedirectTarget(resp *http.Response) string {
+	if resp.StatusCode < 300 || resp.StatusCode > 399 {
+		return ""
+	}
+	loc := resp.Header.Get("Location")
+	if loc == "" || resp.Request == nil || resp.Request.URL == nil {
+		return ""
+	}
+	siguiente, err := resp.Request.URL.Parse(loc)
+	if err != nil {
+		return ""
+	}
+	return siguiente.String()
+}
+
+// acePathFromURL devuelve la ruta de una URL del engine sin el prefijo /ace,
+// con el formato que espera aceTimeoutFor e isAceNestedManifest.
+func acePathFromURL(rawURL string) string {
+	p, err := url.Parse(rawURL)
+	if err != nil {
+		return ""
+	}
+	rest := strings.TrimPrefix(p.Path, "/")
+	rest = strings.TrimPrefix(rest, "ace/")
+	return rest
 }
 
 // rewriteAceManifestLine reescribe una línea de manifest al origen local:
@@ -370,4 +456,65 @@ func rewriteAceManifestLine(line, serverOrigin, localHost string, engineHosts []
 		}
 	}
 	return line
+}
+
+// hashDePeticionAce saca el infohash de una ruta /ace/* cuando la petición es
+// de datos de stream, que es donde se sabe si el hash está vivo.
+//
+// Solo cuenta getstream y las rutas de datos con el hash en la query. Los
+// manifests (principal y anidado) no dicen nada sobre el hash: el motor los
+// retiene aunque el flujo esté bien, y anotarlos como fallo mataría hashes que
+// funcionan a la perfection.
+func hashDePeticionAce(acePath, queryString string) string {
+	p := strings.ToLower(acePath)
+
+	// /ace/getstream?id=<hash> y /ace/h/<hash>/...
+	if strings.Contains(p, "getstream") || strings.Contains(p, "server/stream") {
+		return hashDeQuery(queryString)
+	}
+	if i := strings.Index(p, "/h/"); i >= 0 {
+		resto := p[i+3:]
+		if j := strings.IndexAny(resto, "/?"); j >= 0 {
+			resto = resto[:j]
+		}
+		return normalizarHash(resto)
+	}
+	if strings.Contains(p, "content/") || strings.Contains(p, "hls/") {
+		return hashDeQuery(queryString)
+	}
+	return ""
+}
+
+// hashDeQuery busca un infohash de 40 hex en la query string. Se busca por
+// forma y no por nombre de parámetro porque el motor usa id, infohash o hash
+// según la versión.
+func hashDeQuery(queryString string) string {
+	for _, par := range strings.Split(queryString, "&") {
+		k, v, ok := strings.Cut(par, "=")
+		if !ok {
+			continue
+		}
+		k = strings.ToLower(strings.TrimSpace(k))
+		if k != "id" && k != "infohash" && k != "hash" && k != "stream" {
+			continue
+		}
+		if h := normalizarHash(v); esHashAceStream(h) {
+			return h
+		}
+	}
+	return ""
+}
+
+// esHashAceStream comprueba la forma: 40 hex. Filtra el ruido de la query sin
+// tener que mantener una lista de campos.
+func esHashAceStream(h string) bool {
+	if len(h) != 40 {
+		return false
+	}
+	for _, r := range h {
+		if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'f')) {
+			return false
+		}
+	}
+	return true
 }
