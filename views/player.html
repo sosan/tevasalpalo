@@ -435,10 +435,17 @@ const tel = (() => {
         return {
             // send agrupa por tipo de error para no inundar: HLS.js puede emitir
             // cientos de levelLoadTimeOut iguales por minuto.
+            //
+            // cadaN muestrea, pero el PRIMER error siempre se manda: es el que
+            // dice la causa. Antes el muestreo era "solo el N-ésimo", así que
+            // con cadaN=10 los nueve primeros se descartaban y una sesión con
+            // dos o tres errores no llegaba a Loki ninguno: en Grafana no
+            // aparecía ni un player_hls_error aunque el player los tuviera
+            // delante en consola. A partir del primero, uno de cada cadaN.
             send(event, fields, cadaN) {
                 try {
-                    if (cadaN) {
-                        const n = (tel.contadores[event] = (tel.contadores[event] || 0) + 1);
+                    const n = (tel.contadores[event] = (tel.contadores[event] || 0) + 1);
+                    if (cadaN && n > 1) {
                         if (n % cadaN !== 0) return;
                         fields = Object.assign({ repeticiones: n }, fields);
                     }
@@ -466,6 +473,31 @@ const tel = (() => {
 
     function isValidAceId(id) {
         return /^[a-fA-F0-9]{40}$/.test(id);
+    }
+
+    // El esquema acestream:// solo significa algo dentro del motor. Si se le
+    // pasa tal cual a HLS.js se lo pide al navegador, y el navegador no puede
+    // cargarlo: falla con "Cross origin requests are only supported for
+    // protocol schemes: http, https, ..." y HLS.js lo sube como
+    // manifestLoadError fatal. Por eso el hash tiene que pasar por el proxy
+    // local de /ace/, igual que un hash suelto.
+    function hashDeAcestream(url) {
+        const m = /^acestream:\/\/([a-fA-F0-9]{40})\/?$/.exec(url || "");
+        return m ? m[1] : null;
+    }
+
+    // URL que se le pasa a HLS.js para un enlace, sea cual sea su forma
+    // (hash suelto, ;base64 de acestream:// o ;base64 de proxy "p;").
+    function hlsUrlPara(linkID, pid) {
+        if (!linkID.includes(";")) {
+            return isValidAceId(linkID) ? buildHlsUrl(linkID, pid) : null;
+        }
+        const decoded = fromBase64Url(linkID.split(";")[1]);
+        if (decoded.includes("p;")) {
+            return `/api/iptv/${linkID}`;
+        }
+        const hash = hashDeAcestream(decoded);
+        return hash ? buildHlsUrl(hash, pid) : decoded;
     }
 
     function showErrorOverlay(message, subMessage) {
@@ -504,24 +536,13 @@ const tel = (() => {
 
         hideErrorOverlay();
 
-        if (linkID.includes(";") === true) {
-            const splitted = linkID.split(";")[1];
-            let decoded = fromBase64Url(splitted);
-            if (decoded.includes("p;")) {
-                hlsUrl = `/api/iptv/${linkID}`;
-            } else {
-                hlsUrl = decoded;
-            }
-            loadHlsVideo(hlsUrl, linkID, pid, 0);
+        const hlsUrl = hlsUrlPara(linkID, pid);
+        if (!hlsUrl) {
+            console.error(`Enlace no reproducible: "${linkID}" (se esperaba un hash AceStream de 40 hex). No se pide al engine.`);
+            showErrorOverlay('Enlace no válido', `El enlace "${linkID}" no es un hash AceStream válido y no se puede cargar.`);
             return;
         }
-        // validación solo para IDs AceStream puros (40 hex)
-        if (!isValidAceId(linkID)) {
-            console.error(`ID AceStream inválido: "${linkID}" (debe ser 40 hex). No se pide al engine.`);
-            showErrorOverlay('ID de stream inválido', `El identificador "${linkID}" no es un hash AceStream válido y no se puede cargar.`);
-            return;
-        }
-        loadHlsVideo(buildHlsUrl(linkID, "{{ .pid }}"), linkID, "{{ .pid }}", 0);
+        loadHlsVideo(hlsUrl, linkID, pid, 0);
     }
 
     function loadHlsVideo(hlsUrl, linkID, pid, retryCount) {
@@ -844,21 +865,12 @@ maxBufferHole: 10,
         const pid = "{{ .pid }}";
         if (linkID == "") { return; }
         hideErrorOverlay();
-        if (linkID.includes(";") === true) {
-            const splitted = linkID.split(";")[1];
-            let decoded = fromBase64Url(splitted);
-            if (decoded.includes("p;")) {
-                loadHlsVideo(`/api/iptv/${linkID}`, linkID, pid, 0);
-            } else {
-                loadHlsVideo(decoded, linkID, pid, 0);
-            }
+        const hlsUrl = hlsUrlPara(linkID, pid);
+        if (!hlsUrl) {
+            showErrorOverlay('Enlace no válido', `El enlace "${linkID}" no se puede reproducir.`);
             return;
         }
-        if (!isValidAceId(linkID)) {
-            showErrorOverlay('ID de stream inválido', `El identificador "${linkID}" no es un hash válido y no se puede cargar.`);
-            return;
-        }
-        loadHlsVideo(buildHlsUrl(linkID, "{{ .pid }}"), linkID, "{{ .pid }}", 0);
+        loadHlsVideo(hlsUrl, linkID, pid, 0);
     }
 
     let currentLinkID = "{{ .linkid }}";
