@@ -1,0 +1,54 @@
+# Contexto de la imagen Docker: solo lo que necesita el go build.
+#
+# Sin este fichero el contexto eran 1.1 GB, porque assets/test/ es una copia
+# completa de assets/ (340 MB) que ningun //go:embed usa.
+
+# Secretos locales. Con el .dockerignore vacio, ademas de viajar al daemon
+# acababan en la capa del builder: el Dockerfile hace "COPY *.* ./" y ese
+# patron tambien casa con .telemetry.env, que lleva los tokens de Grafana e
+# Infisical. build-windows.sh carga .env.prod por el mismo motivo.
+.telemetry.env
+.env.prod
+*.env
+xray-links.txt
+settings.json
+
+# Estado local de la app: base de datos, logs y cola de telemetria.
+acestream.db
+*.db
+*.log
+logs/
+events.jsonl
+*.jsonl
+acestream.conf
+acestream.conf.orig
+
+# Binarios ya compilados y artefactos del DAP.
+main
+portable
+build/
+*.exe
+__debug_*
+
+# Ripios del motor: assets/test/ duplica los cuatro ficheros que si se embeben.
+assets/test/
+assets/acestream-runtime-windows.old.zip
+
+# El motor de Windows solo lo embebe aceasset_windows.go, que lleva el build
+# tag "windows". Esta imagen es GOOS=linux, asi que esos 74 MB aqui son
+# peso muerto. Si alguna vez se anade un stage para Windows a este mismo
+# Dockerfile, hay que quitar esta linea.
+assets/acestream-runtime-windows.zip
+
+# Git y configuracion.
+.git
+.gitignore
+.github/
+
+# Directorios locales que ya estan en .gitignore: proxies socks, datos del
+# agente y especificaciones. Son 157 MB que el go build no mira.
+socks/
+.opencode/
+.agents/
+.openspec/
+openspec/
