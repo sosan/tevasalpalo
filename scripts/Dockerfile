@@ -7,6 +7,10 @@ COPY ./update ./update/
 COPY ./assets/ ./assets/
 COPY ./certs/ ./certs/
 COPY ./views/ ./views/
+# sitecustomize.py lo embebe engineoverlay.go. Sin esta copia el go build falla
+# con "pattern engine_overlay/sitecustomize.py: no matching files found", que no
+# dice nada del sitecustomize sino que parece un problema del compilador.
+COPY ./engine_overlay/ ./engine_overlay/
 
 RUN go mod download
 ARG ENV=dev
