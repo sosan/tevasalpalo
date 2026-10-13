@@ -485,6 +485,58 @@ func hashDePeticionAce(acePath, queryString string) string {
 	return ""
 }
 
+// hashDeRutaAce saca el infohash de cualquier ruta /ace/* por la que pasen
+// datos de un stream, incluidos los manifests.
+//
+// Es lo que completa a hashDePeticionAce para poder APRENDER de los enlaces:
+// hasta ahora solo se anotaban getstream y /h/, que HLS.js no pide nunca, así
+// que el bucket hashes no recibía nada. Ahora sí se puede saber de un enlace
+// por el camino que el player usa de verdad:
+//
+//	m/<hash>/<hash>.m3u8    manifest anidado (la URL a la que redirige el principal)
+//	c/<hash>/0.ts           segmento, que es la señal más fuerte
+//	manifest.m3u8?id=<hash> manifest principal cuando el engine no redirige
+//	getstream?id=<hash>     datos del stream
+//	h/<hash>/...            datos del stream
+//
+// Con redirect=true se mira también la ruta final, que es la que lleva el hash
+// en el caso normal del manifest principal.
+func hashDeRutaAce(acePath, queryString string, conRedirect bool, rutaFinal string) string {
+	p := strings.ToLower(acePath)
+	// m/<hash>/... y c/<hash>/...
+	for _, pre := range []string{"m/", "c/", "h/"} {
+		if strings.HasPrefix(p, pre) {
+			resto := p[len(pre):]
+			if j := strings.IndexAny(resto, "/?"); j >= 0 {
+				resto = resto[:j]
+			}
+			if h := normalizarHash(resto); esHashAceStream(h) {
+				return h
+			}
+		}
+	}
+	// El manifest principal lleva el hash solo en la query, pero la ruta a la
+	// que redirige (m/<hash>/...) es la que de verdad lo dice.
+	if h := hashDeQuery(queryString); h != "" && strings.Contains(p, "manifest") {
+		return h
+	}
+	if conRedirect && rutaFinal != "" {
+		f := strings.ToLower(rutaFinal)
+		for _, pre := range []string{"m/", "c/", "h/"} {
+			if strings.HasPrefix(f, pre) {
+				resto := f[len(pre):]
+				if j := strings.IndexAny(resto, "/?"); j >= 0 {
+					resto = resto[:j]
+				}
+				if h := normalizarHash(resto); esHashAceStream(h) {
+					return h
+				}
+			}
+		}
+	}
+	return hashDePeticionAce(acePath, queryString)
+}
+
 // hashDeQuery busca un infohash de 40 hex en la query string. Se busca por
 // forma y no por nombre de parámetro porque el motor usa id, infohash o hash
 // según la versión.

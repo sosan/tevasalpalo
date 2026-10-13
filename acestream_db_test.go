@@ -627,15 +627,21 @@ func TestOrdenarHashesPorPuntuacion(t *testing.T) {
 	medio := "0000000000000000000000000000000000000002"
 	bueno := "0000000000000000000000000000000000000003"
 
-	s.actualizarDisponibilidad(malo, 0.05, time.Now())
+	// "malo" va por encima del corte de muerte a propósito: aquí lo que se
+	// prueba es el orden. Que algo por debajo del corte se descarte lo
+	// comprueba TestOrdenarHashesDescartaLosMuertos.
+	s.actualizarDisponibilidad(malo, 0.25, time.Now())
 	s.actualizarDisponibilidad(bueno, 0.99, time.Now())
-	s.registrarHashResultado(medio, true)
-	s.registrarHashResultado(medio, true)
-	s.registrarHashResultado(medio, false)
+	s.registrarEvidencia(medio, evSegmentoOK)
+	s.registrarEvidencia(medio, evSegmentoOK)
+	s.registrarEvidencia(medio, evSegmentoErr)
 
 	entrada := []string{malo, medio, bueno}
-	salida := s.ordenarHashesPuntuados(entrada)
+	salida, descartados := s.ordenarHashesPuntuados(entrada)
 
+	if descartados != 0 {
+		t.Fatalf("no debía descartar ninguno, descartó %d", descartados)
+	}
 	if salida[0] != bueno {
 		t.Errorf("primero = %s, se esperaba el de mayor disponibilidad", salida[0])
 	}
@@ -645,8 +651,53 @@ func TestOrdenarHashesPorPuntuacion(t *testing.T) {
 	// Y el orden original se conserva a igualdad de puntos.
 	iguales := []string{"0000000000000000000000000000000000000004",
 		"0000000000000000000000000000000000000005"}
-	if got := s.ordenarHashesPuntuados(iguales); got[0] != iguales[0] {
+	if got, _ := s.ordenarHashesPuntuados(iguales); got[0] != iguales[0] {
 		t.Errorf("a igualdad debe mantener el orden de entrada: %v", got)
+	}
+}
+
+// Un enlace por debajo del corte no debe ofrecerse: es lo que evita que el
+// player se coma el timeout con un hash que ya sabemos que no da nada.
+func TestOrdenarHashesDescartaLosMuertos(t *testing.T) {
+	s := storeDePrueba(t)
+	bueno := "0000000000000000000000000000000000000011"
+	caso := "0000000000000000000000000000000000000012"
+	otro := "0000000000000000000000000000000000000013"
+
+	// Dos fallos de segmento seguidos dejan la evidencia en -0.9.
+	s.registrarEvidencia(bueno, evSegmentoOK)
+	s.registrarEvidencia(caso, evSegmentoErr)
+	s.registrarEvidencia(caso, evSegmentoErr)
+	// "otro" no tiene ni un dato: desconocido, no muerto. Se conserva.
+	salida, descartados := s.ordenarHashesPuntuados([]string{caso, bueno, otro})
+	if descartados != 1 {
+		t.Errorf("descartados = %d, se esperaba 1", descartados)
+	}
+	for _, h := range salida {
+		if h == caso {
+			t.Errorf("el hash muerto %s sigue en la lista: %v", caso, salida)
+		}
+	}
+	if salida[0] != bueno {
+		t.Errorf("primero = %s, se esperaba el que tiene evidencia buena", salida[0])
+	}
+}
+
+// Si todos los enlaces de un canal están muertos se deja la lista como estaba:
+// es preferible que el player los pruebe y avise a que no tener nada que
+// ofrecer.
+func TestOrdenarHashesNoDejaUnCanalSinEnlaces(t *testing.T) {
+	s := storeDePrueba(t)
+	a := "0000000000000000000000000000000000000021"
+	b := "0000000000000000000000000000000000000022"
+	for _, h := range []string{a, b} {
+		s.registrarEvidencia(h, evSegmentoErr)
+		s.registrarEvidencia(h, evSegmentoErr)
+	}
+	entrada := []string{a, b}
+	salida, descartados := s.ordenarHashesPuntuados(entrada)
+	if len(salida) != len(entrada) || descartados != 0 {
+		t.Errorf("un canal sin enlaces vivos debe conservarlos: %v (descartados %d)", salida, descartados)
 	}
 }
 

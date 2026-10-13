@@ -33,6 +33,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -160,28 +161,142 @@ type hashRegistro struct {
 	UltimaOK      time.Time `json:"ultima_ok"`
 	UltimoFallo   time.Time `json:"ultimo_fallo"`
 	UltimoIntento time.Time `json:"ultimo_intento"`
+
+	// Evidencia propia: lo que el proxy ha visto pasar con este enlace, de
+	// -1 (claramente roto) a +1 (funcionando a pleno). Es nuestra sustituta de
+	// la availability de la API cuando esa no está disponible, y además mide
+	// algo que la API no mide: no solo si hay pares ahora, sino si este
+	// stream funciona desde esta máquina.
+	//
+	// Va separada de Disponibilidad a propósito: una es una medida nuestra con
+	// antigüedad, la otra un número de fuera. availabilityEfectiva() las
+	// resuelve.
+	Propia   float64   `json:"propia"`
+	PropiaEn time.Time `json:"propia_en"`
+
+	// Contadores por tipo de señal, solo para poder explicar una puntuación.
+	PlaylistsOK  int `json:"playlists_ok"`
+	PlaylistsVnc int `json:"playlists_vacias"`
+	SegmentosOK  int `json:"segmentos_ok"`
+	SegmentosErr int `json:"segmentos_err"`
 }
+
+// Señales que el proxy puede observar sobre un enlace, y lo que pesa cada una.
+//
+// El caso importante es el que NO pesa: un manifest retenido (el engine no
+// responde hasta que aparecen pares) queda en cero. No distingue "arrancando en
+// frío" de "canal muerto", y contar los timeouts como fallo es lo que dejó
+// esta capa muerta: mataba hashes que funcionaban y, para no hacerlo, no se
+// anotaba nada en absoluto.
+const (
+	evPlaylistOK    = "playlist_ok"
+	evPlaylistVacia = "playlist_vacia"
+	evSegmentoOK    = "segmento_ok"
+	evSegmentoErr   = "segmento_err"
+)
+
+var pesoEvidencia = map[string]float64{
+	evPlaylistOK: 0.6,
+	// Un manifest sin una sola URL no tiene nada que reproducir. Pesa poco a
+	// propósito: solo uno no demuestra nada, pero cuatro seguidos sí.
+	evPlaylistVacia: -0.15,
+	// Llegó media: la prueba más fuerte de que el stream está vivo.
+	evSegmentoOK: 0.9,
+	// El engine no pudo servir un segmento concreto. Menos de la mitad que el
+	// acierto porque un 404 aislado también es ruido de red.
+	evSegmentoErr: -0.45,
+}
+
+const (
+	// vidaMediaEvidencia es cada cuánto se mitad la señal propia. Un enlace que
+	// funcionó hace un día dice muy poco de cómo está ahora, así que su valor
+	// tiende a 0, que es "no se sabe", no "está mal".
+	vidaMediaEvidencia = 6 * time.Hour
+
+	// disponibilidadMuerte es el corte en la escala común 0..1. Por debajo se
+	// considera muerto: dos fallos de segmento seguidos dejan la evidencia en
+	// -0.9, es decir 0.05 en esta escala.
+	disponibilidadMuerte = 0.2
+
+	// maximoEvidenciaAcumulada satura la suma para que un enlace que lleva
+	// mucho tiempo bien no bloquee a los que llegan después.
+	maximoEvidenciaAcumulada = 1.0
+)
 
 // fallosParaDarPorMuerto es el número de fallos seguidos a partir del cual un
 // hash se considera muerto. Tres strikes: uno puede ser un fallo de red, y a
 // partir del segundo casi siempre es que el stream ya no emite.
 const fallosParaDarPorMuerto = 3
 
+// enEscala01 convierte la evidencia bruta (-1..1) a la escala de la API
+// (0..1), donde 0 significa "sin peers ahora mismo" y 1 "a pleno rendimiento".
+// Mezclar las dos en un solo número es lo que hace falta para que "la API dice
+// 0" y "nuestros fallos se acumulan" signifiquen lo mismo.
+func enEscala01(e float64) float64 {
+	v := (e + 1) / 2
+	if v < 0 {
+		return 0
+	}
+	if v > 1 {
+		return 1
+	}
+	return v
+}
+
+// evidenciaVigente es la evidencia propia descontando el tiempo transcurrido.
+// Devuelve false si nunca hemos observado nada: sin datos no se puede afirmar
+// nada, y un hash recién visto tiene que contar como vivo.
+func (r hashRegistro) evidenciaVigente(ahora time.Time) (float64, bool) {
+	if r.PropiaEn.IsZero() {
+		return 0, false
+	}
+	edad := ahora.Sub(r.PropiaEn)
+	if edad < 0 {
+		edad = 0
+	}
+	decay := math.Pow(0.5, edad.Seconds()/vidaMediaEvidencia.Seconds())
+	return r.Propia * decay, true
+}
+
+// disponibilidadEfectiva devuelve la disponibilidad unificada en 0..1 y de
+// dónde sale. Gana la propia si es más reciente: está medida sobre este stream
+// y desde esta máquina, no copiada de otra parte.
+func (r hashRegistro) disponibilidadEfectiva(ahora time.Time) (float64, bool, string) {
+	propia, hayPropia := r.evidenciaVigente(ahora)
+	propia01 := enEscala01(propia)
+	switch {
+	case hayPropia && r.Conocida:
+		if r.PropiaEn.After(r.MedidaEn) {
+			return propia01, true, "propia"
+		}
+		return r.Disponibilidad, true, "api"
+	case hayPropia:
+		return propia01, true, "propia"
+	case r.Conocida:
+		return r.Disponibilidad, true, "api"
+	}
+	return 0, false, ""
+}
+
 // vivo indica si el hash merece la pena. Se apoya en tres señales, de la más
 // fiable a la menos:
 //
 //   - fallos seguidos: si acaba de fallar tres veces, está muerto y da igual
 //     lo que diga la API;
-//   - disponibilidad de la API, cuando la hay;
+//   - la disponibilidad unificada, la nuestra o la de la API, cuando hay;
 //   - nuestra propia tasa de acierto, cuando hay intentos suficientes.
 //
 // Un hash sin ningún dato (recién visto, nunca probado) se considera vivo:
 // no se puede descartar un stream solo por no saber nada de él.
 func (r hashRegistro) vivo() bool {
+	return r.vivoEn(time.Now())
+}
+
+func (r hashRegistro) vivoEn(ahora time.Time) bool {
 	if r.FallosSeguros >= fallosParaDarPorMuerto {
 		return false
 	}
-	if r.Conocida && r.Disponibilidad <= 0 {
+	if v, conocida, _ := r.disponibilidadEfectiva(ahora); conocida && v <= disponibilidadMuerte {
 		return false
 	}
 	return true
@@ -191,10 +306,15 @@ func (r hashRegistro) vivo() bool {
 // el de entrada, que viene de las fuentes y es el que conoce mejor el
 // proveedor.
 func (r hashRegistro) puntuar() float64 {
+	return r.puntuarEn(time.Now())
+}
+
+// puntuarEn es puntuar con el instante explícito, para poder comprobar cómo
+// decae una puntuación vieja sin tener que esperar un día.
+func (r hashRegistro) puntuarEn(ahora time.Time) float64 {
 	p := 0.5 // sin datos: neutro, ni sube ni baja
-	switch {
-	case r.Conocida:
-		p = r.Disponibilidad
+	if v, conocida, _ := r.disponibilidadEfectiva(ahora); conocida {
+		p = v
 	}
 	if r.Intentos >= 3 {
 		exito := float64(r.OK) / float64(r.Intentos)
@@ -889,19 +1009,19 @@ func ordenarListadoEnVivo(mapa map[string]BroadcasterInfo) {
 		if len(info.Links) < 2 {
 			continue
 		}
-		nuevos := storeGlobal.ordenarHashesPuntuados(info.Links)
-		if len(nuevos) != len(info.Links) {
-			continue
-		}
-		distintos := false
-		for i := range nuevos {
-			if nuevos[i] != info.Links[i] {
-				distintos = true
-				break
+		nuevos, descartados := storeGlobal.ordenarHashesPuntuados(info.Links)
+		muertos += descartados
+		if len(nuevos) == len(info.Links) {
+			distintos := false
+			for i := range nuevos {
+				if nuevos[i] != info.Links[i] {
+					distintos = true
+					break
+				}
 			}
-		}
-		if !distintos {
-			continue
+			if !distintos {
+				continue
+			}
 		}
 		enlaces := make([]string, len(nuevos))
 		for i, h := range nuevos {
@@ -911,8 +1031,8 @@ func ordenarListadoEnVivo(mapa map[string]BroadcasterInfo) {
 		mapa[nombre] = info
 		ordenados++
 	}
-	if ordenados > 0 {
-		log.Printf("🎯 Hashes reordenados por disponibilidad en %d canales (%d considerados muertos)",
+	if ordenados > 0 || muertos > 0 {
+		log.Printf("🎯 Hashes reordenados por disponibilidad en %d canales (%d enlaces muertos descartados)",
 			ordenados, muertos)
 	}
 }
@@ -954,7 +1074,20 @@ func cargarListadoDesdeDisco() {
 //
 // No bloquea el arranque del vídeo: si la escritura falla, el playback sigue
 // igual. Perder una anotación no puede tumbar la reproducción.
-func (s *store) registrarHashResultado(hash string, ok bool) {
+// registrarEvidencia anota una observación sobre un hash. Es la única vía por
+// la que la base aprende cómo son los enlaces, y la que hace que ordenar y
+// descartar hashes dejen de ser un adorno: sin ella el bucket se queda vacío
+// y el.player sigue probando el primer hash de la lista a ciegas.
+//
+// Un manifiesto retenido (timeout con respuesta 204) NO se anota: no sabemos
+// si es que aún no han entrado pares o que el canal está muerto. Anotarlo
+// como fallo era el error que motivó excluir los manifests, y excluirlos
+// fue lo que dejó este código sin usar.
+func (s *store) registrarEvidencia(hash, evidencia string) {
+	peso, ok := pesoEvidencia[evidencia]
+	if !ok {
+		return
+	}
 	hash = normalizarHash(hash)
 	if s == nil || s.db == nil || hash == "" {
 		return
@@ -974,20 +1107,47 @@ func (s *store) registrarHashResultado(hash string, ok bool) {
 		}
 		reg.Intentos++
 		reg.UltimoIntento = ahora
-		if ok {
+
+		// La evidencia es una suma que satura: una racha larga de aciertos o de
+		// fallos acerca el valor al extremo sin pasarse nunca.
+		reg.Propia += peso
+		if reg.Propia > maximoEvidenciaAcumulada {
+			reg.Propia = maximoEvidenciaAcumulada
+		}
+		if reg.Propia < -maximoEvidenciaAcumulada {
+			reg.Propia = -maximoEvidenciaAcumulada
+		}
+		reg.PropiaEn = ahora
+
+		switch evidencia {
+		case evPlaylistOK:
+			reg.PlaylistsOK++
 			reg.OK++
 			reg.FallosSeguros = 0
 			reg.UltimaOK = ahora
-			// Un stream que acaba de funcionar no puede figurar como
-			// disponible 0 por una medición vieja.
-			if reg.Conocida && reg.Disponibilidad <= 0 {
-				reg.Disponibilidad = 0.5
-			}
-		} else {
+		case evPlaylistVacia:
+			reg.PlaylistsVnc++
+			reg.Fallos++
+			reg.FallosSeguros++
+			reg.UltimoFallo = ahora
+		case evSegmentoOK:
+			reg.SegmentosOK++
+			reg.OK++
+			reg.FallosSeguros = 0
+			reg.UltimaOK = ahora
+		case evSegmentoErr:
+			reg.SegmentosErr++
 			reg.Fallos++
 			reg.FallosSeguros++
 			reg.UltimoFallo = ahora
 		}
+
+		// Un enlace que acaba de entregar algo no puede figurar como caído por
+		// una medición vieja de la API.
+		if peso > 0 && reg.Conocida && reg.Disponibilidad <= 0 {
+			reg.Disponibilidad = 0.5
+		}
+
 		raw, err := json.Marshal(reg)
 		if err != nil {
 			return err
@@ -995,8 +1155,18 @@ func (s *store) registrarHashResultado(hash string, ok bool) {
 		return b.Put(clave, raw)
 	})
 	if err != nil {
-		log.Printf("⚠️  base de datos: no se pudo registrar el hash %s: %v", hash[:8], err)
+		log.Printf("⚠️  base de datos: no se pudo registrar evidencia de %s: %v", hash[:8], err)
 	}
+}
+
+// registrarHashResultado conserva la vía anterior (éxito/fallo de una petición
+// de datos) y la traduce a evidencia, para no perder llamadas ya hechas.
+func (s *store) registrarHashResultado(hash string, ok bool) {
+	if ok {
+		s.registrarEvidencia(hash, evSegmentoOK)
+		return
+	}
+	s.registrarEvidencia(hash, evSegmentoErr)
 }
 
 // normalizarHash deja el infohash en minúsculas y sin acestream:// delante, que
@@ -1095,18 +1265,26 @@ func (s *store) importarDisponibilidad(cuerpo []byte) (nuevos, actualizados, ign
 }
 
 // ordenarHashesPuntuados devuelve los hashes de un canal ordenados de mejor a
-// peor, y elimina los que están claramente muertos.
+// peor, y descarta los que la base considera muertos. Devuelve además cuántos
+// ha quitado, para poder decirlo en el log en vez de dejar un contador que
+// siempre valía cero.
 //
 // Es el uso principal de todo esto: en vez de probar el primero de la lista y
 // comerse el timeout, se prueba el que se sabe que funciona.
-func (s *store) ordenarHashesPuntuados(hashes []string) []string {
+//
+// El descarte solo ocurre si queda al menos un hash vivo. Un canal con todos
+// sus enlaces muertos se deja como estaba: el player puede probarlos y suena
+// un aviso de que no hay nada que probar, que es distinto de no tener ningún
+// enlace con el que responder.
+func (s *store) ordenarHashesPuntuados(hashes []string) ([]string, int) {
 	if s == nil || s.db == nil || len(hashes) <= 1 {
-		return hashes
+		return hashes, 0
 	}
 	type conPuntos struct {
 		hash  string
 		punto float64
 		pos   int
+		vivo  bool
 	}
 	items := make([]conPuntos, 0, len(hashes))
 
@@ -1122,29 +1300,69 @@ func (s *store) ordenarHashesPuntuados(hashes []string) []string {
 					reg = hashRegistro{Hash: h}
 				}
 			}
-			items = append(items, conPuntos{hash: h, punto: reg.puntuar(), pos: i})
+			items = append(items, conPuntos{hash: h, punto: reg.puntuar(), pos: i, vivo: reg.vivo()})
 		}
 		return nil
 	})
 
 	salida := make([]string, 0, len(items))
+	muertos := 0
 	// Stable sort por puntos: a igualdad mantiene el orden de las fuentes.
 	sort.SliceStable(items, func(a, b int) bool {
 		return items[a].punto > items[b].punto
 	})
 	for _, it := range items {
+		if !it.vivo {
+			muertos++
+			continue
+		}
 		salida = append(salida, it.hash)
 	}
-	return salida
+	if len(salida) == 0 {
+		return hashes, 0
+	}
+	return salida, muertos
+}
+
+// hashesDeCanal devuelve los hashes de un canal tal como están guardados, para
+// poder explicar en detalle por qué se prueban en ese orden.
+func (s *store) hashesDeCanal(nombre string) []string {
+	if s == nil || s.db == nil || nombre == "" {
+		return nil
+	}
+	var hashes []string
+	s.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(bucketChannels))
+		if b == nil {
+			return nil
+		}
+		v := b.Get([]byte(nombre))
+		if v == nil {
+			return nil
+		}
+		var reg canalRegistro
+		if err := json.Unmarshal(v, &reg); err != nil {
+			return nil
+		}
+		hashes = reg.Hashes
+		return nil
+	})
+	return hashes
 }
 
 // hashesMuertos lista los hashes que la base considera muertos, para poder
 // revisarlos y para vaciar de la lista los que sobran.
-func (s *store) hashesMuertos(minFallos int) []string {
+//
+// Usa vivo() y solo vivo(): cuando esta función exigía además un número de
+// fallos seguidos, decía que un enlace estaba muerto por un camino y el
+// ranking lo descartaba por otro. "Muerto" tiene que significar una sola cosa,
+// que es la que decide qué se ofrece.
+func (s *store) hashesMuertos() []string {
 	if s == nil || s.db == nil {
 		return nil
 	}
 	var salida []string
+	ahora := time.Now().UTC()
 	s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucketHashes))
 		if b == nil {
@@ -1155,9 +1373,7 @@ func (s *store) hashesMuertos(minFallos int) []string {
 			if err := json.Unmarshal(v, &reg); err != nil {
 				return nil
 			}
-			muerto := reg.FallosSeguros >= fallosParaDarPorMuerto ||
-				(reg.Conocida && reg.Disponibilidad <= 0)
-			if muerto && reg.FallosSeguros >= minFallos {
+			if !reg.vivoEn(ahora) {
 				salida = append(salida, reg.Hash)
 			}
 			return nil
@@ -1221,12 +1437,19 @@ func (s *store) actualizarDisponibilidad(h string, disponibilidad float64, medid
 }
 
 // resumenHashes da el estado global para /api/db.
+// resumenHashes cuenta cómo está la capa de calidad de los enlaces. Es lo que
+// dice si el bucket hashes está aprendiendo de verdad o si lleva meses vacío,
+// que era el estado en el que estaba: la base parecía saber de enlaces y no
+// sabía nada, porque nada la alimentaba.
 func (s *store) resumenHashes() map[string]any {
 	if s == nil || s.db == nil {
 		return map[string]any{"disponible": false}
 	}
+	ahora := time.Now().UTC()
 	var (
 		total, conocidos, muertos, vivos, conFallos int
+		conPropia, soloPropia, soloAPI              int
+		playlists, segmentos                        int
 	)
 	s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucketHashes))
@@ -1245,7 +1468,19 @@ func (s *store) resumenHashes() map[string]any {
 			if reg.FallosSeguros > 0 {
 				conFallos++
 			}
-			if reg.vivo() {
+			if _, hayPropia := reg.evidenciaVigente(ahora); hayPropia {
+				conPropia++
+			}
+			_, _, origen := reg.disponibilidadEfectiva(ahora)
+			switch origen {
+			case "propia":
+				soloPropia++
+			case "api":
+				soloAPI++
+			}
+			playlists += reg.PlaylistsOK
+			segmentos += reg.SegmentosOK
+			if reg.vivoEn(ahora) {
 				vivos++
 			} else {
 				muertos++
@@ -1257,29 +1492,47 @@ func (s *store) resumenHashes() map[string]any {
 		"disponible":    true,
 		"total":         total,
 		"con_medida":    conocidos,
+		"con_evidencia": conPropia,
+		"solo_propia":   soloPropia,
+		"solo_api":      soloAPI,
 		"vivos":         vivos,
 		"muertos":       muertos,
 		"con_fallos":    conFallos,
-		"umbral_muerto": fallosParaDarPorMuerto,
+		"playlists_ok":  playlists,
+		"segmentos_ok":  segmentos,
+		"umbral_muerto": disponibilidadMuerte,
+		"vida_media_h":  int(vidaMediaEvidencia / time.Hour),
 	}
 }
 
 // hashesOrdenadosPara devuelve los hashes de un canal ya puntuados, para
-// consultar por qué se pone uno primero.
+// consultar por qué se pone uno primero. Explica el desempate y de dónde sale
+// cada dato, que es la diferencia entre "está mal puesto" y "no hay dato".
 func (s *store) hashesOrdenadosPara(hashes []string) []map[string]any {
+	ahora := time.Now().UTC()
 	out := make([]map[string]any, 0, len(hashes))
 	for _, h := range hashes {
 		reg := s.hash(h)
+		efectiva, conocida, origen := reg.disponibilidadEfectiva(ahora)
 		out = append(out, map[string]any{
-			"hash":           reg.Hash,
-			"puntuacion":     reg.puntuar(),
-			"vivo":           reg.vivo(),
-			"disponibilidad": reg.Disponibilidad,
-			"conocida":       reg.Conocida,
-			"intentos":       reg.Intentos,
-			"ok":             reg.OK,
-			"fallos":         reg.Fallos,
-			"fallos_seguros": reg.FallosSeguros,
+			"hash":             reg.Hash,
+			"puntuacion":       reg.puntuar(),
+			"vivo":             reg.vivoEn(ahora),
+			"disponibilidad":   efectiva,
+			"origen":           origen,
+			"con_medida":       conocida,
+			"evidencia":        reg.Propia,
+			"evidencia_en":     reg.PropiaEn,
+			"api":              reg.Disponibilidad,
+			"api_conocida":     reg.Conocida,
+			"intentos":         reg.Intentos,
+			"ok":               reg.OK,
+			"fallos":           reg.Fallos,
+			"fallos_seguros":   reg.FallosSeguros,
+			"playlists_ok":     reg.PlaylistsOK,
+			"playlists_vacias": reg.PlaylistsVnc,
+			"segmentos_ok":     reg.SegmentosOK,
+			"segmentos_err":    reg.SegmentosErr,
 		})
 	}
 	return out

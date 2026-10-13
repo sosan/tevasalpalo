@@ -165,12 +165,16 @@ func StartWebServer() (*fiber.App, error) {
 		// WARP on-demand: /ace/* con datos de stream es justo el caso que
 		// activa el túnel en el cliente Android (http_stream_start). Los
 		// manifests y comandos del webui no lo activan.
-		// Anotación del resultado del hash. /ace/getstream?id=<hash> es la
-		// petición que decide si ese stream está vivo, así que es el punto
-		// exacto donde se aprende. Con esto la base sabe qué hashes probar
-		// primero y cuáles no ofrecer, en vez de descubrirlo a base de
-		// timeouts de 30 a 120 segundos.
-		hashProbado := hashDePeticionAce(acePath, queryString)
+		// Anotación del resultado del hash. Se usa hashDeRutaAce y no solo
+		// hashDePeticionAce porque el camino que el player recorre de verdad
+		// (manifest.m3u8 -> /ace/m/<hash>/... -> /ace/c/<hash>/N.ts) no pasa
+		// por getstream ni por /h/, así que antes no se anotaba nada y el
+		// bucket hashes se quedaba vacío. Los segmentos son además la señal
+		// más fiable: si llegaron, el stream estaba vivo.
+		//
+		// La ruta final solo se conoce después de la petición, así que aquí
+		// se resuelve con lo que hay y se completa más abajo.
+		hashProbado := hashDeRutaAce(acePath, queryString, false, "")
 
 		isAceStream := isAceStreamPath(acePath)
 		traceLog("/ace/* ruta=%q -> isAceStream=%v (WARP=%v)", acePath, isAceStream, warpEnabled())
@@ -235,6 +239,12 @@ func StartWebServer() (*fiber.App, error) {
 		// responder 204, no 502, aunque la ruta de entrada no lo parezca.
 		rutaFinal := acePathFromURL(finalURL)
 		esAnidado := isAceNestedManifest(acePath) || isAceNestedManifest(rutaFinal)
+		// Con la ruta final ya se puede completar el hash: el manifest
+		// principal llega sin hash en la ruta y lo trae en la que redirige.
+		if hashProbado == "" {
+			hashProbado = hashDeRutaAce(acePath, queryString, true, rutaFinal)
+		}
+		esSegmento := strings.HasSuffix(acePath, ".ts")
 		if err != nil {
 			if isAceStream {
 				WarpStreamStop()
@@ -245,10 +255,10 @@ func StartWebServer() (*fiber.App, error) {
 			// error fatal de red en HLS.js y tumba el stream entero, así que
 			// se responde 204 ("sin actualización") para que mantenga el
 			// último playlist bueno.
-			if hashProbado != "" {
-				// Falló la petición de datos del stream: el hash está muerto.
-				storeGlobal.registrarHashResultado(hashProbado, false)
-			}
+			//
+			// Aquí NO se anota nada contra el hash: que el engine retenga un
+			// manifest no dice si el stream está muerto, solo que todavía no ha
+			// llegado. Anotarlo era el error que dejó esta capa muerta.
 			if esAnidado {
 				esperado := time.Since(inicio).Round(time.Second)
 				// No es traceLog: el 204 es el resultado esperado cada vez que
@@ -260,6 +270,11 @@ func StartWebServer() (*fiber.App, error) {
 				c.Set("Cache-Control", "no-store")
 				return c.SendStatus(fiber.StatusNoContent)
 			}
+			// Un segmento que el engine no puede servir sí es evidencia en
+			// contra: ahí no hay ambigüedad, el medio no llegó.
+			if hashProbado != "" && esSegmento {
+				storeGlobal.registrarEvidencia(hashProbado, evSegmentoErr)
+			}
 			// La ruta y el timeout van en el mensaje a propósito. Con solo
 			// "(2m0s)" no se distingue un manifest principal de uno
 			// anidado, y ambos dan 120s si la clasificación falla: el mismo
@@ -270,10 +285,6 @@ func StartWebServer() (*fiber.App, error) {
 			return c.Status(502).SendString("Error conectando con Ace Stream: " + err.Error())
 		}
 		traceLog("/ace/* ruta=%q respondida en %v vía %s", acePath, time.Since(inicio).Round(time.Millisecond), via)
-		if hashProbado != "" {
-			// Llegó la petición de datos del stream: vive.
-			storeGlobal.registrarHashResultado(hashProbado, true)
-		}
 		defer func() {
 			resp.Body.Close()
 			if isAceStream {
@@ -284,9 +295,17 @@ func StartWebServer() (*fiber.App, error) {
 			log.Printf("🔄 ACE %s vía %s", c.Path(), via)
 		}
 
+		// Evidencia a favor. Un segmento que llegó es la señal más fuerte que
+		// tenemos de que el enlace está vivo, y no depende de ninguna API
+		// externa. Los manifests los anota handleAceManifest, que sí sabe si
+		// traerían algo que reproducir.
+		if hashProbado != "" && esSegmento && resp.StatusCode == 200 {
+			storeGlobal.registrarEvidencia(hashProbado, evSegmentoOK)
+		}
+
 		// 🔥 SI ES UN MANIFEST M3U8, MODIFICAR LAS URLs
 		if strings.HasSuffix(acePath, ".m3u8") {
-			return handleAceManifest(c, resp, acestreamEngineHosts())
+			return handleAceManifest(c, resp, acestreamEngineHosts(), hashProbado)
 		}
 
 		// Para archivos .ts y otros
@@ -579,6 +598,14 @@ func StartWebServer() (*fiber.App, error) {
 				}
 			}
 			out["eventos"] = storeGlobal.eventosRecientes(n)
+		case "hashes":
+			// Estado de la capa de calidad de los enlaces y por qué un canal
+			// pone un hash delante de otro. Con ?canal= se ve el detalle.
+			out["hashes"] = storeGlobal.resumenHashes()
+			out["muertos"] = storeGlobal.hashesMuertos()
+			if q := c.Query("canal"); q != "" {
+				out["detalle"] = storeGlobal.hashesOrdenadosPara(storeGlobal.hashesDeCanal(q))
+			}
 		default:
 			// Sin ?que, un resumen de las fuentes es lo más útil: dice de
 			// dónde viene cada canal y cuál se podría quitar.
@@ -974,7 +1001,7 @@ func encodeContent(input string) string {
 	return base64.StdEncoding.EncodeToString([]byte(input))
 }
 
-func handleAceManifest(c fiber.Ctx, resp *http.Response, engineHosts []string) error {
+func handleAceManifest(c fiber.Ctx, resp *http.Response, engineHosts []string, hash string) error {
 	// Leer el contenido del manifest
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -1013,6 +1040,18 @@ func handleAceManifest(c fiber.Ctx, resp *http.Response, engineHosts []string) e
 
 	log.Printf("📝 Manifest reescrito: %d URLs de %d -> origen %s",
 		reescritas, len(lines), serverOrigin)
+
+	// Lo que dice el manifest es lo único que hay para saber si el stream
+	// sirve algo: uno con segmentos dentro demuestra que hay peers y uno vacío
+	// que no hay nada que reproducir. Es una señal débil a propósito, así que
+	// pesa poco y no hunde un enlace por un refresco en unlucky.
+	if hash != "" && resp.StatusCode == 200 {
+		if reescritas > 0 {
+			storeGlobal.registrarEvidencia(hash, evPlaylistOK)
+		} else {
+			storeGlobal.registrarEvidencia(hash, evPlaylistVacia)
+		}
+	}
 
 	modifiedManifest := strings.Join(lines, "\n")
 
