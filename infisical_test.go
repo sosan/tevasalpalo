@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 func infisicalServer(t *testing.T, status int, cuerpo string) *httptest.Server {
@@ -221,5 +222,96 @@ func TestInfisicalJSONValidoDeReferencia(t *testing.T) {
 	}
 	if v.Secrets[0].Key != "K" || v.Secrets[0].Value != "V" {
 		t.Errorf("no parseó bien: %+v", v.Secrets[0])
+	}
+}
+
+// El fallo real: en un arranque en frío el primer request agota el timeout y la
+// app se queda sin telemetría central. Con reintentos, dos segundos después la
+// misma petición responde bien.
+func TestInfisicalReintentaAnteTimeout(t *testing.T) {
+	var intentos int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		intentos++
+		if intentos < 3 {
+			// Simula lo que pasó: la primera y la segunda se pierden.
+			w.WriteHeader(504)
+			return
+		}
+		w.Write([]byte(`{"secrets":[{"secretKey":"TELEMETRY_USER","secretValue":"251374"}]}`))
+	}))
+	defer srv.Close()
+
+	cl := &infisicalClient{
+		cfg:    infisicalConfig{url: srv.URL, token: "t", projectID: "p", env: "prod", path: "/"},
+		client: srv.Client(),
+	}
+	secrets, err := cl.secrets()
+	if err != nil {
+		t.Fatalf("secrets: %v", err)
+	}
+	if intentos != 3 {
+		t.Errorf("hizo %d intentos, se esperaban 3", intentos)
+	}
+	if secrets["TELEMETRY_USER"] != "251374" {
+		t.Errorf("secrets = %v", secrets)
+	}
+}
+
+// Un 401 es definitivo: el token está mal. Reintentar tres veces solo retrasa
+// el arranque y no arregla nada.
+func TestInfisicalNoReintentaAnte401(t *testing.T) {
+	var intentos int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		intentos++
+		w.WriteHeader(401)
+		w.Write([]byte(`{"message":"Unauthorized"}`))
+	}))
+	defer srv.Close()
+
+	cl := &infisicalClient{
+		cfg:    infisicalConfig{url: srv.URL, token: "malo", projectID: "p", env: "prod", path: "/"},
+		client: srv.Client(),
+	}
+	if _, err := cl.secrets(); err == nil {
+		t.Fatal("debería fallar")
+	}
+	if intentos != 1 {
+		t.Errorf("hizo %d intentos con un 401, debería hacer 1 solo", intentos)
+	}
+}
+
+// Agotados los intentos, el error debe seguir siendo útil.
+func TestInfisicalAgotaIntentos(t *testing.T) {
+	var intentos int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		intentos++
+		w.WriteHeader(503)
+	}))
+	defer srv.Close()
+
+	cl := &infisicalClient{
+		cfg:    infisicalConfig{url: srv.URL, token: "t", projectID: "p", env: "prod", path: "/"},
+		client: srv.Client(),
+	}
+	_, err := cl.secrets()
+	if err == nil {
+		t.Fatal("debería fallar tras agotar los intentos")
+	}
+	if intentos != intentosSecrets {
+		t.Errorf("hizo %d intentos, se esperaban %d", intentos, intentosSecrets)
+	}
+}
+
+// El timeout por defecto tiene que ser holgado: 5s fallaba en el arranque en
+// frío, que es cuando hace falta.
+func TestElTimeoutPorDefectoEsHolgado(t *testing.T) {
+	os.Unsetenv("INFISICAL_TIMEOUT_MS")
+	cfg, ok := loadInfisicalConfig()
+	if !ok {
+		// Sin token no valida la config; se comprueba el default aparte.
+		t.Skip("sin INFISICAL_TOKEN configurado")
+	}
+	if cfg.timeout < 10*time.Second {
+		t.Errorf("timeout por defecto = %v, se esperaba al menos 10s", cfg.timeout)
 	}
 }

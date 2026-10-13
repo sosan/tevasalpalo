@@ -43,6 +43,10 @@ type Source struct {
 	// la URL real. Necesario en fuentes cuyo path cambia en cada publicación
 	// (el subdirectorio del worker de elcano rota al republicar).
 	Resolve func(string) (string, error)
+
+	// Obligatoria fuerza a consultar la fuente en cada refresco, saltándose
+	// la pausa adaptativa. Para las que nunca se deben dejar de mirar.
+	Obligatoria bool
 }
 
 const (
@@ -391,15 +395,56 @@ func FetchUpdatedList() error {
 
 	log.Print("📡 Obteniendo listado de Canales TV (multi-fuente)")
 
+	// Lo que aporta cada fuente por separado. Se usa para el registro de
+	// fuentes de la base de datos y para medir el solapamiento entre ellas.
+	porFuente := map[string]map[string][]string{}
+	fusionadoBruto := map[string][]string{}
+	estadoFuente := map[string]string{}
+	intentosFuente := map[string]int{}
+	duracionFuente := map[string]int64{}
+
+	// Qué fuentes hay en pausa y hasta cuándo. Una fuente dormida no se
+	// descarga, pero su estado anterior se conserva para que el cálculo de
+	// exclusividad siga teniendo en cuenta lo que aportó la última vez.
+	ahora := time.Now()
+	enPausa := map[string]fuenteRegistro{}
+	if storeGlobal != nil {
+		for _, f := range storeGlobal.listarFuentes() {
+			if !f.debeConsultarse(ahora) {
+				enPausa[f.Nombre] = f
+			}
+		}
+	}
+	for nombre, f := range enPausa {
+		log.Printf("💤 [%s] en pausa: no aporta ningún canal exclusivo desde hace %d ciclos. Siguiente consulta en %v",
+			nombre, f.CiclosSinAportar, f.ProximaConsulta.Format("15:04"))
+	}
+
+	pausadas := map[string]bool{}
 	for _, src := range sources {
+		if _, dormida := enPausa[src.Name]; dormida && !src.Obligatoria {
+			// No se descarga, pero se comunica a la base para que su cadencia
+			// no se recalcule contra un cero que no es real: si no, cada
+			// refresco en pausa lo hundiría un nivel más y nunca podría
+			// volver a entrar por su cuenta.
+			estadoFuente[src.Name] = ""
+			porFuente[src.Name] = map[string][]string{}
+			pausadas[src.Name] = true
+			continue
+		}
 		wg.Add(1)
 		go func(s Source) {
 			defer wg.Done()
+			inicio := time.Now()
 			res := fetchSourceBody(s, isDev)
+			duracionFuente[s.Name] = time.Since(inicio).Milliseconds()
+			intentosFuente[s.Name] = res.attempts
 
 			if !res.success() {
+				estadoFuente[s.Name] = "sin respuesta"
 				log.Printf("❌ [%s] no se pudo obtener tras %d intentos", s.Name, res.attempts)
 				if res.err != nil {
+					estadoFuente[s.Name] = res.err.Error()
 					firstErrMu.Lock()
 					if firstErr == nil {
 						firstErr = res.err
@@ -427,7 +472,15 @@ func FetchUpdatedList() error {
 				return
 			}
 			mu.Lock()
+			// Lo que se guarda en la base es lo fusionado ANTES del gateway
+			// estricto. Ese filtro es para decidir qué se ofrece en la web, y
+			// se come casi todo: con las fuentes reales, 1651 entradas de
+			// platinsport se quedan en 121 tras filtrar. Para una base de
+			// datos de AceStream interesa el listado completo, no el curado
+			// para la interfaz.
+			fusionadoBruto = fusionarListados(fusionadoBruto, extracted)
 			broadcasterToAcestream = updateBroadcasterMapWithGatewayTolerant(broadcasterToAcestream, extracted, s.Name)
+			porFuente[s.Name] = extracted
 			fetchedCount++
 			mu.Unlock()
 		}(src)
@@ -437,6 +490,29 @@ func FetchUpdatedList() error {
 	// Transformar una sola vez al final
 	broadcasterToAcestream = transformUriSafeBroadcasters(broadcasterToAcestream)
 	log.Printf("✅ Fuentes procesadas: %d/%d", fetchedCount, len(sources))
+
+	// Guardar el resultado en la base de datos: sirve para el arranque
+	// siguiente, para el historial de altas y bajas, y para saber qué fuente
+	// aporta qué. Es best effort: si falla, la app sigue igual.
+	if storeGlobal != nil {
+		// Se guarda el listado fusionado completo, no el que ha pasado el
+		// gateway estricto. Ese filtro existe para decidir qué se ofrece en la
+		// web y se come casi todo: con las fuentes reales, 1651 entradas de
+		// platinsport se quedan en 121. Para una base de datos de AceStream
+		// interesa el listado completo, no el curado para la interfaz.
+		paraGuardar := fusionadoBruto
+		altas, bajas, err := storeGlobal.guardarRefresco(
+			paraGuardar, porFuente, estadoFuente, intentosFuente, duracionFuente, pausadas)
+		switch {
+		case err != nil:
+			log.Printf("⚠️  base de datos: no se pudo guardar (%v)", err)
+		case altas > 0 || bajas > 0:
+			log.Printf("💾 Guardados %d canales: %d nuevos, %d desaparecidos",
+				len(paraGuardar), altas, bajas)
+		default:
+			log.Printf("💾 Guardados %d canales (sin cambios)", len(paraGuardar))
+		}
+	}
 	if fetchedCount == 0 && firstErr != nil {
 		// si todas fallaron, retornar error
 		return firstErr
@@ -1162,4 +1238,30 @@ func checkActiveLink(initialURL string) (bool, error) {
 		return true, err
 	}
 
+}
+
+// fusionarListados une dos mapas de canal -> hashes juntando los enlaces y
+// quitando duplicados. Se usa para tener el listado completo de todas las
+// fuentes, por encima del filtrado por gateway.
+func fusionarListados(a, b map[string][]string) map[string][]string {
+	if a == nil {
+		a = make(map[string][]string, len(b))
+	}
+	for nombre, hashes := range b {
+		a[nombre] = quitarDuplicadosStrings(append(a[nombre], hashes...))
+	}
+	return a
+}
+
+func quitarDuplicadosStrings(s []string) []string {
+	vistos := make(map[string]bool, len(s))
+	salida := make([]string, 0, len(s))
+	for _, v := range s {
+		if vistos[v] {
+			continue
+		}
+		vistos[v] = true
+		salida = append(salida, v)
+	}
+	return salida
 }

@@ -855,3 +855,74 @@ func TestValoresRarosNoRompenElBody(t *testing.T) {
 		}
 	}
 }
+
+// server_log es el flujo de mayor volumen y no se agrega por sus campos: los
+// duplica en el body. Los eventos del player sí los necesitan tipados, porque
+// de ahí salen los filtros (fatal, details, link_id).
+func TestServerLogNoDuplicaAtributos(t *testing.T) {
+	serverLog := buildRecord(eventServerLog, map[string]any{
+		"nivel": "ERROR", "mensaje": "falló el manifest",
+	})
+	if attrs := attrsFor(serverLog); len(attrs) != 0 {
+		t.Errorf("server_log envía %d atributos: %v", len(attrs), attrsFor(serverLog))
+	}
+	// Pero el body los lleva, así que siguen siendo buscables.
+	body := fmtMapBody(serverLog)
+	for _, quiero := range []string{"nivel=ERROR", `mensaje="falló el manifest"`} {
+		if !strings.Contains(body, quiero) {
+			t.Errorf("el body no tiene %q: %q", quiero, body)
+		}
+	}
+
+	player := buildRecord("player_hls_error", map[string]any{
+		"details": "levelLoadTimeOut", "fatal": true,
+	})
+	attrs := attrsFor(player)
+	if len(attrs) != 2 {
+		t.Fatalf("el evento del player debe conservar sus atributos, tiene %d", len(attrs))
+	}
+}
+
+// El resumen del manifest sustituye a la línea por segmento. Tiene que decir
+// cuántas URLs cambiaron, que es el dato útil.
+func TestElResumenDelManifiestoCuentaLasURLs(t *testing.T) {
+	// Lo que llega de verdad en un manifest de AceStream: URLs absolutas del
+	// engine y nombres de segmento sueltos. El resumen sustituye a la línea
+	// por segmento, así que tiene que acertar el número.
+	manifest := `#EXTM3U
+#EXT-X-VERSION:3
+http://127.0.0.1:6878/ace/c/cc3d/0.ts
+http://127.0.0.1:6878/ace/c/cc3d/1.ts
+otro://no-tocar.ts
+#EXTINF:10,
+cc3d749cfd30877b418f1d59a80d9291e0f091c8/15.ts`
+
+	engine := []string{"127.0.0.1:6878"}
+	origen := "http://127.0.0.1:3000"
+	lines := strings.Split(manifest, "\n")
+
+	reescritas := 0
+	for i, l := range lines {
+		nueva := rewriteAceManifestLine(l, origen, "127.0.0.1:3000", engine)
+		if nueva != l {
+			reescritas++
+		}
+		lines[i] = nueva
+	}
+
+	// 2 del engine + 1 segmento relativo con directorio.
+	if reescritas != 3 {
+		t.Errorf("reescritas = %d, se esperaban 3:\n%s",
+			reescritas, strings.Join(lines, "\n"))
+	}
+
+	joined := strings.Join(lines, "\n")
+	// Un esquema que no es http no debe convertirse en una URL del proxy: antes
+	// "otro://no-tocar.ts" salía como "http://.../ace/otro://no-tocar.ts".
+	if !strings.Contains(joined, "otro://no-tocar.ts") {
+		t.Errorf("una URL con otro esquema no debería tocarse:\n%s", joined)
+	}
+	if n := strings.Count(joined, origen); n != 3 {
+		t.Errorf("hay %d URLs apuntando al origen local, se esperaban 3:\n%s", n, joined)
+	}
+}

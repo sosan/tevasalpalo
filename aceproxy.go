@@ -351,14 +351,21 @@ func rewriteAceManifestLine(line, serverOrigin, localHost string, engineHosts []
 	for _, eh := range engineHosts {
 		if eh != "" && strings.Contains(trimmed, eh) {
 			newLine := strings.Replace(trimmed, eh, localHost, 1)
-			log.Printf("🔄 URL reescrita: %s -> %s", trimmed, newLine)
+			// Una línea por segmento del manifest, y los manifests se
+			// refrescan cada ~30s: son el grueso del volumen de telemetría y
+			// no dicen nada que el resumen no diga. El detalle queda para la
+			// traza.
+			traceLog("🔄 URL reescrita: %s -> %s", trimmed, newLine)
 			return newLine
 		}
 	}
 	if strings.HasSuffix(trimmed, ".ts") || strings.HasSuffix(trimmed, ".m3u8") {
-		if !strings.HasPrefix(trimmed, "http://") && !strings.HasPrefix(trimmed, "https://") {
+		// Solo lo que es una ruta relativa de verdad. Antes se comprobaba
+		// únicamente que no empezara por http, así que cualquier otro esquema
+		// ("otro://x.ts") se reescribía a una URL absurda del propio proxy.
+		if !strings.Contains(trimmed, "://") {
 			newURL := fmt.Sprintf("%s/ace/%s", serverOrigin, strings.TrimPrefix(trimmed, "/"))
-			log.Printf("🔄 URL relativa convertida: %s -> %s", trimmed, newURL)
+			traceLog("🔄 URL relativa convertida: %s -> %s", trimmed, newURL)
 			return newURL
 		}
 	}

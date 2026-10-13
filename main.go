@@ -92,15 +92,33 @@ func main() {
 		xhMu.Unlock()
 	}()
 
-	err = FetchUpdatedList()
-	if err != nil {
-		log.Printf("Error al obtener la programación")
+	// Base de datos de AceStream. Se abre antes de nada porque permite
+	// cargar el listado del arranque anterior al instante: sin esto, la web
+	// tarda entre 27 y 70 segundos en levantarse mientras espera a las 7
+	// fuentes remotas.
+	if s := abrirStore(); s != nil {
+		defer cerrarStore()
+		if guardados := len(s.cargarCanales()); guardados > 0 {
+			log.Printf("💾 Base de datos lista: %d canales del último arranque", guardados)
+		}
 	}
+
+	// El listado se carga de la base si hay, y la red se consulta después. Al
+	// revés, la web no arranca hasta que respondan las 7 fuentes.
+	cargarListadoDesdeDisco()
 
 	webServer, err := StartWebServer()
 	if err != nil {
 		log.Printf("❌ Error en servidor web: %v", err)
 	}
+
+	// Refresco de las fuentes en segundo plano: la web ya está sirviendo con
+	// lo que hay en la base y se actualiza sola cuando lleguen los datos.
+	go func() {
+		if err := FetchUpdatedList(); err != nil {
+			log.Printf("Error al obtener la programación")
+		}
+	}()
 
 	log.Println("🌐 Servidor web iniciando en http://localhost:3000")
 	time.Sleep(10 * time.Second)

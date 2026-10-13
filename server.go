@@ -171,7 +171,9 @@ func StartWebServer() (*fiber.App, error) {
 			WarpStreamStart()
 		}
 
-		log.Printf("🔄 Proxy ACE: %s -> %s", c.Path(), targetURL)
+		// También es una línea por segmento. Con traza sale el detalle; sin
+		// ella, solo el resumen que ya escribe handleAceManifest.
+		traceLog("🔄 Proxy ACE: %s -> %s", c.Path(), targetURL)
 
 		// Crear la petición
 		req, err := http.NewRequest("GET", targetURL, nil)
@@ -216,11 +218,23 @@ func StartWebServer() (*fiber.App, error) {
 			// se responde 204 ("sin actualización") para que mantenga el
 			// último playlist bueno.
 			if isAceNestedManifest(acePath) {
-				traceLog("/ace/* anidado %q sin respuesta tras %v, se responde 204", acePath, time.Since(inicio).Round(time.Second))
+				esperado := time.Since(inicio).Round(time.Second)
+				// No es traceLog: el 204 es el resultado esperado cada vez que
+				// el engine retiene un manifest anidado, pero si falla el
+				// timeout (por ejemplo si colara por la ruta del principal)
+				// el tiempo delataría el problema. Por eso el aviso va siempre.
+				log.Printf("↩️  Manifest anidado retenido por el engine (%v), respondo 204 para no tumbar el player: %q",
+					esperado, acePath)
 				c.Set("Cache-Control", "no-store")
 				return c.SendStatus(fiber.StatusNoContent)
 			}
-			log.Printf("❌ Error en petición a Ace Stream (%v): %v", time.Since(inicio).Round(time.Second), err)
+			// La ruta y el timeout van en el mensaje a propósito. Con solo
+			// "(2m0s)" no se distinguishable un manifest principal de uno
+			// anidado, y ambos dan 120s si la clasificación falla: el mismo
+			// síntoma para dos causas distintas, imposible de diagnosticar
+			// desde fuera.
+			log.Printf("❌ Error en petición a Ace Stream ruta=%q timeout=%v tras %v: %v",
+				acePath, aceTimeout, time.Since(inicio).Round(time.Second), err)
 			return c.Status(502).SendString("Error conectando con Ace Stream: " + err.Error())
 		}
 		traceLog("/ace/* ruta=%q respondida en %v vía %s", acePath, time.Since(inicio).Round(time.Millisecond), via)
@@ -250,7 +264,8 @@ func StartWebServer() (*fiber.App, error) {
 		// 🔥 CORREGIR Content-Type para archivos .ts
 		if strings.HasSuffix(acePath, ".ts") {
 			c.Set("Content-Type", "video/mp2t")
-			log.Printf("✅ Content-Type corregido para .ts: %s", acePath)
+			// Una por segmento, igual que las anteriores.
+			traceLog("✅ Content-Type corregido para .ts: %s", acePath)
 		}
 
 		// Asegurar CORS
@@ -500,6 +515,38 @@ func StartWebServer() (*fiber.App, error) {
 		}
 		if telBatch != nil {
 			out["exporter"] = telBatch.stats()
+		}
+		return c.JSON(out)
+	})
+
+	// Base de datos de AceStream: estado, aporte por fuente, búsqueda e
+	// historial. Todo de solo lectura y con las mismas protecciones que
+	// /api/logs, porque el historial contiene nombres de canal y hashes.
+	app.Get("/api/db", func(c fiber.Ctx) error {
+		if !telAutorizado(c) {
+			return c.Status(403).JSON(fiber.Map{
+				"error": "requiere TELEMETRY_API_TOKEN o conexión desde localhost",
+			})
+		}
+		out := fiber.Map{"estado": storeGlobal.resumen()}
+
+		switch c.Query("que") {
+		case "fuentes":
+			out["fuentes"] = storeGlobal.listarFuentes()
+		case "buscar":
+			out["resultados"] = storeGlobal.buscarCaneles(c.Query("q"), 50)
+		case "historial":
+			n := 50
+			if v := c.Query("n"); v != "" {
+				if i, err := strconv.Atoi(v); err == nil && i > 0 && i <= 500 {
+					n = i
+				}
+			}
+			out["eventos"] = storeGlobal.eventosRecientes(n)
+		default:
+			// Sin ?que, un resumen de las fuentes es lo más útil: dice de
+			// dónde viene cada canal y cuál se podría quitar.
+			out["fuentes"] = storeGlobal.listarFuentes()
 		}
 		return c.JSON(out)
 	})
@@ -913,13 +960,23 @@ func handleAceManifest(c fiber.Ctx, resp *http.Response, engineHosts []string) e
 
 	serverOrigin := fmt.Sprintf("%s://%s", scheme, host)
 
-	log.Printf("📝 Reescribiendo URLs del manifest con origen: %s", serverOrigin)
-
-	// Reescribir las URLs en el manifest (hosts del engine -> origen local)
+	// Reescribir las URLs en el manifest (hosts del engine -> origen local).
+	// Se cuenta cuántas cambian en vez de loguear una línea por segmento: con
+	// 25 segmentos y un refresco cada 30s eran 25 líneas cada medio minuto, y
+	// el total de telemetría era eso y nada más. El detalle por URL queda
+	// detrás de la traza.
 	lines := strings.Split(manifestContent, "\n")
+	reescritas := 0
 	for i, line := range lines {
-		lines[i] = rewriteAceManifestLine(line, serverOrigin, host, engineHosts)
+		nueva := rewriteAceManifestLine(line, serverOrigin, host, engineHosts)
+		if nueva != line {
+			reescritas++
+		}
+		lines[i] = nueva
 	}
+
+	log.Printf("📝 Manifest reescrito: %d URLs de %d -> origen %s",
+		reescritas, len(lines), serverOrigin)
 
 	modifiedManifest := strings.Join(lines, "\n")
 

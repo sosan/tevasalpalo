@@ -498,6 +498,18 @@ var eventBaseFields = map[string]bool{"time": true, "event": true, "version": tr
 // vez de aplanarlo todo a texto, que es donde se pierde la información al
 // agregar en Grafana.
 func attrsFor(rec map[string]any) []attribute.KeyValue {
+	// Para server_log los campos van solo en el body. Motivo: es el flujo de
+	// mayor volumen (cientos de líneas por arranque y decenas por refresco de
+	// manifest) y no se agrega por ellos, se lee. Duplicarlos como structured
+	// metadata solo costs la mitad del volumen de Loki sin aportar nada: los
+	// campos同样 salen del body y Grafana los detecta igual.
+	//
+	// Los eventos del player (pocos, y sí se filtran por fatal/details/link_id)
+	// sí conservan los atributos tipados.
+	if fmt.Sprint(rec["event"]) == eventServerLog {
+		return nil
+	}
+
 	keys := make([]string, 0, len(rec))
 	for k := range rec {
 		if !eventBaseFields[k] {
