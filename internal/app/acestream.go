@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"compress/gzip"
-	"embed"
 	"fmt"
 	"io"
 	"io/fs"
@@ -15,12 +14,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"tevasalpalo/internal/assets"
 	"time"
 )
-
-//go:embed assets/tor-expert-bundle-windows-x86_64.zip
-//go:embed assets/tor-expert-bundle-linux-x86_64.zip
-var runtimeZip embed.FS
 
 const (
 	runtimeDirName    = "runtime"
@@ -355,19 +351,11 @@ func extractRuntime(targetDir, pathFile string) error {
 	return extractZip(targetDir, f)
 }
 
-// openAsset abre un asset embebido buscando en los dos embeds. El motor vive en
-// aceEngineAsset (que solo lleva el de la plataforma, para no arrastrar los 77 MB
-// del otro) y Tor vive en runtimeZip. extractRuntime los usa a los dos, así que
-// tiene que mirar en ambos: si solo mira uno, el otro falla con "file does not
-// exist" en runtime.
+// openAsset abre un asset embebido del paquete assets (el runtime del motor
+// y los bundles de Tor viven en el mismo embed.FS). extractRuntime lo usa con
+// rutas tipo "assets/<fichero>".
 func openAsset(pathFile string) (fs.File, error) {
-	if f, err := aceEngineAsset.Open(pathFile); err == nil {
-		return f, nil
-	}
-	if f, err := runtimeZip.Open(pathFile); err == nil {
-		return f, nil
-	}
-	return nil, fmt.Errorf("no se pudo abrir el asset embebido %s: no está en aceEngineAsset ni en runtimeZip", pathFile)
+	return assets.Dir.Open(pathFile)
 }
 
 // extractTarGz extrae un tar.gz embebido preservando el modo de los archivos

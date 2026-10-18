@@ -7,12 +7,14 @@ package app
 import (
 	"archive/zip"
 	"bytes"
+
 	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+	"tevasalpalo/internal/assets"
 	"time"
 )
 
@@ -153,8 +155,8 @@ func TestExtractRuntimeRejectsUnknownAsset(t *testing.T) {
 }
 
 func TestOpenAssetFindsBothEmbeds(t *testing.T) {
-	// Regresión: extractRuntime abre el motor desde aceEngineAsset y Tor desde
-	// runtimeZip. Cuando solo se miraba aceEngineAsset, Tor fallaba al arrancar
+	// Regresión: extractRuntime abre el motor desde assets.Dir y Tor desde
+	// assets.Dir. Cuando solo se miraba assets.Dir, Tor fallaba al arrancar
 	// en Windows con "no se pudo abrir el ZIP embebido: file does not exist",
 	// porque el bundle de Tor nunca estuvo en ese embed.
 	torAsset := "assets/" + torAssetNameWin
@@ -163,7 +165,7 @@ func TestOpenAssetFindsBothEmbeds(t *testing.T) {
 	}
 	f, err := openAsset(torAsset)
 	if err != nil {
-		t.Fatalf("el bundle de Tor debe abrirse desde runtimeZip: %v", err)
+		t.Fatalf("el bundle de Tor debe abrirse desde assets.Dir: %v", err)
 	}
 	info, err := f.Stat()
 	f.Close()
@@ -181,7 +183,7 @@ func TestExtractTarGzRealAsset(t *testing.T) {
 	if _, err := os.Stat(filepath.Join("assets", aceAssetNameLinux)); err != nil {
 		t.Skipf("asset %s no presente", aceAssetNameLinux)
 	}
-	if _, err := aceEngineAsset.Open("assets/" + aceAssetNameLinux); err != nil {
+	if _, err := assets.Dir.Open("assets/" + aceAssetNameLinux); err != nil {
 		t.Skipf("el asset de linux no está embebido en este build: %v", err)
 	}
 	dir := t.TempDir()

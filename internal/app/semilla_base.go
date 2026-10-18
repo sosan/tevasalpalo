@@ -18,24 +18,22 @@ package app
 import (
 	"bytes"
 	"compress/gzip"
-	"embed"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
+	"tevasalpalo/internal/assets"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
 )
 
-// semillaBase es el fichero embebido. Va comprimido porque son unos 2.000
+// assets.Dir es el fichero embebido. Va comprimido porque son unos 2.000
 // canales y sin comprimir serían unos 200 KB de los cuales casi todo son
 // nombres repetidos.
 //
-//go:embed semilla/base.json.gz
-var semillaBase embed.FS
 
 const (
 	// rutaSemilla es la ruta del fichero DENTRO del embed FS (relativa al
@@ -44,7 +42,7 @@ const (
 	// rutaSemillaDisco es donde el generador (--genera-semilla, ejecutado
 	// desde la raíz del repo) escribe el embed fuente para el siguiente
 	// build.
-	rutaSemillaDisco = "internal/app/semilla/base.json.gz"
+	rutaSemillaDisco = "internal/assets/semilla/base.json.gz"
 	nombreBaseSrc    = "base"
 )
 
@@ -63,7 +61,7 @@ type semillaDocumento struct {
 
 // leerSemilla descomprime y parsea la base embebida.
 func leerSemilla() (*semillaDocumento, error) {
-	raw, err := semillaBase.ReadFile(rutaSemilla)
+	raw, err := assets.Dir.ReadFile(rutaSemilla)
 	if err != nil {
 		return nil, fmt.Errorf("leer la base embebida: %w", err)
 	}

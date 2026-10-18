@@ -17,16 +17,14 @@ package app
 // una carpeta con los plugins que quiera probar y se copian sobre el motor.
 
 import (
-	"embed"
 	"io"
+
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+	"tevasalpalo/internal/assets"
 )
-
-//go:embed engine_overlay/sitecustomize.py
-var engineOverlayFS embed.FS
 
 // overlayDirName es la carpeta del overlay dentro del runtime.
 const overlayDirName = "overlay"
@@ -74,7 +72,7 @@ func applyEngineOverlay(runtimePath string, spec engineSpec) {
 // con PYTHONPATH); en Windows se copia igualmente, pero ace_console.exe no lo
 // importa.
 func writeEngineHooks(runtimePath string) error {
-	src, err := engineOverlayFS.Open("engine_overlay/sitecustomize.py")
+	src, err := assets.Dir.Open("engine_overlay/sitecustomize.py")
 	if err != nil {
 		return err
 	}
