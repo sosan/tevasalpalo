@@ -333,7 +333,7 @@ Imprime el valor del secret ya sin envoltorio, delimitado para copiarlo tal cual
 1) Valor del secret de GitHub Actions (TELEMETRY_LDFLAGS):
 
 ┌────────────────────────────────────────────────────────────────────────────┐
-│ -X 'main.embebidoSecretos=v1:BASE64' -X 'main.claveSecretos=CLAVE'
+│ -X 'tevasalpalo/internal/app.embebidoSecretos=v1:BASE64' -X 'tevasalpalo/internal/app.claveSecretos=CLAVE'
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -345,7 +345,7 @@ acabes con un binario que compila pero no autentica.
 En `.github/workflows/buidandtest.yaml`, el paso "Build binary" pasa a tener:
 
 ```sh
--ldflags="-X 'main/update.VersionBuild=${VERSION_BUILD}' ${TELEMETRY_LDFLAGS}"
+-ldflags="-X 'tevasalpalo/update.VersionBuild=${VERSION_BUILD}' ${TELEMETRY_LDFLAGS}"
 ```
 
 donde `TELEMETRY_LDFLAGS` es un secret de Actions con la línea que imprime el

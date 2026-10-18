@@ -1,4 +1,4 @@
-module main
+module tevasalpalo
 
 go 1.26.0
 

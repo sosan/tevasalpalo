@@ -1,0 +1,359 @@
+package app
+
+import (
+	"log"
+	"os"
+	"sort"
+)
+
+var broadcasterGatewayMap = map[string][]string{
+	"RFEF TV":                            {"Primera Federacion"},
+	"RFEF":                            {"Primera Federacion"},
+	"PRIMERA FEDERACIÓN":                 {"Primera Federacion"},
+	`Primera Federacion "RFEF" (FHD)`:    {"Primera Federacion \"RFEF\""},
+	"Canal 1":                            {"Primera Federacion \"RFEF\""},
+	"Canal 2":                            {"Primera Federacion 2\"RFEF\""},
+	"REAL MADRID TV":                     {"REAL MADRID TV"},
+	"DAZN 1 (FHD)":                       {"DAZN 1"},
+	"DAZN 2 (FHD)":                       {"DAZN 2"},
+	"DAZN 3 (FHD)":                       {"DAZN 3"},
+	"DAZN 3":                             {"DAZN 3"},
+	"DAZN 4 (FHD)":                       {"DAZN 4"},
+	"DAZN 1":                             {"DAZN 1"},
+	"DAZN 2":                             {"DAZN 2"},
+	"DAZN 4":                             {"DAZN 4"},
+	"DAZN F1 (FHD)":                      {"DAZN F1"},
+	"DAZN F1":                            {"DAZN F1"},
+	"DAZN MotoGP":                        {"DAZN MOTOGP"},
+	"DAZN MOTOGP":                        {"DAZN MOTOGP"},
+	"Dazn motogp":                        {"DAZN MOTOGP"},
+	"DAZN LaLiga (FHD)":                  {"DAZN LALIGA", "DAZN LALIGA TV"},
+	"DAZN LA LIGA 1":                     {"DAZN LALIGA", "DAZN LALIGA TV"},
+	"DAZN LA LIGA 2":                     {"DAZN LALIGA 2", "DAZN LALIGA TV"},
+	"DAZN LaLiga 2 (FHD)":                {"DAZN LALIGA 2"},
+	"LaLiga Hypermotion (FHD)":           {"LALIGA HYPERMOTION"},
+	"LaLiga Hypermotion 2 (FHD)":         {"LALIGA HYPERMOTION 2"},
+	"LaLiga Hypermotion 3 (FHD)":         {"LALIGA HYPERMOTION 3"},
+	"LaLiga TV Hypermotion":              {"LALIGA HYPERMOTION"},
+	"LaLiga TV Hypermotion 2":            {"LALIGA HYPERMOTION 2"},
+	"LaLiga TV Hypermotion 3":            {"LALIGA HYPERMOTION 3"},
+	"M+ LALIGA":                        {"M+ LALIGA"},
+	"M+ LALIGA 2":                        {"M+ LALIGA 2"},
+	"M+ LALIGA 3":                        {"M+ LALIGA 3", "LALIGA TV 2"},
+	"M+ LALIGA 4":                        {"M+ LALIGA 4"},
+	"Movistar LaLiga (FHD)":              {"M+ LALIGA", "LALIGA TV"},
+	"Movistar LaLiga 2 (FHD)":            {"M+ LALIGA 2", "LALIGA TV 2"},
+	"MOVISTAR PLUS":                      {"MOVISTAR PLUS", "MOVISTAR PLUS+", "M+"},
+	"Movistar Plus (FHD)":                {"MOVISTAR PLUS", "MOVISTAR PLUS+", "M+"},
+	"Movistar Plus 2 (FHD)":              {"MOVISTAR PLUS+ 2"},
+	"LIGA DE CAMPEONES":                  {"M+ LIGA DE CAMPEONES"},
+	"Movistar Liga de Campeones (FHD)":   {"M+ LIGA DE CAMPEONES"},
+	"LIGA DE CAMPEONES 2":                {"M+ LIGA DE CAMPEONES 2"},
+	"LIGA DE CAMPEONES 3":                {"M+ LIGA DE CAMPEONES 3"},
+	"LIGA DE CAMPEONES 4":                {"M+ LIGA DE CAMPEONES 4"},
+	"LIGA DE CAMPEONES 5":                {"M+ LIGA DE CAMPEONES 5"},
+	"LIGA DE CAMPEONES 6":                {"M+ LIGA DE CAMPEONES 6"},
+	"LIGA DE CAMPEONES 7":                {"M+ LIGA DE CAMPEONES 7"},
+	"LIGA DE CAMPEONES 8":                {"M+ LIGA DE CAMPEONES 8"},
+	"LIGA DE CAMPEONES 9":                {"M+ LIGA DE CAMPEONES 9"},
+	"LIGA DE CAMPEONES 10":               {"M+ LIGA DE CAMPEONES 10"},
+	"LIGA DE CAMPEONES 11":               {"M+ LIGA DE CAMPEONES 11"},
+	"LIGA DE CAMPEONES 12":               {"M+ LIGA DE CAMPEONES 12"},
+	"Movistar Liga de Campeones 2 (FHD)": {"M+ LIGA DE CAMPEONES 2"},
+	"Movistar Liga de Campeones 3 (FHD)": {"M+ LIGA DE CAMPEONES 3"},
+	"Movistar Liga de Campeones 4 (FHD)": {"M+ LIGA DE CAMPEONES 4"},
+	"Movistar Liga de Campeones 5 (FHD)": {"M+ LIGA DE CAMPEONES 5"},
+	"Movistar Liga de Campeones 6 (FHD)": {"M+ LIGA DE CAMPEONES 6"},
+	"Movistar Liga de Campeones 7 (FHD)": {"M+ LIGA DE CAMPEONES 7"},
+	"Movistar Liga de Campeones 8 (FHD)": {"M+ LIGA DE CAMPEONES 8"},
+	"Movistar Liga de Campeones 9 (FHD)": {"M+ LIGA DE CAMPEONES 9"},
+	"Movistar Deportes (FHD)":            {"M+ DEPORTES"},
+	"Movistar Deportes 2 (FHD)":          {"M+ DEPORTES 2"},
+	"Movistar Deportes 3 (FHD)":          {"M+ DEPORTES 3"},
+	"Movistar Deportes 4 (FHD)":          {"M+ DEPORTES 4"},
+	"Movistar Deportes 5 (FHD)":          {"M+ DEPORTES 5"},
+	"Movistar Deportes 6 (FHD)":          {"M+ DEPORTES 6"},
+
+	"MOVISTAR DEPORTES 1":                {"M+ DEPORTES 1"},
+	"MOVISTAR DEPORTES 2":                {"M+ DEPORTES 2"},
+	"MOVISTAR DEPORTES 3":                {"M+ DEPORTES 3"},
+	"MOVISTAR DEPORTES 4":                {"M+ DEPORTES 4"},
+	"MOVISTAR DEPORTES 5":                {"M+ DEPORTES 5"},
+	"MOVISTAR DEPORTES 6":                {"M+ DEPORTES 6"},
+	"MOVISTAR DEPORTES 7":                {"M+ DEPORTES 7"},
+	"MOVISTAR DEPORTES 8":                {"M+ DEPORTES 8"},
+
+	"M. Deportes":                {"M+ DEPORTES 1"},
+	"M. Deportes 2":                {"M+ DEPORTES 2"},
+	"M. Deportes 3":                {"M+ DEPORTES 3"},
+	"M. Deportes 4":                {"M+ DEPORTES 4"},
+	"M. Deportes 5":                {"M+ DEPORTES 5"},
+	"M. Deportes 6":                {"M+ DEPORTES 6"},
+	"M DEPORTES":                   {"M+ DEPORTES"},
+	"LaLiga TV Hypermotion 10":     {"LALIGA HYPERMOTION"},
+	"M. Deportes 7":                {"M+ DEPORTES 7"},
+	"M. Deportes 8":                {"M+ DEPORTES 8"},
+	"MOVISTAR VAMOS":                     {"M+ VAMOS"},
+	"Movistar Vamos (FHD)":               {"M+ VAMOS"},
+	"Movistar Golf (FHD)":                {"M+ GOLF", "Movistar Golf"},
+	"Eurosport (FHD)":                    {"EUROSPORT 1"},
+	"Eurosport 2 (FHD)":                  {"EUROSPORT 2"},
+	"Eurosport2":                         {"EUROSPORT 2"},
+	"EUROSPORT 1":                         {"EUROSPORT 1"},
+	"EUROSPORT 2":                         {"EUROSPORT 2"},
+	"M.LaLiga2":                          {"M+ LALIGA 2", "LALIGA TV 2"},
+	"DAZNLaLiga":                         {"DAZN LALIGA", "DAZN LALIGA TV"},
+	"DAZNF1":                             {"DAZN F1"},
+	"LaLigaSmartbank":                    {"LALIGA HYPERMOTION"},
+	"LaLigaSmartbank3":                   {"LALIGA HYPERMOTION 3"},
+	"Deporte2":                           {"M+ DEPORTES 2"},
+	"MovistarPlus":                       {"MOVISTAR PLUS", "MOVISTAR PLUS+", "M+"},
+	"Dazn1":                              {"DAZN 1"},
+	"Deporte":                            {"M+ DEPORTES"},
+	"Deporte3":                           {"M+ DEPORTES 3"},
+	"Deporte4":                           {"M+ DEPORTES 4"},
+	"Campeones":                          {"M+ LIGA DE CAMPEONES"},
+	"Campeones2":                         {"M+ LIGA DE CAMPEONES 2"},
+	"Campeones3":                         {"M+ LIGA DE CAMPEONES 3"},
+	"Campeones4":                         {"M+ LIGA DE CAMPEONES 4"},
+	"Campeones5":                         {"M+ LIGA DE CAMPEONES 5"},
+	"Campeones6":                         {"M+ LIGA DE CAMPEONES 6"},
+	"Campeones7":                         {"M+ LIGA DE CAMPEONES 7"},
+	"Campeones8":                         {"M+ LIGA DE CAMPEONES 8"},
+	"LaLigaSmartbank2":                   {"LALIGA HYPERMOTION 2"},
+	"Vamos":                              {"M+ VAMOS"},
+	"Deporte5":                           {"M+ DEPORTES 5"},
+	"M.LaLiga":                           {"M+ LALIGA", "M+ LALIGA TV"},
+	"M.LaLiga3":                          {"M+ LALIGA 3", "LALIGA TV 3"},
+	"Eurosport":                          {"EUROSPORT 1"},
+	"Dazn2":                              {"DAZN 2"},
+	"Fox Sports 2 COL":                   {"FOX SPORTS 2"},
+	"FOX Sports 2":                       {"FOX Sports 2"},
+	"MOVISTAR DEPORTES":                  {"M+ DEPORTES"},
+	"Eurosport360 6":                     {"EUROSPORT 6"},
+	"Eurosport360 2":                     {"EUROSPORT 2"},
+	"Eurosport360 1":                     {"EUROSPORT 1"},
+	"BEIN SPORTS 1":                      {"BEIN SPORTS 1"},
+	"beIN SPORTS 1":                      {"BEIN SPORTS 1"},
+	"BEIN SPORTS 2":                      {"BEIN SPORTS 2"},
+	"beIN SPORTS 2":                      {"BEIN SPORTS 2"},
+	"beIN SPORTS 3":                      {"BEIN SPORTS 3"},
+	"BEIN SPORTS 3":                      {"BEIN SPORTS 3"},
+	"beIN SPORTS 4":                      {"BEIN SPORTS 4"},
+	"BEIN SPORTS 4":                      {"BEIN SPORTS 4"},
+	"SKY SPORTS FOOTBALL":                {"SKY SPORTS FOOTBALL"},
+	"DAZN BALONCESTO":                    {"DAZN BALONCESTO 1"},
+	"M+ Baloncesto":                      {"M+ BALONCESTO"},
+	"M+ Baloncesto 2":                    {"M+ BALONCESTO 2"},
+	"M+ Baloncesto 3":                    {"M+ BALONCESTO 3"},
+	"HYPERMOTION":                        {"LALIGA HYPERMOTION"},
+	"HYPERMOTION 2":                      {"LALIGA HYPERMOTION 2"},
+	"HYPERMOTION 3":                      {"LALIGA HYPERMOTION 3"},
+	"RALLY TV":                           {"RALLY TV"},
+	"MIXED+":                             {"MIXED+"},
+	"CANAL MOTOR":                        {"CANAL MOTOR"},
+	"ONETORO":                            {"ONETORO"},
+	"SKY SPORTS MAIN EVENT":              {"SKY SPORTS MAIN EVENT"},
+	"SKY Sports LaLiga":                  {"SKY SPORTS LALIGA"},
+	"BT Sport 1":                         {"BT SPORT 1"},
+	"ESPN1":                              {"ESPN1"},
+	"ESPN2":                              {"ESPN2"},
+	"ESPN3":                              {"ESPN3"},
+	"SPORT1+":                            {"SPORT1+"},
+	"Esport3":                            {"ESPORT3"},
+	"ESPORTS 3":                          {"ESPORT3"},
+	"Esport3 (Cataluña)":                 {"ESPORT3"},
+	"ELEVEN DAZN 1":                      {"DAZN 1 PT"},
+	"ELEVEN DAZN 2":                      {"DAZN 2 PT"},
+	"ELEVEN DAZN 3":                      {"DAZN 3 PT"},
+	"ELEVEN DAZN 4":                      {"DAZN 4 PT"},
+	"ELEVEN DAZN 5":                      {"DAZN 5 PT"},
+	"RETROVISION MOTOR":                  {"RETROVISION MOTOR"},
+	"CANAL+ Sport 1":                     {"CANAL+ Sport 1"},
+	"CANAL+ Sport 2":                     {"CANAL+ Sport 2"},
+	"CANAL+ Sport 3":                     {"CANAL+ Sport 3"},
+	"ACB EVENTO 01":                      {"DAZN BALONCESTO 1"},
+	"ACB EVENTO 02":                      {"DAZN BALONCESTO 2"},
+	"ACB EVENTO 03":                      {"DAZN BALONCESTO 3"},
+	"DAZN BALONCESTO 1":                  {"DAZN BALONCESTO 1"},
+	"DAZN BALONCESTO 2":                  {"DAZN BALONCESTO 2"},
+	"DAZN BALONCESTO 3":                  {"DAZN BALONCESTO 3"},
+	"CALCIO EVENTOS":                     {"CALCIO EVENTOS"},
+	"ESPN ARGENTINA":                     {"ESPN ARGENTINA 1"},
+	"ESPN ARGENTINA 1":                   {"ESPN ARGENTINA 1"},
+	"ESPN ARGENTINA 2":                   {"ESPN ARGENTINA 2"},
+	"ESPN ARGENTINA 3":                   {"ESPN ARGENTINA 3"},
+	"ESPN ARGENTINA 4":                   {"ESPN ARGENTINA 4"},
+	"Fox Sports 2 ARG":                   {"Fox Sports 2 ARG"},
+	// Añadidos para lista_fuera_iptv (fuera IPTV) — novedades
+	"BEIN SPORTS Ñ":                      {"BEIN SPORTS Ñ"},
+	"DAZN 1 BAR":                         {"DAZN 1"},
+	"DAZN 2 BAR":                         {"DAZN 2"},
+	"ESPORT 3":                           {"ESPORT3"},
+	"GOL PLAY":                           {"GOL", "GOLTV PLAY", "GOL TV"},
+	"ELEVEN DAZN 6":                      {"ELEVEN SPORTS 1"},
+	"TELEDEPORTE":                        {"TELEDEPORTE"},
+	// Nuevas incorporaciones solicitadas (m+ laliga, dazn laliga, liga campeones, hypermotion, etc.)
+	"DAZN LA LIGA 3":                     {"DAZN LALIGA 3"},
+	"DAZN LALIGA 3":                      {"DAZN LALIGA 3"},
+	"DAZN LALIGA TV 3":                   {"DAZN LALIGA 3"},
+	"LALIGA HYPERMOTION 4":               {"LALIGA HYPERMOTION 4"},
+	"LALIGA HYPERMOTION 5":               {"LALIGA HYPERMOTION 5"},
+	"LaLiga Hypermotion 4 (FHD)":         {"LALIGA HYPERMOTION 4"},
+	"LaLiga Hypermotion 5 (FHD)":         {"LALIGA HYPERMOTION 5"},
+	"LaLiga TV Hypermotion 4":            {"LALIGA HYPERMOTION 4"},
+	"LaLiga TV Hypermotion 5":            {"LALIGA HYPERMOTION 5"},
+	"HYPERMOTION 4":                      {"LALIGA HYPERMOTION 4"},
+	"HYPERMOTION 5":                      {"LALIGA HYPERMOTION 5"},
+	"M+ BALONCESTO":                      {"M+ BALONCESTO"},
+	"M+ BALONCESTO 2":                    {"M+ BALONCESTO 2"},
+	"FOX PREMIUM UFC":                    {"UFC", "PARAMOUNT+ UFC", "PARAMOUNT+", "PARAMOUNT PLUS UFC"},
+	"UFC Fight Pass":                     {"UFC", "PARAMOUNT+ UFC"},
+	"NBA TV":                             {"NBA TV"},
+	"DAZN FIFA 1":                        {"DAZN FIFA 1"},
+	"DAZN FIFA 2":                        {"DAZN FIFA 2"},
+	"DAZN FIFA 3":                        {"DAZN FIFA 3"},
+	"DAZN FIFA 4":                        {"DAZN FIFA 4"},
+	// Variantes validadas offline con TypeSafe (juicios Choice, sin runtime).
+	// Solo se hornearon mapeos confiados (p>=0.8) con destino canónico existente
+	// y seguros sin contexto de competición. Ver gateway_static_test.go.
+	// Descartados expresamente: "La Liga TV M3" (depende de Hypermotion vs Serie A),
+	// "Paramount Plus" sin UFC (sin pool), "DAZN Bar 1" y "GOL TV Play" (ambiguos),
+	// "Vamos por M+" (eslogan inventado), "Eurosport 360 4" (sin pool).
+	"M+ L. Campeones":    {"M+ LIGA DE CAMPEONES"},
+	"Movistar Deporte 2": {"M+ DEPORTES 2"},
+	"Dazen 1":            {"DAZN 1"},
+	"LaLiga Smartbank":   {"LALIGA HYPERMOTION"},
+	"ESPN Premium":       {"ESPN ARGENTINA"},
+	"TNT Sports Premium": {"TNT SPORTS"},
+	"D Sports":           {"DS SPORT"},
+	"UFC FightPass":      {"UFC"},
+	"Primera RFEF":       {"Primera Federacion"},
+	// Ronda 2 (2026-09, top-miss reales de platinsport* en producción).
+	// Solo variantes mecánicas (prefijo M+, espaciado) con precedente directo
+	// en este mapa. "M+ Deportes*" NO hizo falta: colisiona con "M. Deportes*".
+	// Sin mapear a propósito: "M+ VAMOS 2/3", "M+ Golf 2" (sin pool claro),
+	// generalistas/rusas/sudacas sin pool (TVE, RTL, NTV, HBO...).
+	"M+ Vamos":              {"M+ VAMOS"},
+	"M+ Liga de Campeones":  {"M+ LIGA DE CAMPEONES"},
+	"M+ Liga de Campeones 2": {"M+ LIGA DE CAMPEONES 2"},
+	"M+ Liga de Campeones 3": {"M+ LIGA DE CAMPEONES 3"},
+	"M+ Liga de Campeones 4": {"M+ LIGA DE CAMPEONES 4"},
+	"M+ Liga de Campeones 5": {"M+ LIGA DE CAMPEONES 5"},
+	"M+ Liga de Campeones 6": {"M+ LIGA DE CAMPEONES 6"},
+	"M+ Liga de Campeones 7": {"M+ LIGA DE CAMPEONES 7"},
+	"M+ Liga de Campeones 8": {"M+ LIGA DE CAMPEONES 8"},
+	"M+ Golf":               {"M+ GOLF"},
+	"Eurosport 360 2":       {"EUROSPORT 2"},
+	"Red Bull TV":           {"REDBULL TV"},
+	// Ronda 3 (2026-10): broadcasters de vars.go que NO Tenian ninguna entrada
+	// y por tanto ninguna fuente viva podia rellenar nunca. Medido sobre las 6
+	// fuentes activas: +6 enlaces en total.
+	//
+	// Solo match EXACTO contra el nombre que las fuentes emiten hoy. Descartado
+	// a propósito el matcher por prefijo: las fuentes filtran fragmentos de hash
+	// en el nombre ("ESPN 3 e63", "TNT Sport 2 1080 c5b", "Canal+ Sports 1 b4b")
+	// que CAMBIAN en cada republicación, igual que el subdir de elcano, así que
+	// una clave con ese sufijo caduca sola. Medido: el prefijo añadiría +4
+	// enlaces y abriría 2 claves, por un 0,4% del total, a cambio de lógica
+	// nueva con riesgo de que un canal reciba el stream de otro.
+	"Eleven Sports 2": {"ELEVEN SPORTS 2"},
+	"Eleven Sports 3": {"ELEVEN SPORTS 3"},
+	"Eleven Sports 4": {"ELEVEN SPORTS 4"},
+	// "TNT" a secas es lo que emiten las fuentes; en vars.go el canal 1 es
+	// "TNT SPORTS 1" (el atajo "TNT" de vars.go es alias suyo).
+	"TNT": {"TNT SPORTS 1"},
+}
+
+func updateBroadcasterMapWithGateway(existingMap map[string]BroadcasterInfo, newData map[string][]string) map[string]BroadcasterInfo {
+	for extractedName, links := range newData {
+		mappedKeys, exists := broadcasterGatewayMap[extractedName]
+		if !exists {
+			continue
+		}
+
+		for _, mappedKey := range mappedKeys {
+			if mappedKey == "" {
+				continue
+			}
+			if info, ok := existingMap[mappedKey]; ok {
+				info.Links = removeDuplicates(append(info.Links, links...))
+				existingMap[mappedKey] = info
+			} else {
+				existingMap[mappedKey] = BroadcasterInfo{Links: links, Name: mappedKey, ShowListChannels: false}
+			}
+		}
+	}
+	return existingMap
+}
+
+func updateBroadcasterMapWithGatewayTolerant(existingMap map[string]BroadcasterInfo, newData map[string][]string, source string) map[string]BroadcasterInfo {
+	ensureNormGateway()
+	isDev := os.Getenv("ENV") == "dev"
+	hits := 0
+	miss := 0
+	missHashes := make(map[string]int)
+	for extractedName, links := range newData {
+		nk := normalizeTolerant(extractedName)
+		mappedKeys, exists := normGateway[nk]
+		if !exists {
+			miss++
+			missHashes[extractedName] += len(links)
+			continue
+		}
+		hits++
+		for _, mappedKey := range mappedKeys {
+			if mappedKey == "" {
+				continue
+			}
+			if info, ok := existingMap[mappedKey]; ok {
+				info.Links = removeDuplicates(append(info.Links, links...))
+				existingMap[mappedKey] = info
+			} else {
+				existingMap[mappedKey] = BroadcasterInfo{Links: links, Name: mappedKey, ShowListChannels: false}
+			}
+		}
+	}
+	if isDev && len(newData) > 0 {
+		log.Printf("🔧 [%s] gateway tolerant: %d hits, %d miss de %d entradas", source, hits, miss, len(newData))
+		logTopGatewayMisses(source, missHashes, 15)
+	}
+	return existingMap
+}
+
+// logTopGatewayMisses agrega los misses por nº de hashes para curar el mapa
+// (pega esta salida para hornear nuevas variantes; no mapear a ciegas).
+func logTopGatewayMisses(source string, missHashes map[string]int, top int) {
+	if len(missHashes) == 0 {
+		return
+	}
+	type missStat struct {
+		name   string
+		hashes int
+	}
+	stats := make([]missStat, 0, len(missHashes))
+	for name, n := range missHashes {
+		stats = append(stats, missStat{name, n})
+	}
+	sort.Slice(stats, func(i, j int) bool { return stats[i].hashes > stats[j].hashes })
+	if len(stats) < top {
+		top = len(stats)
+	}
+	for _, ms := range stats[:top] {
+		log.Printf("   miss [%s]: %q (%d hashes)", source, ms.name, ms.hashes)
+	}
+}
+
+func removeDuplicates(slice []string) []string {
+	seen := make(map[string]bool)
+	result := []string{}
+
+	for _, item := range slice {
+		if !seen[item] {
+			seen[item] = true
+			result = append(result, item)
+		}
+	}
+
+	return result
+}

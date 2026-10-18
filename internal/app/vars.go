@@ -1,0 +1,1794 @@
+package app
+
+// Opcionalmente, si los links tienen más información (como calidad, idioma, etc.)
+type AcestreamLink struct {
+	Hash     string `json:"hash"`
+	Quality  string `json:"quality,omitempty"`  // Ej: "HD", "SD"
+	Language string `json:"language,omitempty"` // Ej: "ES", "EN"
+}
+
+// Mapeo de broadcasters a su información detallada (incluyendo múltiples links)
+var broadcasterToAcestream = map[string]BroadcasterInfo{
+	"DAZN": {
+		Logo:  "dazn.png",
+		Links: []string{
+			// "eb6ffec065b26259ad3d1811e0bbb0a5332ed276",
+			// "b03f9310155cf3b4eafc1dfba763781abc3ff025",
+			// "6538b79ce0da657d8455d1da6a5f342398899a0e",
+			// "50a8a13c474848d1efbd5586efdb5b6cdd173fa9",
+			// "4141892f5df7d6474bf0279895ce02b7336c9928",
+			// "01b9d9bd3d4ee299569e4a161ae719c2781aa7cb",
+			// "fe0614decc0bd6e703cc060628c9914c26815f65",
+		},
+		Name:             "DAZN",
+		ShowListChannels: false,
+		Order:            10,
+	},
+
+	"DAZN 1": {
+		Logo:  "dazn1.png",
+		Links: []string{
+			// "eb6ffec065b26259ad3d1811e0bbb0a5332ed276",
+			// "b03f9310155cf3b4eafc1dfba763781abc3ff025",
+			// "6538b79ce0da657d8455d1da6a5f342398899a0e",
+			// "50a8a13c474848d1efbd5586efdb5b6cdd173fa9",
+			// "4141892f5df7d6474bf0279895ce02b7336c9928",
+		},
+		Name:             "DAZN 1",
+		ShowListChannels: true,
+		Order:            11,
+	},
+	"DAZN 2": {
+		Logo:  "dazn2.png",
+		Links: []string{
+			// "8b081c8afbd9beafc8c5fbf0115eb36eadb07a35",
+			// "b0eabe0fdd02fdd165896236765a9b753a2ff516",
+			// "43004e955731cd3afcc34d24e5178d4b427bff37",
+		},
+		Name:             "DAZN 2",
+		ShowListChannels: true,
+		Order:            12,
+	},
+	"DAZN 3": {
+		Logo:  "dazn3.png",
+		Links: []string{
+			// "d1d9ec2361a6ac8edc0b2841866383768cc28df9",
+		},
+		Name:             "DAZN 3",
+		ShowListChannels: true,
+		Order:            13,
+	},
+	"DAZN 4": {
+		Logo:  "dazn4.png",
+		Links: []string{
+			// "eb884f77ce8815cf1028c4d85e8b092c27ea1693",
+			// "e2b8a4aba2f4ea3dd68992fcdb65c9e62d910b05",
+			// "7e27e46c25d4308d16098d9dc67fcd8736e8c1f0",
+			// "4e401fdceebffdf1f09aef954844d09f6c62f460",
+			// "6a11eb510edc5b3581c5c97883c44563eb894b1b",
+			// "7e90956539f4e1318a63f3960e4f75c7c7c5a3b8",
+			// "c21a2524a8de3e1e5b126f2677a3e993d9aa07c4",
+		},
+		Name:             "DAZN 4",
+		ShowListChannels: true,
+		Order:            14,
+	},
+	"DAZN LALIGA": {
+		Logo: "daznlaliga.png",
+		Links: []string{
+			// "19f28f60c908f987b1a03da078e63320d7bf29e8",
+			// "e2b8a4aba2f4ea3dd68992fcdb65c9e62d910b05",
+			// "74defb8f4ed3a917fd07c21b34f43c17107ec618",
+			// "0e50439e68aa2435b38f0563bb2f2e98f32ff4b1",
+			// "1bb5bf76fb2018d6db9aaa29b1467ecdfabe2884",
+			// "4e6d9cf7d177366045d33cd8311d8b1d7f4bed1f",
+			// "f8d5e39a49b9da0215bbd3d9efb8fb3d06b76892",
+		},
+		Name:             "DAZN LALIGA",
+		ShowListChannels: true,
+		Order:            15,
+	},
+	"DAZN LALIGA 2": {
+		Logo:  "daznlaliga.png",
+		Links: []string{
+			// "a231b2fa1f7754433efeb8bb8d69d7b9096dcba8",
+			// "5091ea94b75ba4b50b078b4102a3d0e158ef59c3",
+			// "c976c7b37964322752db562b4ad65515509c8d36",
+		},
+		Name:             "DAZN LALIGA 2",
+		ShowListChannels: true,
+		Order:            16,
+	},
+	"DAZN LALIGA 3": {
+		Logo:  "daznlaliga.png",
+		Links: []string{},
+		Name:             "DAZN LALIGA 3",
+		ShowListChannels: false,
+		Order:            17,
+	},
+
+	// "DAZN 1 BAR": {
+	// 	Logo: "daznbar.png",
+	// 	Links: []string{
+	// 		// "688e785893b50acc1d00cb37f15bfc42e72f5ae3",
+	// 	},
+	// 	Name:             "DAZN BAR",
+	// 	ShowListChannels: true,
+	// 	Order:            18,
+	// },
+	// "DAZN 2 BAR": {
+	// 	Logo: "dazn2bar.png",
+	// 	Links: []string{
+	// 		// "2f9211669499f413dab1a490198afab2a9b4b57c",
+	// 	},
+	// 	Name:             "DAZN 2 BAR",
+	// 	ShowListChannels: true,
+	// 	Order:            19,
+	// },
+	"DAZN LALIGA TV": {
+		Logo: "daznlaliga.png",
+		Links: []string{
+			"1bb5bf76fb2018d6db9aaa29b1467ecdfabe2884",
+			"74defb8f4ed3a917fd07c21b34f43c17107ec618",
+			// "0e50439e68aa2435b38f0563bb2f2e98f32ff4b1",
+			// "1bb5bf76fb2018d6db9aaa29b1467ecdfabe2884",
+			// "f8d5e39a49b9da0215bbd3d9efb8fb3d06b76892",
+			// "520950d296c952e1864a08e15af9f89f1ab514ec",
+		},
+		Name:             "DAZN LA LIGA 1",
+		ShowListChannels: false,
+	},
+	"DAZN F1": {
+		Logo:  "daznf1.png",
+		Links: []string{
+			// "b08e158ea3f5c72084f5ff8e3c30ca2e4d1ff6d1",
+			// "bcf9dc38f92e90a71b87bd54b3bac91b76d09a69",
+			// "fd53cfa7055fe458d4f5c0ff59a06cd43723be55",
+			// "38e9ae1ee0c96d7c6187c9c4cc60ffccb565bdf7",
+			// "3f5b7e2f883fe4b4b973e198d147a513d5c7c32a",
+
+			// "ba6e1bdc8e03da60ff572557645eb04370af0cd0",
+			// "8c1155cdfae76eb582290c04904c98da066657c9",
+			// "b08e158ea3f5c72084f5ff8e3c30ca2e4d1ff6d1",
+			// "bcf9dc38f92e90a71b87bd54b3bac91b76d09a69",
+
+			// "ed6188dcbb491efeb2092c1a6199226c27f61727",
+			// "6422e8bc34282871634c81947be093c04ad1bb29",
+		},
+		Name:             "DAZN F1",
+		ShowListChannels: true,
+		Order:            17,
+	},
+	"DAZN MOTOGP": {
+		Logo:  "daznmotogp.png",
+		Links: []string{
+			// "e18b79bce27f6ee8eef9a1fc811bb5f80e4b558c",
+			// "20d4b3586bb822c3618cf8fb665a304869c5e1a5",
+			// "c53bdb3be55d12c5188d25085f1bb16911c15cea",
+			// "342ca6975a4884d81f9fec5c4085a47060bd2028",
+			// "ac33342ccf7d40d46174229085461d95000b9137",
+			// "129c707eb4854171d178a566f36d90b7f2b5e624",
+			// "23bee556c002d0726c1f0cac98a1901cff0a9239",
+			// "5548659c188e1d4d3b6e756e6c56485eb242abac",
+		},
+		Name:             "DAZN MOTOGP",
+		ShowListChannels: true,
+		Order:            18,
+	},
+	
+	"DAZN BALONCESTO 1": {
+		Logo:  "daznbaloncesto.png",
+		Links: []string{
+			// "23bee556c002d0726c1f0cac98a1901cff0a9239",
+			// "8faa686a99697b99261346e479ead172b1d9d5d2",
+		},
+		Name:             "DAZN BALONCESTO 1",
+		ShowListChannels: true,
+		Order:            19,
+	},
+	"DAZN BALONCESTO 2": {
+		Logo:  "daznbaloncesto.png",
+		Links: []string{
+			// "22b702984a0db43fd371c30e2df150b2336551cd",
+		},
+		Name:             "DAZN BALONCESTO 2",
+		ShowListChannels: true,
+		Order:            20,
+	},
+	"DAZN BALONCESTO 3": {
+		Logo:             "daznbaloncesto.png",
+		Links:            []string{},
+		Name:             "DAZN BALONCESTO 3",
+		ShowListChannels: true,
+		Order:            21,
+	},
+
+	"DS SPORT": {
+		Logo: "dsport.webp",
+		Links: []string{
+			"8bdeb6055da0be3bd1e1977dbf3640408f7d0267",
+			"http://190.117.20.37:8000/play/a08d/index.m3u8",   //
+			"http://179.63.6.17:9000/play/a08e",                //
+			"http://181.78.106.127:9000/play/ca026/index.m3u8", //
+		},
+		Name:             "DSPORT",
+		ShowListChannels: true,
+		Order:            650,
+	},
+	// "ESPN MX": {
+	// 	Logo: "espn.webp",
+	// 	Links: []string{
+	// 		"http://181.78.106.127:9000/play/ca033/index.m3u8", //"",
+	// 	},
+	// 	Name:             "ESPN MX",
+	// 	ShowListChannels: true,
+	// },
+
+	// "ESPN 2": {
+	// 	Logo: "espn.webp",
+	// 	Links: []string{
+	// 		"http://45.71.254.1:8000/play/a0e7/index.m3u8",
+	// 		"http://181.78.106.127:9000/play/ca034/index.m3u8",
+	// 		// "http://181.205.130.194:4000/play/a07i",
+	// 	},
+	// 	Name:             "ESPN 2",
+	// 	ShowListChannels: false,
+	// },
+	// "ESPN": {
+	// 	Logo: "espn.webp",
+	// 	Links: []string{
+	// 		"http://181.188.216.5:18000/play/a0dk/index.m3u8",
+	// 		"http://181.78.106.127:9000/play/ca033/index.m3u8",
+
+	// 		// "http://45.71.254.1:8000/play/a0e6/index.m3u8",
+	// 		// "http://200.60.124.19:29000/play/a015",
+	// 		// "http://181.78.106.127:9000/play/ca034/index.m3u8",
+	// 		// "http://181.205.130.194:4000/play/a07i",            //
+
+	// 	},
+	// 	Name:             "ESPN 1",
+	// 	ShowListChannels: false,
+	// },
+
+	"ESPN 3": {
+		Logo: "espn.webp",
+		Links: []string{
+			"p;http://45.71.254.1:8000/play/a0e8/index.m3u8",
+			"p;http://181.78.106.127:9000/play/ca035/index.m3u8", //
+		},
+		Name:             "ESPN 3",
+		ShowListChannels: false,
+	},
+	// "ESPN 4": {
+	// 	Logo: "espn.webp",
+	// 	Links: []string{
+	// 		"http://45.71.254.1:8000/play/a0c5/index.m3u8",
+	// 	},
+	// 	Name:             "ESPN 4",
+	// 	ShowListChannels: false,
+	// },
+
+	// "ESPN 5": {
+	// 	Logo: "espn.webp",
+	// 	Links: []string{
+	// 		"http://179.51.136.19:8000/play/a1a6/index.m3u8",
+	// 		// "http://38.41.8.1:8000/play/a07b", //
+	// 	},
+	// 	Name:             "ESPN 5",
+	// 	ShowListChannels: false,
+	// },
+
+	// "ESPN 6": {
+	// 	Logo: "espn.webp",
+	// 	Links: []string{
+	// 		"http://45.71.254.1:8000/play/a0e9/index.m3u8",
+	// 		// "http://181.205.130.194:4000/play/a07t", //
+	// 		// "http://38.44.109.41:8003/play/a00u",    //
+	// 		// "http://38.41.8.1:8000/play/a082",       //
+	// 	},
+	// 	Name:             "ESPN 6",
+	// 	ShowListChannels: false,
+	// },
+
+	// "ESPN 7 MX": {
+	// 	Logo: "espn.webp",
+	// 	Links: []string{
+	// 		"http://181.205.130.194:4000/play/a07s", //
+
+	// 	},
+	// 	Name:             "ESPN 7 MX",
+	// 	ShowListChannels: false,
+	// },
+	"Fox Sports 2 ARG": {
+		Logo:             "foxsports1.png",
+		Links:            []string{},
+		Name:             "FOX SPORT 2 ARG",
+		ShowListChannels: true,
+	},
+	"ESPN ARGENTINA": {
+		Logo: "espndeportes.png",
+		Links: []string{
+			"4bf4431b4815f07c1b3749f5a10f905ba566cd47",
+			"79f10c6c6168e42bfc606f3f7b9e5f3ca79dedab",
+		},
+		Name:             "ESPN ARGENTINA 1",
+		ShowListChannels: true,
+		Order:            1650,
+	},
+	"ESPN ARGENTINA 2": {
+		Logo: "espndeportes.png",
+		Links: []string{
+			"ab7f9cc29ad09ee9575fed758ab317c818fdc491",
+			"3e0ba6867173f345d482d80c771f1a5dc3b37e63",
+		},
+		Name:             "ESPN ARGENTINA 2",
+		ShowListChannels: true,
+		Order:            1651,
+	},
+	"ESPN ARGENTINA 3": {
+		Logo: "espndeportes.png",
+		Links: []string{
+
+			"d872a44653bf2ad232d5f8476597754b69e3d56c",
+			"a97cafedefe189d63e52eadc5c9bbc351b01540a",
+		},
+		Name:             "ESPN ARGENTINA 3",
+		ShowListChannels: true,
+		Order:            1652,
+	},
+	"ESPN ARGENTINA 4": {
+		Logo: "espndeportes.png",
+		Links: []string{
+			"5f9b19c57195cc28ab81e0ec8cad03b55118687a",
+		},
+		Name:             "ESPN ARGENTINA 4",
+		ShowListChannels: true,
+		Order:            1653,
+	},
+
+	// "ESPN PREMIUM": {
+	// 	Logo: "espnpremium.webp",
+	// 	Links: []string{
+	// 		"http://190.102.246.93:9005/play/a00x", //
+	// 		"http://190.102.246.93:9005/play/a029", //
+	// 	},
+	// 	Name:             "ESPN PREMIUM",
+	// 	ShowListChannels: false,
+	// },
+	"TNT": {
+		Logo: "tntsports.png",
+		Links: []string{
+			"efc60cfe5e3a349baa02bcc49f6647c21a9c3c5b",
+		},
+		Name:             "TNT SPORTS 1",
+		ShowListChannels: false,
+	},
+	"TNT SPORTS": {
+		Logo: "tntsports.png",
+		Links: []string{
+			"efc60cfe5e3a349baa02bcc49f6647c21a9c3c5b",
+		},
+		Name:             "TNT SPORTS 1",
+		ShowListChannels: true,
+		Order:            80,
+	},
+	"TNT SPORTS 1": {
+		Logo: "tntsports.png",
+		Links: []string{
+			"efc60cfe5e3a349baa02bcc49f6647c21a9c3c5b",
+		},
+		Name:             "TNT SPORTS 1",
+		ShowListChannels: false,
+		Order:            81,
+	},
+	"TNT SPORTS 2": {
+		Logo: "tntsports.png",
+		Links: []string{
+			"d63d8a57cf471394bfa9f619bbd68b01ae27a801",
+			"",
+		},
+		Name:             "TNT SPORTS 2",
+		ShowListChannels: true,
+		Order:            82,
+	},
+	"TNT SPORTS 3": {
+		Logo: "tntsports.png",
+		Links: []string{
+			"5f966c123759de46dff29c379266b7a403452033",
+		},
+		Name:             "TNT SPORTS 3",
+		ShowListChannels: true,
+		Order:            83,
+	},
+	"TNT SPORTS 4": {
+		Logo: "tntsports.png",
+		Links: []string{
+			"fc5089d8e1519872fdf951779ccbca913acc9bce",
+		},
+		Name:             "TNT SPORTS 4",
+		ShowListChannels: true,
+		Order:            84,
+	},
+
+	"M+": {
+		Logo: "m.png",
+		Links: []string{
+			"1ab443f5b4beb6d586f19e8b25b9f9646cf2ab78",
+			"199190e3f28c1de0be34bccf0d3568dc65209b99",
+			// "5866e83279307bf919068ae7a0d250e4e424e464",
+			"b6ffbbc72a5b6b579faf79ebac229af7a25b933b",
+			"8c67cdb5ba81976662c3a67984a9545d9cfb0f70",
+			"c3c3f61bea8a17fb59105278de704a548b58f2dc",
+			"7ab348f9f96f8719649c02129e68a0264d421e0c",
+			// "5d9a26e0a5f3e5f2ae027bd05635ab9a4fd4b51a",
+			// "5e24a1b9187fccb91553f7c7da4b36341386f74a",
+
+		},
+		Name:             "M+",
+		ShowListChannels: true,
+		Order:            30,
+	},
+	"MOVISTAR PLUS+": {
+		Logo: "m.png",
+		Links: []string{
+			"1ab443f5b4beb6d586f19e8b25b9f9646cf2ab78",
+			"199190e3f28c1de0be34bccf0d3568dc65209b99",
+			// "5866e83279307bf919068ae7a0d250e4e424e464",
+			"b6ffbbc72a5b6b579faf79ebac229af7a25b933b",
+			"8c67cdb5ba81976662c3a67984a9545d9cfb0f70",
+			"c3c3f61bea8a17fb59105278de704a548b58f2dc",
+			"7ab348f9f96f8719649c02129e68a0264d421e0c",
+			// "5d9a26e0a5f3e5f2ae027bd05635ab9a4fd4b51a",
+			// "5e24a1b9187fccb91553f7c7da4b36341386f74a",
+		},
+		Name:             "MOVISTAR PLUS+ 1",
+		ShowListChannels: true,
+		Order:            31,
+	},
+	"MOVISTAR PLUS+ 2": {
+		Logo: "m2.png",
+		Links: []string{
+			"e19c1fc5e3ada56c60d45257f7f4ed0d14bf7003",
+			"fbc39d8a9e5d7c9ac6a1438d440104620f54e09c",
+		},
+		Name:             "MOVISTAR PLUS+ 2",
+		ShowListChannels: true,
+		Order:            32,
+	},
+	"MOVISTAR PLUS": {
+		Logo:  "m.png",
+		Links: []string{
+			// "199190e3f28c1de0be34bccf0d3568dc65209b99",
+			// "5866e83279307bf919068ae7a0d250e4e424e464",
+			// "5d9a26e0a5f3e5f2ae027bd05635ab9a4fd4b51a",
+			// "5e24a1b9187fccb91553f7c7da4b36341386f74a",
+		},
+		Name:             "MOVISTAR PLUS+ 1",
+		ShowListChannels: false,
+	},
+	"Movistar Plus+": {
+		Logo:  "m.png",
+		Links: []string{
+			// "199190e3f28c1de0be34bccf0d3568dc65209b99",
+			// "5866e83279307bf919068ae7a0d250e4e424e464",
+			// "5d9a26e0a5f3e5f2ae027bd05635ab9a4fd4b51a",
+			// "5e24a1b9187fccb91553f7c7da4b36341386f74a",
+		},
+		Name:             "MOVISTAR PLUS+ 1",
+		ShowListChannels: false,
+	},
+	"LALIGA HYPERMOTION": {
+		Logo:  "mlaligahyper.png",
+		Links: []string{
+			// "70f22be1286ef224b5e4e9451d9a42468152cda4",
+			// "8ee52f6208e33706171856f99d2ed2dabd317f3a",
+			// "70f22be1286ef224b5e4e9451d9a42468152cda4",
+			// "f15f997f457e49ad9697e65cf2d78db26ee875b9",
+			// "ff38b875b60074d60edb64cf10d09b32370a7135",
+			// "778d2f60bb7207addedcca0b9aed98f41529724e",
+		},
+		Name:             "LALIGA HYPERMOTION",
+		ShowListChannels: true,
+		Order:            45,
+	},
+	"LALIGA HYPERMOTION 2": {
+		Logo:  "mlaligahyper.png",
+		Links: []string{
+			// "8a05571c0c8fe53f160fb7d116cdf97243679e86",
+			// "709075831bf5c41ed0a20dfbd640aab6c28971f8",
+		},
+		Name:             "LALIGA HYPERMOTION 2",
+		ShowListChannels: true,
+		Order:            46,
+	},
+	"LALIGA HYPERMOTION 3": {
+		Logo:  "mlaligahyper.png",
+		Links: []string{
+			// "1ba18731a8e18bb4b3a5dfa5bb7b0f05762849a6",
+		},
+		Name:             "LALIGA HYPERMOTION 3",
+		ShowListChannels: true,
+		Order:            47,
+	},
+	"HYPERMOTION": {
+		Logo:             "mlaligahyper.png",
+		Links:            []string{},
+		Name:             "LALIGA HYPERMOTION",
+		ShowListChannels: false,
+		Order:            45,
+	},
+	"HYPERMOTION 2": {
+		Logo:             "mlaligahyper.png",
+		Links:            []string{},
+		Name:             "LALIGA HYPERMOTION 2",
+		ShowListChannels: false,
+		Order:            46,
+	},
+	"HYPERMOTION 3": {
+		Logo:             "mlaligahyper.png",
+		Links:            []string{},
+		Name:             "LALIGA HYPERMOTION 3",
+		ShowListChannels: false,
+		Order:            47,
+	},
+	"LALIGA HYPERMOTION 4": {
+		Logo:  "mlaligahyper.png",
+		Links: []string{},
+		Name:             "LALIGA HYPERMOTION 4",
+		ShowListChannels: true,
+		Order:            48,
+	},
+	"LALIGA HYPERMOTION 5": {
+		Logo:  "mlaligahyper.png",
+		Links: []string{},
+		Name:             "LALIGA HYPERMOTION 5",
+		ShowListChannels: true,
+		Order:            49,
+	},
+	"HYPERMOTION 4": {
+		Logo:             "mlaligahyper.png",
+		Links:            []string{},
+		Name:             "LALIGA HYPERMOTION 4",
+		ShowListChannels: false,
+		Order:            48,
+	},
+	"HYPERMOTION 5": {
+		Logo:             "mlaligahyper.png",
+		Links:            []string{},
+		Name:             "LALIGA HYPERMOTION 5",
+		ShowListChannels: false,
+		Order:            49,
+	},
+	"M+ LALIGA": {
+		Logo: "mlaliga.png",
+		Links: []string{
+			// "d2ddf9802ccfdc456f872eea4d24596880a638a0",
+			// "14b6cd8769cd485f2cffdca64be9698d9bfeac58",
+			// "c16b4fab1f724c94cad92081cbb7fc7c6fe8a2cc",
+			// "c9321006921967d6258df6945f1d598a5c0cbf1e",
+			// "4b528d10eaad747ddf52251206177573ee3e9f74",
+			// "107c3ce5a5d2527c9f06e4eab87477201791f231",
+			// "00c9bc9c5d7d87680a5a6bed349edfa775a89947",
+			// "d4ff041287a43e3114d411d671c4b4e92e21f31e",
+			// "107c3ce5a5d2527c9f06e4eab87477201791f231",
+			// "d2ddf9802ccfdc456f872eea4d24596880a638a0",
+
+			// "07f2b92762cfff99bba785c2f5260c7934ca6034",
+			// "4b528d10eaad747ddf52251206177573ee3e9f74",
+			// "d3de78aebe544611a2347f54d5796bd87f16c92d",
+		},
+		Name:             "M+ LALIGA",
+		ShowListChannels: true,
+		Order:            40,
+	},
+	"LALIGA TV": {
+		Logo: "mlaligatv.png",
+		Links: []string{
+			// "d2ddf9802ccfdc456f872eea4d24596880a638a0",
+			// "c9321006921967d6258df6945f1d598a5c0cbf1e",
+			// "107c3ce5a5d2527c9f06e4eab87477201791f231",
+			// "00c9bc9c5d7d87680a5a6bed349edfa775a89947",
+			// "14b6cd8769cd485f2cffdca64be9698d9bfeac58",
+			// "cc9b7f5fe416069a2110da0909b0f915043c468b",
+			// "14b6cd8769cd485f2cffdca64be9698d9bfeac58",
+			// "07f2b92762cfff99bba785c2f5260c7934ca6034",
+			// "4b528d10eaad747ddf52251206177573ee3e9f74",
+			// "d3de78aebe544611a2347f54d5796bd87f16c92d",
+		},
+		Name:             "M+ LALIGA",
+		ShowListChannels: false,
+	},
+	"M+ LALIGA 2": {
+		Logo:  "mlaliga2.png",
+		Links: []string{
+
+			// "911ad127726234b97658498a8b790fdd7516541d",
+			// "51b363b1c4d42724e05240ad068ad219df8042ec",
+
+			// "ad42faa399df66dcd62a1cbc9d1c99ed4512d3b8",
+		},
+		Name:             "M+ LALIGA 2",
+		ShowListChannels: true,
+		Order:            41,
+	},
+	"LALIGA TV 2": {
+		Logo:  "mlaliga2.png",
+		Links: []string{
+			// "911ad127726234b97658498a8b790fdd7516541d",
+			// "51b363b1c4d42724e05240ad068ad219df8042ec",
+
+			// "911ad127726234b97658498a8b790fdd7516541d",
+			// "51b363b1c4d42724e05240ad068ad219df8042ec",
+			// "ad42faa399df66dcd62a1cbc9d1c99ed4512d3b8",
+		},
+		Name:             "LALIGA TV 2",
+		ShowListChannels: false,
+	},
+	"M+ LALIGA 3": {
+		Logo:  "mlaliga3.png",
+		Links: []string{
+			// "7ad14386deef2f45ffe17d30a631dbf79b6a1a87",
+			// "382b14499e3d76e557d449d2e5bbc4e4bd63bd39",
+		},
+		Name:             "M+ LALIGA 3",
+		ShowListChannels: true,
+		Order:            42,
+	},
+	"M+ LALIGA 3 TV": {
+		Logo:  "mlaliga3.png",
+		Links: []string{
+			// "7ad14386deef2f45ffe17d30a631dbf79b6a1a87",
+			// "382b14499e3d76e557d449d2e5bbc4e4bd63bd39",
+		},
+		Name:             "M+ LALIGA 3",
+		ShowListChannels: false,
+	},
+	"M+ LALIGA 4": {
+		Logo:  "mlaliga3.png",
+		Links: []string{
+			// "7ad14386deef2f45ffe17d30a631dbf79b6a1a87",
+			// "382b14499e3d76e557d449d2e5bbc4e4bd63bd39",
+		},
+		Name:             "M+ LALIGA 4",
+		ShowListChannels: true,
+		Order:            43,
+	},
+	"M+ LIGA DE CAMPEONES": {
+		Logo: "mligacampeones.png",
+		Links: []string{
+
+			"bb5a8bf7752e978460ee1710e5e8950a5c9e1f99",
+			// "afbf2a479c5a5072698139f0f556ef3e77a99bd0",
+			// "0f7842f8b6c26571e5a974407b61623e56e6a052",
+			// "f3eea003e23f94dc2d527306de9dd386e3ebf4ba",
+			// "e0c8c8d12c6e3ea1d4a27a171be6c11a08cff6fb",
+			// "680187938f9305cce3ae240298f10e8695bf77c2",
+			// "e572a5178ff72eed7d1d751a18b4b3419699f370",
+			// "c16b4fab1f724c94cad92081cbb7fc7c6fe8a2cc",
+			// "dfa66881b9613a77bd5479f6eedc5542504c3ef7",
+		},
+		Name:             "M+ LIGA DE CAMPEONES 1",
+		ShowListChannels: true,
+		Order:            53,
+	},
+	"M+ LIGA DE CAMPEONES 2": {
+		Logo: "mligacampeones2.png",
+		Links: []string{
+			// "c6a3673f6a37b1bd3cf31fdd6404dd33d48cfccb",
+			// "e7d8cae7f693fe46e89bbf74820caac9ffb32a30",
+			// "74ab4e4ec7e2da001f473ca40893b7307b8029c5",
+			// "4fc6d0331830ad8743abab2fe2473b63bdfbc49f",
+			"dd93c8469d02c179a63bcf9a3fcf0970bf7bb04f",
+			"2faa67e78d2c2bca752056ecf8a62c8ffb1364c5",
+			// "38f7b2044e549df2039ff26cefa6f9a60c854d5e",
+			// "33c009a025508cb2186b9ce36279640bb2507bdf",
+
+		},
+		Name:             "M+ LIGA DE CAMPEONES 2",
+		ShowListChannels: true,
+		Order:            54,
+	},
+	"M+ LIGA DE CAMPEONES 3": {
+		Logo: "mligacampeones3.png",
+		Links: []string{
+			"17b8bc4bf8e29547b0071c742e3d7da3bcbc484d",
+			// "4416843c96b7f7a1bc55c476091a60fff0922bc7",
+			// "2b5129adc57d43790634d796fe3468b9fd061259",
+			// "4cd17d525469e65e0b898aad86257f21a61fefdb",
+			// "09a24e6a594438946c277c27bacf669ebace26ca",
+			// "17b8bc4bf8e29547b0071c742e3d7da3bcbc484d",
+		},
+		Name:             "M+ LIGA DE CAMPEONES 3",
+		ShowListChannels: true,
+		Order:            55,
+	},
+	"M+ LIGA DE CAMPEONES 4": {
+		Logo: "mligacampeones4.png",
+		Links: []string{
+			"77998f8161373611ff6b348e7eda5b4e97d3ec29",
+			"e9f4493d2d851f4636720f639113e05b4a21a74c",
+			"6617dfa2c9527bc620579d4dd4f3020efd8c41b8",
+			// "77998f8161373611ff6b348e7eda5b4e97d3ec29",
+			"53cd86466d1faed03a607be92af601f7e8da128f",
+		},
+		Name:             "M+ LIGA DE CAMPEONES 4",
+		ShowListChannels: true,
+		Order:            56,
+	},
+	"M+ LIGA DE CAMPEONES 5": {
+		Logo: "mligacampeones.png",
+		Links: []string{
+			"5620c0ce3dcbf14a6375cb2c2d681207f45eb97d",
+			"e2737e7a8d93fcf25d0f687c2fe79dc7496b23d9",
+			"9e599f79585b390dd7c17d561832bc8aba49caf7",
+			"90ed151957e8198fa993c6cdb4bacb59481c3e09",
+			"4543b0a05e7ab29022c78bc5753e8b29b5c82f94",
+		},
+		Name:             "M+ LIGA DE CAMPEONES 5",
+		ShowListChannels: true,
+		Order:            57,
+	},
+	"M+ LIGA DE CAMPEONES 6": {
+		Logo: "mligacampeones.png",
+		Links: []string{
+			"991f1c87728632037ecdd730b0c44f9933863119",
+			"adeb88f7744ca1cb9f3c3c449cd07bbd8ed3a7f3",
+			"806b8f3f1092808aea29cedea6e8f9900f74b2ba",
+		},
+		Name:             "M+ LIGA DE CAMPEONES 6",
+		ShowListChannels: true,
+		Order:            58,
+	},
+	"M+ LIGA DE CAMPEONES 7": {
+		Logo: "mligacampeones.png",
+		Links: []string{
+			"d0c92cf5ad82ea19dc8df8bafd4fa61e40f98762",
+			"005976d96cf86b5169b0b16795fb2cc5b98edcf4",
+		},
+		Name:             "M+ LIGA DE CAMPEONES 7",
+		ShowListChannels: true,
+		Order:            59,
+	},
+	"M+ LIGA DE CAMPEONES 8": {
+		Logo: "mligacampeones.png",
+		Links: []string{
+			"f9a53a6a969cdd00747465a51a92b2bb748737af",
+			// "63789ef8cb07422638a2176c2c4cf29d6882df17",
+			"fb3e10862e749384806adaafe9c9dc0ab51d95c2",
+		},
+		Name:             "M+ LIGA DE CAMPEONES 8",
+		ShowListChannels: true,
+		Order:            60,
+	},
+	"M+ LIGA DE CAMPEONES 9": {
+		Logo:             "mligacampeones.png",
+		Links:            []string{},
+		Name:             "M+ LIGA DE CAMPEONES 9",
+		ShowListChannels: false,
+		Order:            61,
+	},
+	"M+ LIGA DE CAMPEONES 10": {
+		Logo:             "mligacampeones.png",
+		Links:            []string{},
+		Name:             "M+ LIGA DE CAMPEONES 10",
+		ShowListChannels: false,
+		Order:            62,
+	},
+	"M+ LIGA DE CAMPEONES 11": {
+		Logo:             "mligacampeones.png",
+		Links:            []string{},
+		Name:             "M+ LIGA DE CAMPEONES 11",
+		ShowListChannels: false,
+		Order:            63,
+	},
+	"M+ LIGA DE CAMPEONES 12": {
+		Logo:             "mligacampeones.png",
+		Links:            []string{},
+		Name:             "M+ LIGA DE CAMPEONES 12",
+		ShowListChannels: false,
+		Order:            64,
+	},
+	"M+ DEPORTES": {
+		Logo:  "mdeportes.png",
+		Links: []string{
+			// "5d3f582738467aaf213e408601aca5cc13fa9359",
+			// "3692ea4cdda97eb0062ed5d656ebd61f149ebd0b",
+			// "751b9cb03d188ce70e6aac22c1bfb16a5d0b2237",
+			// "ef9dcc4eaac36a0f608b52a31f8ab237859e071a",
+			// "ebca4a63ce3bfda7b272964a1acc5227218184a4",
+			// "2f3cfd199a49819cbd129689a840dc3d23ab93aa",
+		},
+		Name:             "M+ DEPORTES 1",
+		ShowListChannels: true,
+		Order:            62,
+	},
+	"M+ DEPORTES 2": {
+		Logo:  "mdeportes2.png",
+		Links: []string{
+			// "73d38feaa770d788848ec098470e32670fe55a61",
+			// "438991226c3bc6a06e7bfda9bea9f769957dc366",
+			// "f0ee7a2b43c1df5ea9e4fac5bf876d5bef4372b0",
+			// "edd06f11e1cef292a1d795e15207ef2f580e298c",
+			// "bfa01c11c5c6b7a616a516de4f2c769a89d26b25",
+		},
+		Name:             "M+ DEPORTES 2",
+		ShowListChannels: true,
+		Order:            63,
+	},
+	"M+ DEPORTES 3": {
+		Logo:  "mdeportes3.png",
+		Links: []string{
+			// "29d786d72d4b53dbc333af3a50f8fb021aa0296f",
+			// "d5271a967767f761c8812c4b6195dd40f20126f7",
+			// "753d4b1f7c4ef43238b5cf23b05572b550a44eee",
+		},
+		Name:             "M+ DEPORTES 3",
+		ShowListChannels: true,
+		Order:            64,
+	},
+	"M+ DEPORTES 4": {
+		Logo:  "mdeportes4.png",
+		Links: []string{
+			// "37825883ed185365e3194a79207347f6c7bd5ba5",
+			// "ebf3f251c1e119aefc6a1efc95c9b5d1909249e2",
+			// "58a4c880ab18486d914751db32a12760e74b75a4",
+		},
+		Name:             "M+ DEPORTES 4",
+		ShowListChannels: true,
+		Order:            65,
+	},
+	"M+ DEPORTES 5": {
+		Logo:  "mdeportes5.png",
+		Links: []string{
+			// "6dc4ac4eeae18e9daec433b01db82435cf84c57c",
+			// "9b84af74b2fa3690c519199326fc2f181b025cdd",
+			// "0b708083541a46dc15216c8003d7bcf39c458b2a",
+		},
+		Name:             "M+ DEPORTES 5",
+		ShowListChannels: true,
+		Order:            66,
+	},
+	"M+ DEPORTES 6": {
+		Logo:  "mdeportes6.png",
+		Links: []string{
+			// "190a81938c2ddc6fe97758271f8c48f4db31c28a",
+		},
+		Name:             "M+ DEPORTES 6",
+		ShowListChannels: true,
+		Order:            67,
+	},
+	"M+ DEPORTES 7": {
+		Logo:  "mdeportes7.png",
+		Links: []string{
+			// "190a81938c2ddc6fe97758271f8c48f4db31c28a",
+		},
+		Name:             "M+ DEPORTES 7",
+		ShowListChannels: true,
+		Order:            68,
+	},
+	"M+ DEPORTES 8": {
+		Logo:  "mdeportes8.png",
+		Links: []string{
+			// "190a81938c2ddc6fe97758271f8c48f4db31c28a",
+		},
+		Name:             "M+ DEPORTES 8",
+		ShowListChannels: true,
+		Order:            69,
+	},
+
+	"M+ VAMOS": {
+		Logo:  "mvamos.png",
+		Links: []string{
+			// "0e5d8c9724fa9163f49096b70484e315251eb785",
+			// "4e99e755aa32c4bc043a4bb1cd1de35f9bd94dde",
+			// "1444a976d2cf6e7fdcee833ed36ee5e55632253f",
+			// "c7c81acdd1a03ecc418c94c2f28e2adb0556c40b",
+			// "3b2a8b41e7097c16b0468b42d7de0320886fa933",
+			// "2940120bf034db79a7f5849846ccea0255172eae",
+		},
+		Name:             "M+ VAMOS",
+		ShowListChannels: true,
+		Order:            70,
+	},
+	"M+ BALONCESTO": {
+		Logo:  "movistarbaloncesto.jpg",
+		Links: []string{},
+		Name:             "M+ BALONCESTO",
+		ShowListChannels: true,
+		Order:            160,
+	},
+	"M+ BALONCESTO 2": {
+		Logo:  "movistarbaloncesto.jpg",
+		Links: []string{},
+		Name:             "M+ BALONCESTO 2",
+		ShowListChannels: true,
+		Order:            161,
+	},
+	"Primera Federacion": {
+		Logo: "primerafederacion.png",
+		Links: []string{
+			"599a2fda91aa55703e2c5a51562d9dbf5d3d31d9",
+			"7b742628b9f7e82902bdbc1ff92eba1988875cfc",
+			"177796041773be99b489dd3ce86144f243e7355f",
+			"854ff9c607101791346111cd2366a392c3b8c351",
+		},
+		Name:             "Primera federacion",
+		ShowListChannels: true,
+		Order:            159,
+	},
+	// "Ten TV": {
+	// 	Logo: "ten.png",
+	// 	Links: []string{
+	// 		"19cab799c86251ae8ae5f4b4faace9b78d784abc",
+	// 	},
+	// 	Name:             "TEN TV",
+	// 	ShowListChannels: false,
+	// 	Order:            80,
+	// },
+
+	"GOL": {
+		Logo: "gol.png",
+		Links: []string{
+			"b2d560741c006fc5e4a42412bb52dbd25a6a4a3a",
+			"73094658f0a3ed523c0e188de67a7a690c0d4f93",
+			// "472d1f3a658a51bcab0ffa9138e1e28a05fba30b",
+		},
+		Name:             "GOL",
+		ShowListChannels: true,
+		Order:            880,
+	},
+	"GOL TV": {
+		Logo:  "goltv.png",
+		Links: []string{
+			"http://176.65.146.237:8401/play/a09k/index.m3u8",
+			// "http://181.188.216.5:18000/play/a0mj/index.m3u8",
+			// "b2d560741c006fc5e4a42412bb52dbd25a6a4a3a",
+			// "472d1f3a658a51bcab0ffa9138e1e28a05fba30b",
+		},
+		Name:             "GOL TV",
+		ShowListChannels: true,
+		Order:            880,
+	},
+	"GOLTV PLAY": {
+		Logo: "golt.png",
+		Links: []string{
+			"b2d560741c006fc5e4a42412bb52dbd25a6a4a3a",
+			"73094658f0a3ed523c0e188de67a7a690c0d4f93",
+			// "472d1f3a658a51bcab0ffa9138e1e28a05fba30b",
+			// "b2d560741c006fc5e4a42412bb52dbd25a6a4a3a",
+		},
+		Name:             "GOLTV PLAY",
+		ShowListChannels: true,
+		Order:            880,
+	},
+	"EUROSPORT 1": {
+		Logo:  "eurosport1.png",
+		Links: []string{
+			// "714e14e6d6e27660fd25a75b57b0ac5580fe705d",
+			// "ef2abf419586d9876370be127ad592dbb41b126a",
+			// "bae98f69fbf867550b4f73b4eb176dae84d7f909",
+
+		},
+		Name:             "EUROSPORT 1",
+		ShowListChannels: true,
+		Order:            780,
+	},
+	"EUROSPORT 2": {
+		Logo:  "eurosport2.png",
+		Links: []string{
+			// "37d6f1aabcde81ee6e4873b4db6b7bb8964af8bf",
+			// "dc4ccb9e72550bc72be9360aa7d77e337ad11ecc",
+			// "0585e09bb8ac9720e4c11934f1b184e309291551",
+			// "5c910d614894635153a7d42de98cc2e4a958a53f",
+		},
+		Name:             "EUROSPORT 2",
+		ShowListChannels: true,
+		Order:            781,
+	},
+	// "M+ ELLAS VAMOS": {
+	// 	Logo:  "mellasvamos.png",
+	// 	Links: []string{
+	// 		// "9b84af74b2fa3690c519199326fc2f181b025cdd",
+	// 	},
+	// 	Name:             "M+ ELLAS VAMOS",
+	// 	ShowListChannels: false,
+	// },
+	// "LALIGA TV BAR": {
+	// 	Logo:  "laligatvbar.png",
+	// 	Links: []string{
+	// 		// "608b0faf7d3d25f6fe5dba13d5e4b4142949990e",
+	// 	},
+	// 	Name: "LALIGA TV BAR 1",
+	// 	ShowListChannels: true,
+	// },
+
+	// "TUDN": {
+	// 	Logo: "tudn.png",
+	// 	Links: []string{
+	// 		"http://181.78.106.127:9000/play/ca036/index.m3u8", //
+	// 	},
+	// 	Name:             "TUDN 1",
+	// 	ShowListChannels: false,
+	// },
+
+	// "FOX SPORTS 1": {
+	// 	Logo: "foxsports1.png",
+	// 	Links: []string{
+	// 		"http://181.78.106.127:9000/play/ca031/index.m3u8", //
+	// 		"http://200.115.120.1:8000/play/ca041/index.m3u8",  //
+	// 	},
+	// 	Name:             "FOX SPORTS 1",
+	// 	ShowListChannels: false,
+	// },
+	// "FOX SPORTS 2": {
+	// 	Logo: "foxsports1.png",
+	// 	Links: []string{
+	// 		"http://181.78.106.127:9000/play/ca032/index.m3u8", //
+	// 	},
+	// 	Name:             "FOX SPORTS 2",
+	// 	ShowListChannels: false,
+	// },
+
+	// "FOX SPORTS MX": {
+	// 	Logo: "foxsports1.png",
+	// 	Links: []string{
+	// 		"a0464d3642e054f6122e7c309017d1e8d23f4da9", //
+	// 	},
+	// 	Name:             "FOX SPORTS MX",
+	// 	ShowListChannels: false,
+	// },
+
+	"SKY SPORTS MX": {
+		Logo: "skysports.png",
+		Links: []string{
+			// "p;http://181.78.106.127:9000/play/ca028/index.m3u8", //
+			"p;http://45.5.117.57:8200/play/a050/index.m3u8",
+			"p;http://179.60.224.196:8000/play/a0i7/index.m3u8",
+		},
+		Name:             "SKY SPORTS MX",
+		ShowListChannels: true,
+	},
+
+	"SKY SPORTS BUNDESLIGA": {
+		Logo:  "skysports.png",
+		Links: []string{
+		},
+		Name:             "SKY SPORTS BUNDESLIGA",
+		ShowListChannels: false,
+	},
+
+	"SKY SPORTS": {
+		Logo: "skysports.png",
+		Links: []string{
+			// "p;http://181.78.106.127:9000/play/ca028/index.m3u8", //
+		"p;http://181.78.106.127:9000/play/ca030/index.m3u8", //
+		"p;http://45.5.117.57:8200/play/a050/index.m3u8",
+		"p;http://179.60.224.196:8000/play/a0i7/index.m3u8",
+			"p;http://190.92.10.66:4000/play/a001/index.m3u8",
+		},
+		Name:             "SKY SPORTS LA LIGA",
+		ShowListChannels: true,
+		Order:            1,
+	},
+	"SKY SPORTS LALIGA": {
+		Logo: "skysports.png",
+		Links: []string{
+			// "2fab80a8445e31cb98169c0907600e1545ea8557",
+			// "d58f619d860d29cd47720055b9bb842199971da1",
+			// "e9975d38aaa4475ac0b1fa0faa541bbadd85a662",
+			// "a9bddffdff085cdc18b34218d5dc1093b88e3c0a",
+			// "p;http://181.78.106.127:9000/play/ca028/index.m3u8", //
+		"p;http://181.78.106.127:9000/play/ca030/index.m3u8", //
+		"p;http://45.5.117.57:8200/play/a050/index.m3u8",
+		"p;http://179.60.224.196:8000/play/a0i7/index.m3u8",
+			"p;http://190.92.10.66:4000/play/a001/index.m3u8",
+		},
+		Name:             "SKY SPORTS LA LIGA",
+		ShowListChannels: false,
+	},
+	"SKY SPORTS PREMIER LEAGUE": {
+		Logo: "skysportspremier.png",
+		Links: []string{
+			"ec5eabe0144ccfffc337e1d6708e2afb81d0638e",
+			// "https://d15.epicquesthero.com:1686/hls/skysprem.m3u8?md5=Otw5SigwrXNTvRvU_0kgKg&expires=1758149711", //
+		},
+		Name:             "SKY SPORTS PREMIER LEAGUE",
+		ShowListChannels: true,
+		Order:            90,
+	},
+	"CANAL + SPORTS": {
+		Logo:  "canalplusports.png",
+		Links: []string{
+			// "http://116.202.237.33:8080/CNLS3/tracks-v1a1a2a3l1l2/mono.m3u8?token=ef1c6f27da4b04de8c97b52b9255617b", //
+		},
+		Name:             "CANAL + SPORTS",
+		ShowListChannels: false,
+		Order:            100,
+	},
+
+	"CANAL + SPORTS 2": {
+		Logo:  "canalplusports.png",
+		Links: []string{
+			// "http://116.202.237.33:8080/CNLS2/tracks-v1a1a2a3l1l2/mono.m3u8?token=ef1c6f27da4b04de8c97b52b9255617b", //
+		},
+		Name:             "CANAL + SPORTS 2",
+		ShowListChannels: false,
+		Order:            101,
+	},
+
+	"REAL MADRID TV": {
+		Logo: "realmadridtv.png",
+		Links: []string{
+			// "681800793751afa5a9a4f0aa5868d07e982d5d7a",
+			// "7a955964c91c66311eef9137a96332352dbb891e",
+			"https://rmtv.akamaized.net/hls/live/2043153/rmtv-es-web/bitrate_3.m3u8", //
+		},
+		Name:             "REAL MADRID TV",
+		ShowListChannels: true,
+		Order:            2,
+	},
+	"BEIN SPORTS 1": {
+		Logo: "beinsport.png",
+		Links: []string{
+			"58e454d067b9e25e40f3c62b3430b55ef6fead09",
+			"19c5c13a8e7273d78d53fdaea3deaf1b80e938fa",
+		},
+		Name:             "BEIN SPORTS 1",
+		ShowListChannels: true,
+		Order:            110,
+	},
+	"BEIN SPORTS 2": {
+		Logo: "beinsport.png",
+		Links: []string{
+			"fa0a5dd9ecc3febbda8b6e1805c539a93fe515ac",
+			"edb507e38394d614c9ff55805c9d354ae13210bc",
+		},
+		Name:             "BEIN SPORTS 2",
+		ShowListChannels: true,
+		Order:            111,
+	},
+	"BEIN SPORTS 3": {
+		Logo: "beinsport.png",
+		Links: []string{
+			"519c2159e9228bfe2f94911dfa111b01d0a896e2",
+			"731bd3336ec0986ff9100efe40dbaf1473a22cf8",
+		},
+		Name:             "BEIN SPORTS 3",
+		ShowListChannels: true,
+		Order:            112,
+	},
+	
+
+	"BEIN SPORTS Ñ": {
+		Logo: "beinsportn.png",
+		Links: []string{
+			"ac033bf7bf6eb4efa5ca3f8070742093eab47685",
+			// "https://d35j504z0x2vu2.cloudfront.net/v1/master/0bc8e8376bd8417a1b6761138aa41c26c7309312/bein-sports-xtra-en-espanol/playlist.m3u8", //
+		},
+		Name:             "BEIN SPORTS Ñ",
+		ShowListChannels: true,
+		Order:            110,
+	},
+	"NBA LEAGUE PASS": {},
+	"NBA TV": {
+		Logo: "nba.png",
+		Links: []string{
+			"3cd63bd01b6443c715467730a489f1ece7c1a306",
+			"b0f64a40f333ef5cc02c2b6d4a8c3f4b73dd8073",
+			"3bc122425f49648689cb8fd81de33cb19b848d20",
+			"e72d03fb9694164317260f684470be9ab781ed95",
+
+			// "e72d03fb9694164317260f684470be9ab781ed95",
+		},
+		Name:             "NBA TV",
+		ShowListChannels: true,
+		Order:            120,
+	},
+
+	// "ESPORTS 3": {
+	// 	Logo: "esports3.png",
+	// 	Links: []string{
+	// 		"ca20f93ea5d9c15744e48a21b52598b9fce87425",
+	// 	},
+	// 	Name:             "ESPORTS 3",
+	// 	ShowListChannels: true,
+	// 	Order:            130,
+	// },
+
+	// "SPORT TV 1": {
+	// 	Logo: "sporttv1.png",
+	// 	Links: []string{
+	// 		"da9038e51a4897659f7bb1bce52cab65dd4a8cf8",
+	// 		"eeba95afeba53bdc2a081198743097e82eac47c8",
+	// 		"bcdf6c923bbccb73b2db3edca64cf321fba48955",
+	// 		"ca69b66fe0cd872d33da002241b59db38f5865c8",
+	// 		// "p;https://l.hilay.tv/sporttv1",
+	// 		// https://yce5o.envivoslatam.org/sporttvbr1/tracks-v1a1/mono.m3u8?ip=95.19.208.77&token=7474f77c7efb2196fa96bb93423dbeb7a1cac192-b8-1772083666-1772029666
+	// 		// "p;https://maldivesn.net/hilaytv/sporttv1",
+	// 		// "2ddaacdb6ace68d8e5f55392a634eed92c728b7e",
+	// 		// "p;http://clarotv7.com/live/508373667/k717x9942z/111995.m3u8",
+	// 		// "094365152cc1f4ca60f822bb7902411fdc2600d1",
+	// 		// "c5c19ac98d333df9b1cb979de1ca0f3a008721a4",
+	// 		// "c53f505241bd50e28259b5495c70c3b978678793",
+	// 	},
+	// 	Name:             "SPORT TV 1",
+	// 	ShowListChannels: true,
+	// 	Order:            140,
+	// },
+	// "SPORT TV 2": {
+	// 	Logo: "sporttv2.png",
+	// 	Links: []string{
+	// 		"da9038e51a4897659f7bb1bce52cab65dd4a8cf8",
+	// 		"87318413c1fe8bb228c0b0b62d070f77317bd9ba",
+	// 		"eeba95afeba53bdc2a081198743097e82eac47c8",
+	// 		"bcdf6c923bbccb73b2db3edca64cf321fba48955",
+	// 		"ca69b66fe0cd872d33da002241b59db38f5865c8",
+	// 		// "p;https://l.hilay.tv/sporttv2",
+	// 		// https://smjt9q.envivoslatam.org/sporttvbr2/tracks-v1a1/mono.m3u8?ip=95.19.208.77&token=ece910a76cc4e6f366d7dcaa2e9fc7e068854601-a5-1772083897-1772029897
+	// 		// "7f1ebc824207c260ddb859e3526cc3a3137004ab",
+	// 		// "p;https://maldivesn.net/hilaytv/sporttv2",
+	// 		// "p;http://clarotv7.com/live/508373667/k717x9942z/111998.m3u8",
+	// 		// "fc3a8f2152ca01e1954a61ba2f8c01bc2f8d97cf",
+	// 		// "e8ccd6a0c1b49e29b99ccbf95add01ffdf01d212",
+	// 	},
+	// 	Name:             "SPORT TV 2",
+	// 	ShowListChannels: true,
+	// 	Order:            141,
+	// },
+
+	// "SPORT TV 3": {
+	// 	Logo: "sporttv3.png",
+	// 	Links: []string{
+	// 		// "p;https://l.hilay.tv/sporttv3",
+	// 		// "p;https://maldivesn.net/hilaytv/sporttv3",
+	// 		// "p;http://clarotv7.com/live/508373667/k717x9942z/112000.m3u8",
+	// 		"0cfd0542227f29d9a5bb7fa2611aa5bfbeebd875",
+	// 		"fe74794f3fa7cf9138c2a0560d91e3eaed47df65",
+	// 	},
+	// 	Name:             "SPORT TV 3",
+	// 	ShowListChannels: true,
+	// 	Order:            142,
+	// },
+	// "SPORT TV 4": {
+	// 	Logo: "sporttv4.png",
+	// 	Links: []string{
+	// 		// "p;https://l.hilay.tv/sporttv4",
+	// 		// "p;https://maldivesn.net/hilaytv/sporttv4",
+	// 		// "p;http://clarotv7.com/live/508373667/k717x9942z/112002.m3u8",
+	// 		"8ecf79b68e351530a6c2a02446569a5bb4556580",
+	// 		"e119f0599b905ae4c9bd85a5fa14304ed56dcf97",
+	// 	},
+	// 	Name:             "SPORT TV 4",
+	// 	ShowListChannels: true,
+	// 	Order:            143,
+	// },
+	// "SPORT TV 5": {
+	// 	Logo: "sporttv5.png",
+	// 	Links: []string{
+	// 		"p;https://l.hilay.tv/sporttv5",
+	// 		// "p;https://maldivesn.net/hilaytv/sporttv5",
+	// 		// "p;http://clarotv7.com/live/508373667/k717x9942z/112004.m3u8",
+	// 		"7ce10d65789cfe74932c22399c7cb60474f1af9d",
+	// 		"cc66bae9be5eaf30ce046c82259f4a9d5ae3e48f",
+	// 	},
+	// 	Name:             "SPORT TV 5",
+	// 	ShowListChannels: true,
+	// 	Order:            144,
+	// },
+	// "SPORT TV 6": {
+	// 	Logo: "sporttv6.png",
+	// 	Links: []string{
+	// 		"p;https://l.hilay.tv/sporttv6",
+	// 		// "p;https://maldivesn.net/hilaytv/sporttv6",
+	// 		// "p;http://clarotv7.com/live/508373667/k717x9942z/112006.m3u8",
+	// 		// "471f21a1eb3453e9b70e90228f016ad1142d581d",
+	// 	},
+	// 	Name:             "SPORT TV 6",
+	// 	ShowListChannels: true,
+	// 	Order:            145,
+	// },
+
+	// // https://hilay.tv/play.m3u
+	"WWE NETWORK": {
+		Logo:  "wwe.png",
+		Links: []string{
+			// "http://localhost:3000/wwe/index.m3u8",
+			// "p;http://fl7.moveonjoy.com/WWE/index.m3u8",
+		},
+		Name:             "WWE",
+		ShowListChannels: false,
+	},
+	"WWE Superstar Central": {
+		Logo:  "wwesuper.png",
+		Links: []string{
+			// "p;https://jmp2.uk/stvp-US700005ID",
+		},
+		Name:             "WWE LEYENDAS",
+		ShowListChannels: false,
+	},
+	"FIFA+": {
+		Logo: "fifa.png",
+		Links: []string{
+			"p;https://jmp2.uk/stvp-ESBC2700009B4",
+		},
+		Name:             "FIFA+",
+		ShowListChannels: true,
+		Order:            360,
+	},
+
+	"REDBULL TV": {
+		Logo: "redbulltv.png",
+		Links: []string{
+			"62daab1c54565d0c5ba4e3c660f3a4a5c93adc8a",
+			"1b7e277946766834d0f034532e0b5ab1764732ee",
+			"3dc0ae739191bc152c295b850fa71ced337249e4",
+			// "p;https://jmp2.uk/stvp-GBBD2300003IK",
+			"acbf39f533469f3aca35c597dc898d093921291e",
+			"acea92d83ba261aa3a72a3c0a662981fa92e0ce9",
+		},
+		Name:             "REDBULL TV",
+		ShowListChannels: true,
+		Order:            361,
+	},
+
+	"UFC": {
+		Logo: "ufc.png",
+		Links: []string{
+			"p;https://jmp2.uk/stvp-CA2900012S9",
+			"p;https://jmp2.uk/stvp-US2900017P2",
+			"p;https://jmp2.uk/plu-677d9adfa9a51b0008497fa0.m3u8",
+			"a3164546b984d41a662ee44ddc9ece5952f69d33",
+			// Paramount+ UFC — UFC ahora en Paramount+ (2026, $7.7B deal, reemplaza ESPN+)
+			// Hashes verificados desde platinsport / search-ace / elcano
+			"d2374e2375a4275738e0dbed2f47d0114ad1cb64", // UFC HD [RU] — canales_acestream
+			"72b8c093be3c3e3c434c723ee93af0d1d07a7cbf", // UFC HD [RU] — lista_scraper_acestream_api
+			"c9bd6dc0f30b3d0d9e550d1ad41b27116d307e71", // FOX PREMIUM UFC --> NEW ERA (feed Paramount+)
+			"7acb9c6b0dc61b944b3477c162a80d05dd4b8297", // UFC elcano.top
+			"6e1e7bb9534942d7de437638ce5f129af2ae7f0a", // UFC elcano.top alt
+		},
+		Name:             "UFC",
+		ShowListChannels: true,
+		Order:            362,
+	},
+	// Aliases Paramount+ para UFC — los eventos pueden venir como "Paramount+", "Paramount+ UFC", etc.
+	// Se mapean al mismo pool de acestreams. ShowListChannels=false para no duplicar en /broadcasters
+	"PARAMOUNT+": {
+		Logo: "paramountufc.jpg",
+		Links: []string{
+			"p;https://jmp2.uk/stvp-CA2900012S9",
+			"p;https://jmp2.uk/stvp-US2900017P2",
+			"p;https://jmp2.uk/plu-677d9adfa9a51b0008497fa0.m3u8",
+			"a3164546b984d41a662ee44ddc9ece5952f69d33",
+			"d2374e2375a4275738e0dbed2f47d0114ad1cb64",
+			"72b8c093be3c3e3c434c723ee93af0d1d07a7cbf",
+			"c9bd6dc0f30b3d0d9e550d1ad41b27116d307e71",
+			"7acb9c6b0dc61b944b3477c162a80d05dd4b8297",
+			"6e1e7bb9534942d7de437638ce5f129af2ae7f0a",
+		},
+		Name:             "PARAMOUNT+",
+		ShowListChannels: false,
+	},
+	"PARAMOUNT+ UFC": {
+		Logo: "paramountufc.jpg",
+		Links: []string{
+			"p;https://jmp2.uk/stvp-CA2900012S9",
+			"p;https://jmp2.uk/stvp-US2900017P2",
+			"p;https://jmp2.uk/plu-677d9adfa9a51b0008497fa0.m3u8",
+			"a3164546b984d41a662ee44ddc9ece5952f69d33",
+			"d2374e2375a4275738e0dbed2f47d0114ad1cb64",
+			"72b8c093be3c3e3c434c723ee93af0d1d07a7cbf",
+			"c9bd6dc0f30b3d0d9e550d1ad41b27116d307e71",
+			"7acb9c6b0dc61b944b3477c162a80d05dd4b8297",
+			"6e1e7bb9534942d7de437638ce5f129af2ae7f0a",
+		},
+		Name:             "PARAMOUNT+ UFC",
+		ShowListChannels: true,
+		Order:            363,
+	},
+	"PARAMOUNT PLUS UFC": {
+		Logo: "paramountufc.jpg",
+		Links: []string{
+			"p;https://jmp2.uk/stvp-CA2900012S9",
+			"p;https://jmp2.uk/stvp-US2900017P2",
+			"p;https://jmp2.uk/plu-677d9adfa9a51b0008497fa0.m3u8",
+			"a3164546b984d41a662ee44ddc9ece5952f69d33",
+			"d2374e2375a4275738e0dbed2f47d0114ad1cb64",
+			"72b8c093be3c3e3c434c723ee93af0d1d07a7cbf",
+			"c9bd6dc0f30b3d0d9e550d1ad41b27116d307e71",
+		},
+		Name:             "PARAMOUNT PLUS UFC",
+		ShowListChannels: false,
+	},
+	"DAZN CALCIO": {
+		Logo: "dazncalcio.png",
+		Links: []string{
+			"https://italiansport-solocalcio-samsung.amagi.tv/amRdirect/device[did]=%7bPSID%7d&device[dnt]=%7bTARGETOPT%7d&app_name=%7bAPP_NAME%7d&tc_string=%7bTC_STRING%7d&gdpr=%7bGDPR%7d/hls/amagi_hls_data_sportital-solocalcio-samsung-italy/CDN/playlist.m3u8",
+			// "1e045b7e16a5c2c3e5a8c0c0176efa26b63d7955",
+		},
+		Name:             "DAZN CALCIO",
+		ShowListChannels: true,
+		Order:            180,
+	},
+
+	// "DAZN 1 PT": {
+	// 	Logo: "dazn1.png",
+	// 	Links: []string{
+	// 		"36cad67fed5a739757a9db844a551aa845a8d51b",
+
+	// 	},
+	// 	Name:             "DAZN 1 PT",
+	// 	ShowListChannels: true,
+	// 	Order:            180,
+	// },
+	// "DAZN 2 PT": {
+	// 	Logo: "dazn2.png",
+	// 	Links: []string{
+	// 		"d08013df6e437a1fdf1e0c34f573fdf6a40c7fce",
+	// 	},
+	// 	Name:             "DAZN 2 PT",
+	// 	ShowListChannels: true,
+	// 	Order:            181,
+	// },
+	// "DAZN 3 PT": {
+	// 	Logo: "dazn3.png",
+	// 	Links: []string{
+	// 		"dae7d1251f069516cc0a9c8f15f6639d2a17df1e",
+
+	// 	},
+	// 	Name:             "DAZN 3 PT",
+	// 	ShowListChannels: true,
+	// 	Order:            182,
+	// },
+	// "DAZN 4 PT": {
+	// 	Logo: "dazn4.png",
+	// 	Links: []string{
+	// 		"0f32c0131a2d9444996410801f4e18b04384db98",
+
+	// 		// "3043d5d3627a170af53bc5a298e79d4759f5ac87",
+	// 		// "095e98003ab5732a4ad0bf240ad0cdd192649d0c",
+	// 		// "9930f38e6ff670fb7bf1e820f60bf1781c47acbd",
+	// 		// "3043d5d3627a170af53bc5a298e79d4759f5ac87",
+	// 		// "3c0cfbeb4075be58baa32e41dabee3c75b8a80e6",
+	// 		// "0f32c0131a2d9444996410801f4e18b04384db98",
+	// 	},
+	// 	Name:             "DAZN 4 PT",
+	// 	ShowListChannels: true,
+	// 	Order:            183,
+	// },
+	// "DAZN 5 PT": {
+	// 	Logo: "dazn5.png",
+	// 	Links: []string{
+	// 		// "4dbe63b44fc4f439f5b634c0d2aa7e0cccad808a",
+	// 		// "2c9a996c060d157ff63109c5b999d55bbc2ffd95",
+	// 	},
+	// 	Name:             "DAZN 5 PT",
+	// 	ShowListChannels: false,
+	// 	Order:            184,
+	// },
+
+	"APLAZADO": {
+		Logo:             "aplazado.png",
+		Links:            []string{},
+		Name:             "APLAZADO",
+		ShowListChannels: false,
+		Order:            200,
+	},
+	"LIGA ENDESA 1": {
+		Logo: "",
+		Links: []string{
+			"35575a31d76f6c5f5e9e6364dacfdeca3b85f2ee",
+		},
+		Name:             "SPORT KLUB 1",
+		ShowListChannels: false,
+		Order:            301,
+	},
+	"LIGA ENDESA 2": {
+		Logo: "",
+		Links: []string{
+			"35575a31d76f6c5f5e9e6364dacfdeca3b85f2ee",
+		},
+		Name:             "SPORT KLUB 2",
+		ShowListChannels: false,
+		Order:            302,
+	},
+	"LIGA ENDESA 3": {
+		Logo: "",
+		Links: []string{
+			"35575a31d76f6c5f5e9e6364dacfdeca3b85f2ee",
+		},
+		Name:             "SPORT KLUB 3",
+		ShowListChannels: false,
+		Order:            303,
+	},
+	"LIGA ENDESA 4": {
+		Logo: "",
+		Links: []string{
+			"35575a31d76f6c5f5e9e6364dacfdeca3b85f2ee",
+		},
+		Name:             "SPORT KLUB 4",
+		ShowListChannels: false,
+		Order:            304,
+	},
+	"LIGA ENDESA 5": {
+		Logo: "",
+		Links: []string{
+			"35575a31d76f6c5f5e9e6364dacfdeca3b85f2ee",
+		},
+		Name:             "SPORT KLUB 5",
+		ShowListChannels: false,
+		Order:            305,
+	},
+	"LIGA ENDESA 6": {
+		Logo: "",
+		Links: []string{
+			"35575a31d76f6c5f5e9e6364dacfdeca3b85f2ee",
+		},
+		Name:             "SPORT KLUB 6",
+		ShowListChannels: false,
+		Order:            306,
+	},
+	// Sport Klub [PL]
+	"LIGA ENDESA 7": {
+		Logo: "",
+		Links: []string{
+			"35575a31d76f6c5f5e9e6364dacfdeca3b85f2ee",
+			"14594b3c9520715e48756cb7258e102c5e48c29c",
+		},
+		Name:             "SPORT KLUB",
+		ShowListChannels: false,
+		Order:            307,
+	},
+	"ESPORT3": {
+		Logo:  "esports3.png",
+		Links: []string{
+			// "ca20f93ea5d9c15744e48a21b52598b9fce87425",
+			// "ff03650163b9456d59ed5f262aa3ab2e19831e6d",
+			// "739792a3225e5eb3056f4faa7b1137c7f161f23c",
+			// "ed6524f8f73c30cf102fde66f2cb520f4b5842e3",
+			// "8f59ce96e4c902ba2f5193af07546d7ff17fc3bc",
+		},
+		Name:             "ESPORT3",
+		ShowListChannels: false,
+		Order:            130,
+	},
+	"ELEVEN SPORTS 1": {
+		Logo: "elevensports1.png",
+		Links: []string{
+			"7ac2d74ef6df9d15012992d7e0e635a95f58c652",
+			"14407b00d454cb7dc0d70aa26e8bbc554f457f00",
+			// "739792a3225e5eb3056f4faa7b1137c7f161f23c",
+			// "ed6524f8f73c30cf102fde66f2cb520f4b5842e3",
+			// "8f59ce96e4c902ba2f5193af07546d7ff17fc3bc",
+		},
+		Name:             "ELEVEN SPORTS 1",
+		ShowListChannels: true,
+		Order:            150,
+	},
+	"ELEVEN SPORTS 2": {
+		Logo: "elevensports2.png",
+		Links: []string{
+			"54a4a28882d3cae1ca19de5d4b022ebea40351f9",
+		},
+		Name:             "ELEVEN SPORTS 2",
+		ShowListChannels: true,
+		Order:            151,
+	},
+	"ELEVEN SPORTS 3": {
+		Logo: "elevensports3.png",
+		Links: []string{
+			"b146ee4b6e16c9df58e27bd02ffd6cea840ff212",
+		},
+		Name:             "ELEVEN SPORTS 3",
+		ShowListChannels: true,
+		Order:            152,
+	},
+	"ELEVEN SPORTS 4": {
+		Logo: "elevensports3.png",
+		Links: []string{
+			"458a0ddd7d193f6d2750cd14d03a47f47a808e09",
+		},
+		Name:             "ELEVEN SPORTS 4",
+		ShowListChannels: true,
+		Order:            152,
+	},
+	"RALLY TV": {
+		Logo: "rallytv.png",
+		Links: []string{
+		},
+		Name:             "RALLY TV",
+		ShowListChannels: true,
+		Order:            163,
+	},
+	"DAZN FIFA 1": {
+		Logo: "fifa.png",
+		Links: []string{
+		},
+		Name:             "DAZN FIFA 1",
+		ShowListChannels: true,
+		Order:            164,
+	},
+	"DAZN FIFA 2": {
+		Logo: "fifa.png",
+		Links: []string{
+		},
+		Name:             "DAZN FIFA 2",
+		ShowListChannels: true,
+		Order:            165,
+	},
+	"DAZN FIFA 3": {
+		Logo: "fifa.png",
+		Links: []string{
+		},
+		Name:             "DAZN FIFA 3",
+		ShowListChannels: true,
+		Order:            166,
+	},
+	"DAZN FIFA 4": {
+		Logo: "fifa.png",
+		Links: []string{
+		},
+		Name:             "DAZN FIFA 4",
+		ShowListChannels: true,
+		Order:            167,
+	},
+}
+
+var allCompetitions = AllCompetitions{
+	"Sports": CountryCompetitions{
+		"Tenis":                  {Titulo: "Tenis", Top: true, Icon: "tenis.png", Order: 19},
+		"FIFA Copa Mundial 2026": {Titulo: "Mundial", Top: true, Icon: "mundial.png", Order: 1},
+		"Mundial Clubes":         {Titulo: "Mundial Clubes", Top: true, Icon: "mundialclubes.png", Order: 5},
+		"FIA Fórmula 2":          {Titulo: "FIA Fórmula 2", Top: true, Icon: "formula2.png", Order: 28},
+		"FIA Fórmula 3":          {Titulo: "FIA Fórmula 3", Top: true, Icon: "formula3.png", Order: 29},
+		"Fórmula 1":              {Titulo: "Fórmula 1", Top: true, Icon: "formula1.png", Order: 12},
+		"Moto2":                  {Titulo: "Moto2", Top: true, Icon: "moto2.png", Order: 15},
+		"Moto3":                  {Titulo: "Moto3", Top: true, Icon: "moto3.png", Order: 14},
+		"MotoGP":                 {Titulo: "MotoGP", Top: true, Icon: "motogp.png", Order: 13},
+		"Boxeo":                  {Titulo: "Boxeo", Top: true, Icon: "boxeo.png", Order: 24},
+		"UFC":                    {Titulo: "UFC", Top: true, Icon: "ufc.png", Order: 26},
+		"WRC Rally":              {Titulo: "WRC Rally", Top: true, Icon: "wrc.png", Order: 25},
+		"LaLiga Futures":         {Titulo: "LaLigaFutures", Top: true, Icon: "mundial.png", Order: 27},
+	},
+	"España": CountryCompetitions{
+		"LaLiga":                  {Titulo: "LaLiga", Top: true, Icon: "liga.png", Order: 10},
+		"LaLiga Hypermotion":      {Titulo: "LaLiga Hypermotion", Top: true, Icon: "liga2.png", Order: 11},
+		"Liga Endesa":             {Titulo: "Liga Endesa", Top: true, Icon: "endesa.png", Order: 18},
+		"Minicopa Endesa":         {Titulo: "Minicopa Endesa", Top: true, Icon: "endesa.png", Order: 17},
+		"Copa del Rey Baloncesto": {Titulo: "Copa del Rey Baloncesto", Top: true, Icon: "endesa.png", Order: 16},
+		"Primera FEB":             {Titulo: "Primera FEB", Top: false, Icon: "primerafeb.png"},
+		"Primera Federación":      {Titulo: "Primera Federación", Top: false, Icon: "primerafede.png", Order: 20},
+		"Segunda Federación":            {Titulo: "Segunda Federación", Top: false, Icon: "segundafede.png"},
+		"Copa del Rey":              {Titulo: "Copa del Rey", Top: true, Icon: "uefa.png", Order: 9},
+		"Supercopa de España":       {Titulo: "Supercopa de España", Top: true, Icon: "uefa.png", Order: 6},
+		"Liga F Moeve":              {Titulo: "Liga F Moeve", Top: false, Icon: "uefa.png"},
+		"Copa Federación":           {Titulo: "Copa Federación", Top: false, Icon: "uefa.png"},
+		"Supercopa Femenina":        {Titulo: "Supercopa Femenina", Top: false, Icon: "uefa.png"},
+		"Copa de SM La Reina":       {Titulo: "Copa de SM La Reina", Top: false, Icon: "uefa.png"},
+		"División de Honor Juvenil": {Titulo: "División de Honor Juvenil", Top: false, Icon: "uefa.png"},
+		"Primera Federación Women":      {Titulo: "Primera Federacion Women", Top: false, Icon: "primerafede.png"},
+		"Segunda Federación Femenina":   {Titulo: "Segunda Federación Femenina", Top: false, Icon: "segundafede.png"},
+		"Spain U19 Cup":                 {Titulo: "Spain U19 Cup", Top: false, Icon: "uefa.png"},
+		"U19 Division de Honor Juvenil": {Titulo: "U19 Division de Honor Juvenil", Top: false, Icon: "uefa.png"},
+	},
+	"Inglaterra": CountryCompetitions{
+		"Premier League":              {Titulo: "Premier League", Top: true, Icon: "premiere.png", Order: 21},
+		"Championship":                {Titulo: "Championship", Top: false, Icon: "uefa.png"},
+		"League One":                  {Titulo: "League One", Top: false, Icon: "uefa.png"},
+		"League Two":                  {Titulo: "League Two", Top: false, Icon: "uefa.png"},
+		"National League":             {Titulo: "National League", Top: false, Icon: "uefa.png"},
+		"FA Cup":                      {Titulo: "FA Cup", Top: false, Icon: "uefa.png"},
+		"FA Cup, Qualification":       {Titulo: "FA Cup, Qualification", Top: false, Icon: "uefa.png"},
+		"EFL Cup":                     {Titulo: "EFL Cup", Top: false, Icon: "uefa.png"},
+		"Football League Trophy":      {Titulo: "Football League Trophy", Top: false, Icon: "uefa.png"},
+		"FA Women's Championship":     {Titulo: "FA Women's Championship", Top: false, Icon: "uefa.png"},
+		"Community Shield":            {Titulo: "Community Shield", Top: false, Icon: "uefa.png"},
+		"Women's Super League":        {Titulo: "Women's Super League", Top: false, Icon: "uefa.png"},
+		"Women's FA Cup":              {Titulo: "Women's FA Cup", Top: false, Icon: "uefa.png"},
+		"FA Women's League Cup":       {Titulo: "FA Women's League Cup", Top: false, Icon: "uefa.png"},
+		"England National League Cup": {Titulo: "England National League Cup", Top: false, Icon: "uefa.png"},
+		"Baller League UK":            {Titulo: "Baller League UK", Top: false, Icon: "uefa.png"},
+		"FA Youth Cup":                {Titulo: "FA Youth Cup", Top: false, Icon: "uefa.png"},
+	},
+	"Alemania": CountryCompetitions{
+		"Bundesliga":    {Titulo: "Bundesliga", Top: false, Icon: "bundesliga.png"},
+		"2. Bundesliga": {Titulo: "2. Bundesliga", Top: false, Icon: "uefa.png"},
+		"DFB Pokal":     {Titulo: "DFB Pokal", Top: false, Icon: "uefa.png"},
+		"DFL Supercup":  {Titulo: "DFL Supercup", Top: false, Icon: "uefa.png"},
+	},
+	"Italia": CountryCompetitions{
+		"Coppa Italia":           {Titulo: "Coppa Italia", Top: true, Icon: "seriea.png", Order: 23},
+		"Serie A Italiana":       {Titulo: "Serie A", Top: true, Icon: "seriea.png", Order: 22},
+		"Serie B":                {Titulo: "Serie B", Top: false, Icon: "uefa.png"},
+		"Campionato Primavera 1": {Titulo: "Campionato Primavera 1", Top: false, Icon: "uefa.png"},
+		"Campionato Primavera 2": {Titulo: "Campionato Primavera 2", Top: false, Icon: "uefa.png"},
+		"Serie C, Playoffs":      {Titulo: "Serie C, Playoffs", Top: false, Icon: "uefa.png"},
+		"Supercoppa Serie C":     {Titulo: "Supercoppa Serie C", Top: false, Icon: "uefa.png"},
+		"Serie D Poule Scudetto": {Titulo: "Serie D Poule Scudetto", Top: false, Icon: "uefa.png"},
+		"Serie A Women":          {Titulo: "Serie A Women", Top: false, Icon: "uefa.png"},
+		"Coppa Italia Femminile": {Titulo: "Coppa Italia Femminile", Top: false, Icon: "uefa.png"},
+		"Supercoppa Primavera":   {Titulo: "Supercoppa Primavera", Top: false, Icon: "uefa.png"},
+		"Trofeo Dossena":         {Titulo: "Trofeo Dossena", Top: false, Icon: "uefa.png"},
+		"Serie D, Girone H":      {Titulo: "Serie D, Girone H", Top: false, Icon: "uefa.png"},
+		"Serie B Femminile":      {Titulo: "Serie B Femminile", Top: false, Icon: "uefa.png"},
+	},
+	"Francia": CountryCompetitions{
+		"Ligue 1":                  {Titulo: "Ligue 1", Top: false, Icon: "ligue1.png"},
+		"Ligue 2":                  {Titulo: "Ligue 2", Top: false, Icon: "uefa.png"},
+		"National 1":               {Titulo: "National 1", Top: false, Icon: "uefa.png"},
+		"National 2":               {Titulo: "National 2", Top: false, Icon: "uefa.png"},
+		"Coupe de France":          {Titulo: "Coupe de France", Top: false, Icon: "uefa.png"},
+		"Trophée des Champions":    {Titulo: "Trophée des Champions", Top: false, Icon: "uefa.png"},
+		"Première Ligue, Féminine": {Titulo: "Première Ligue, Féminine", Top: false, Icon: "uefa.png"},
+		"Coupe de France, Women":   {Titulo: "Coupe de France, Women", Top: false, Icon: "uefa.png"},
+		"Championnat National U19": {Titulo: "Championnat National U19", Top: false, Icon: "uefa.png"},
+		"Seconde Ligue Women":      {Titulo: "Seconde Ligue Women", Top: false, Icon: "uefa.png"},
+	},
+	"Europa": CountryCompetitions{
+		"Eurobasket":                                {Titulo: "Eurobasket", Top: true, Icon: "eurobasket.png", Order: 8},
+		"Euroliga":                                  {Titulo: "Euroliga", Top: true, Icon: "euroliga.png", Order: 7},
+		"Champions League":                          {Titulo: "UEFA Champions League", Top: true, Icon: "champions.png", Order: 2},
+		"Europa League":                             {Titulo: "UEFA Europa League", Top: true, Icon: "uefa.png", Order: 3},
+		"Conference League":                         {Titulo: "UEFA Conference League", Top: true, Icon: "conference.png", Order: 4},
+		"Super Cup":                                 {Titulo: "UEFA Super Cup", Top: false, Icon: "uefa.png"},
+		"Nations League":                            {Titulo: "UEFA Nations League", Top: true, Icon: "uefa.png"},
+		"Women's Nations League":                    {Titulo: "UEFA Women's Nations League", Top: false, Icon: "uefa.png"},
+		"Women's Euro":                              {Titulo: "Women's Euro", Top: false, Icon: "uefa.png"},
+		"Women's Euro, Qualification":               {Titulo: "Women's Euro, Qualification", Top: false, Icon: "uefa.png"},
+		"U21 European Championship":                 {Titulo: "U21 European Championship", Top: false, Icon: "uefa.png"},
+		"U21 Euro Qualification":                    {Titulo: "U21 Euro Qualification", Top: false, Icon: "uefa.png"},
+		"U19 European Championship Qualif.":         {Titulo: "U19 European Championship Qualif.", Top: false, Icon: "uefa.png"},
+		"U17 European Championship":                 {Titulo: "U17 European Championship", Top: false, Icon: "uefa.png"},
+		"U17 European Championship, Qual.":          {Titulo: "U17 European Championship, Qual.", Top: false, Icon: "uefa.png"},
+		"U19 European Women's Championship Qualif.": {Titulo: "U19 European Women's Championship Qualif.", Top: false, Icon: "uefa.png"},
+		"U17 European Women's Championship":         {Titulo: "U17 European Women's Championship", Top: false, Icon: "uefa.png"},
+		"UEFA Youth League":                         {Titulo: "UEFA Youth League", Top: false, Icon: "uefa.png"},
+	},
+	"América del Sur": CountryCompetitions{
+		"CONMEBOL Libertadores":             {Titulo: "CONMEBOL Libertadores", Top: false, Icon: "uefa.png"},
+		"CONMEBOL Sudamericana":             {Titulo: "CONMEBOL Sudamericana", Top: false, Icon: "uefa.png"},
+		"CONMEBOL Recopa":                   {Titulo: "CONMEBOL Recopa", Top: false, Icon: "uefa.png"},
+		"Copa América":                      {Titulo: "Copa América", Top: false, Icon: "uefa.png"},
+		"World Cup Qual. CONMEBOL":          {Titulo: "World Cup Qual. CONMEBOL", Top: false, Icon: "uefa.png"},
+		"U17 CONMEBOL Championship":         {Titulo: "U17 CONMEBOL Championship", Top: false, Icon: "uefa.png"},
+		"U20 CONMEBOL Libertadores":         {Titulo: "U20 CONMEBOL Libertadores", Top: false, Icon: "uefa.png"},
+		"U20 CONMEBOL Championship":         {Titulo: "U20 CONMEBOL Championship", Top: false, Icon: "uefa.png"},
+		"U20 CONMEBOL Women's Championship": {Titulo: "U20 CONMEBOL Women's Championship", Top: false, Icon: "uefa.png"},
+		"Copa Libertadores Femenina":        {Titulo: "Copa Libertadores Femenina", Top: false, Icon: "uefa.png"},
+		"Copa América Femenina":             {Titulo: "Copa América Femenina", Top: false, Icon: "uefa.png"},
+		"U17 CONMEBOL Women's Championship": {Titulo: "U17 CONMEBOL Women's Championship", Top: false, Icon: "uefa.png"},
+		"U13 Liga Evolución":                {Titulo: "U13 Liga Evolución", Top: false, Icon: "uefa.png"},
+		"U16 Liga Evolución, Women":         {Titulo: "U16 Liga Evolución, Women", Top: false, Icon: "uefa.png"},
+		"U14 Liga Evolución, Women":         {Titulo: "U14 Liga Evolución, Women", Top: false, Icon: "uefa.png"},
+		"U15 CONMEBOL Championship":         {Titulo: "U15 CONMEBOL Championship", Top: false, Icon: "uefa.png"},
+		"CONMEBOL Pre-Olympic":              {Titulo: "CONMEBOL Pre-Olympic", Top: false, Icon: "uefa.png"},
+	},
+	"Brasil": CountryCompetitions{
+		"Serie A":          {Titulo: "Serie A", Top: false, Icon: "uefa.png"},
+		"Copa do Brasil":   {Titulo: "Copa do Brasil", Top: false, Icon: "uefa.png"},
+	},
+	"Argentina": CountryCompetitions{
+		"Primera División": {Titulo: "Primera División", Top: false, Icon: "uefa.png"},
+		"Copa Argentina":   {Titulo: "Copa Argentina", Top: false, Icon: "uefa.png"},
+	},
+
+	"Colombia": CountryCompetitions{
+		"Primera A":                {Titulo: "Primera A", Top: false, Icon: "uefa.png"},
+	},
+	"Venezuela": CountryCompetitions{
+		"Primera División": {Titulo: "Primera División", Top: false, Icon: "uefa.png"},
+	},
+	"Ecuador": CountryCompetitions{
+		"Serie A":      {Titulo: "Serie A", Top: false, Icon: "uefa.png"},
+	},
+	"Estados Unidos": CountryCompetitions{
+		"Major League Soccer (MLS)": {Titulo: "Major League Soccer (MLS)", Top: false, Icon: "uefa.png"},
+		"US Open Cup":               {Titulo: "US Open Cup", Top: false, Icon: "uefa.png"},
+	},
+	"México": CountryCompetitions{
+		"Liga MX": {Titulo: "Liga MX", Top: false, Icon: "uefa.png"},
+		"Copa MX": {Titulo: "Copa MX", Top: false, Icon: "uefa.png"},
+	},
+	"Arabia Saudita": CountryCompetitions{
+		"Saudi Professional League": {Titulo: "Saudi Professional League", Top: false, Icon: "uefa.png"},
+	},
+}

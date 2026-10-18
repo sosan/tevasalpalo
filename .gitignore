@@ -1,7 +1,7 @@
 *.exe
 build/
 *.zip
-assets/
+internal/app/assets/
 socks/
 __debug_*
 .opencode/

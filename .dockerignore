@@ -30,15 +30,16 @@ build/
 *.exe
 __debug_*
 
-# Ripios del motor: assets/test/ duplica los cuatro ficheros que si se embeben.
-assets/test/
-assets/acestream-runtime-windows.old.zip
+# Ripios del motor: internal/app/assets/test/ duplica los cuatro ficheros que
+# si se embeben.
+internal/app/assets/test/
+internal/app/assets/acestream-runtime-windows.old.zip
 
 # El motor de Windows solo lo embebe aceasset_windows.go, que lleva el build
 # tag "windows". Esta imagen es GOOS=linux, asi que esos 74 MB aqui son
 # peso muerto. Si alguna vez se anade un stage para Windows a este mismo
 # Dockerfile, hay que quitar esta linea.
-assets/acestream-runtime-windows.zip
+internal/app/assets/acestream-runtime-windows.zip
 
 # Git y configuracion.
 .git

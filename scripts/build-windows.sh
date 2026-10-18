@@ -20,7 +20,7 @@ echo "🚀 Compilando para $GOOS/$GOARCH..."
 # go build -o ../build/portable.exe ../.
 VERSION_BUILD=$(date -u "+%Y-%m-%dT%H:%M:%SZ")
 echo "Version Build: $VERSION_BUILD"
-GOOS=$GOOS GOARCH=$GOARCH CGO_ENABLED=$CGO_ENABLED go build -ldflags="-X 'main/update.VersionBuild=${VERSION_BUILD}'" -o ../build/portable.exe ../.
+GOOS=$GOOS GOARCH=$GOARCH CGO_ENABLED=$CGO_ENABLED go build -ldflags="-X 'tevasalpalo/update.VersionBuild=${VERSION_BUILD}'" -o ../build/portable.exe ../cmd/portable
 
 
 # Verificar si la compilación fue exitosa

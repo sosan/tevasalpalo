@@ -24,9 +24,9 @@ jobs:
         with:
           packages: 'megatools'
 
-      # assets/ está en .gitignore (son ~100 MB) pero el build no puede
-      # compilar sin ellos: tor.go y acestream.go hacen go:embed de los bundles
-      # de Tor, y aceasset_linux.go del tar.gz del motor (el Dockerfile
+      # internal/app/assets/ está en .gitignore (son ~100 MB) pero el build no
+      # puede compilar sin ellos: tor.go y acestream.go hacen go:embed de los
+      # bundles de Tor, y aceasset_linux.go del tar.gz del motor (el Dockerfile
       # compila con GOOS=linux, así que el motor Windows no hace falta).
       - name: Download embedded assets
         run: |
@@ -34,13 +34,13 @@ jobs:
             echo "::error::Falta el secret URL_ASSET_ACE_LINUX_TARBALL. El Dockerfile compila para linux y aceasset_linux.go hace go:embed del tar.gz del motor."
             exit 1
           fi
-          megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_TOR_WINDOWS_ZIPPED }}
-          megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_TOR_LINUX_ZIPPED }}
-          megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_ACE_LINUX_TARBALL }}
-          if [ ! -f ./assets/acestream-runtime-linux-x86_64.tar.gz ]; then
-            mv ./assets/*.tar.gz ./assets/acestream-runtime-linux-x86_64.tar.gz
+          megadl --debug=OPTS --path ./internal/app/assets/ ${{ secrets.URL_ASSET_TOR_WINDOWS_ZIPPED }}
+          megadl --debug=OPTS --path ./internal/app/assets/ ${{ secrets.URL_ASSET_TOR_LINUX_ZIPPED }}
+          megadl --debug=OPTS --path ./internal/app/assets/ ${{ secrets.URL_ASSET_ACE_LINUX_TARBALL }}
+          if [ ! -f ./internal/app/assets/acestream-runtime-linux-x86_64.tar.gz ]; then
+            mv ./internal/app/assets/*.tar.gz ./internal/app/assets/acestream-runtime-linux-x86_64.tar.gz
           fi
-          ls -la ./assets/
+          ls -la ./internal/app/assets/
 
       # scripts/Dockerfile hace COPY ./certs/, y certs/ no está en el repo
       # (lo genera scripts/generate-cert.sh en local). mkdir lo evita.
@@ -86,7 +86,7 @@ jobs:
       
       - name: Unit Testing
         run: |
-          go test update/need_test.go update/need.go update/auto.go update/version.go
+          go test ./update/...
 
   test-integration:
     name: Integration tests in Compose
@@ -163,19 +163,19 @@ jobs:
 
       - name: Descargar assets
         run: |
-          # Los assets van por secret y assets/ está en .gitignore, así que si
-          # falta uno megadl se queda con un argumento vacío y aborta con un
-          # "No links specified" que no dice qué falta. Fallar aquí con el
-          # nombre del secret hace el diagnóstico trivial.
+          # Los assets van por secret y internal/app/assets/ está en
+          # .gitignore, así que si falta uno megadl se queda con un argumento
+          # vacío y aborta con un "No links specified" que no dice qué falta.
+          # Fallar aquí con el nombre del secret hace el diagnóstico trivial.
           if [ -z "${{ secrets.URL_ASSET_ACE_ZIPPED }}" ]; then
             echo "::error::Falta el secret URL_ASSET_ACE_ZIPPED (Settings > Secrets and variables > Actions)."
             echo "Sube a Mega el ZIP del motor Windows y pega ahí su URL."
             exit 1
           fi
-          megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_ACE_ZIPPED }}
-          megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_TOR_WINDOWS_ZIPPED }}
-          megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_TOR_LINUX_ZIPPED }}
-          ls -la ./assets/
+          megadl --debug=OPTS --path ./internal/app/assets/ ${{ secrets.URL_ASSET_ACE_ZIPPED }}
+          megadl --debug=OPTS --path ./internal/app/assets/ ${{ secrets.URL_ASSET_TOR_WINDOWS_ZIPPED }}
+          megadl --debug=OPTS --path ./internal/app/assets/ ${{ secrets.URL_ASSET_TOR_LINUX_ZIPPED }}
+          ls -la ./internal/app/assets/
 
       - name: Build binary
         run: |
@@ -201,10 +201,11 @@ jobs:
           # amd64 sin que nadie se enterase.
           #
           # TELEMETRY_LDFLAGS lleva el contenedor cifrado de secretos
-          # (-X 'main.embebidoSecretos=...' -X 'main.claveSecretos=...'), tal
-          # y como lo imprime "portable --genera-secretos". Va como secret de
-          # Actions, NO en .env.prod: ese fichero se carga con xargs y sus
-          # valores acaban en el log del build.
+          # (-X 'tevasalpalo/internal/app.embebidoSecretos=...'
+          # -X 'tevasalpalo/internal/app.claveSecretos=...'), tal y como lo
+          # imprime "portable --genera-secretos". Va como secret de Actions,
+          # NO en .env.prod: ese fichero se carga con xargs y sus valores
+          # acaban en el log del build.
           #
           # Si el secret no está definido se compila sin secretos, así que el
           # repo sigue siendo compilable sin credenciales (forks, PRs).
@@ -215,16 +216,16 @@ jobs:
           echo "🚀 Compilando para ${{ matrix.goos }}/${{ matrix.goarch }}..."
           CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
             go build \
-              -ldflags="-X 'main/update.VersionBuild=${VERSION_BUILD}' ${TELEMETRY_LDFLAGS}" \
-              -o ./build/${{ matrix.artifact_name }}
+              -ldflags="-X 'tevasalpalo/update.VersionBuild=${VERSION_BUILD}' ${TELEMETRY_LDFLAGS}" \
+              -o ./build/${{ matrix.artifact_name }} ./cmd/portable
           echo "✅ Compilación exitosa: ./build/${{ matrix.artifact_name }}"
 
       - name: Vet
         run: |
           # GOOS/GOARCH explícitos: sin ellos vet compila para linux y falla con
-          # "pattern assets/acestream-runtime-linux-x86_64.tar.gz: no matching
-          # files found", porque este job no descarga el motor de Linux (solo lo
-          # embebe el de Windows, ver aceasset_windows.go).
+          # "pattern internal/app/assets/acestream-runtime-linux-x86_64.tar.gz:
+          # no matching files found", porque este job no descarga el motor de
+          # Linux (solo lo embebe el de Windows, ver aceasset_windows.go).
           #
           # vet cruz-compilado también revisa los _test.go, así que sigue
           # detectando errores de tipo en los tests aunque no pueda ejecutarlos.
@@ -233,18 +234,11 @@ jobs:
       - name: Unit tests
         run: |
           # Los tests NO pueden correr con GOOS=windows: el runner es ubuntu y
-          # ejecutar el .exe da "exec format error". Se ejecutan nativos (linux),
-          # lo que exige el asset del motor de Linux, que este job no descarga.
-          # Por eso los tests viven en build-linux, que sí lo trae.
-          #
-          # Para no dejar el código de este job sin cubrir del todo, se
-          # comprueba al menos que los tests compilan para windows.
-          cp -r . /tmp/t && cd /tmp/t
-          sed -i 's|^module main$|module acestreamtest|' go.mod
-          sed -i 's|"main/update"|"acestreamtest/update"|' main.go server.go
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go test -c -o /dev/null .
-
-
+          # ejecutar el .exe da "exec format error". Se compilan (no se
+          # ejecutan): compilar el binario de test de internal/app arrastra
+          # todo el paquete y detecta errores de compilación para windows.
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
+            go test -c -o /dev/null ./internal/app
 
 
       - name: Upload binaries to release
@@ -285,15 +279,15 @@ jobs:
             echo "Sube a Mega el tar.gz del motor Linux y pega ahí su URL."
             exit 1
           fi
-          megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_ACE_LINUX_TARBALL }}
-          megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_TOR_WINDOWS_ZIPPED }}
-          megadl --debug=OPTS --path ./assets/ ${{ secrets.URL_ASSET_TOR_LINUX_ZIPPED }}
+          megadl --debug=OPTS --path ./internal/app/assets/ ${{ secrets.URL_ASSET_ACE_LINUX_TARBALL }}
+          megadl --debug=OPTS --path ./internal/app/assets/ ${{ secrets.URL_ASSET_TOR_WINDOWS_ZIPPED }}
+          megadl --debug=OPTS --path ./internal/app/assets/ ${{ secrets.URL_ASSET_TOR_LINUX_ZIPPED }}
           # go:embed exige el nombre exacto y el fichero de Mega puede venir con
           # otro (p. ej. acestream_3.2.11_ubuntu_22.04_x86_64_py3.10.tar.gz).
-          if [ ! -f ./assets/acestream-runtime-linux-x86_64.tar.gz ]; then
-            mv ./assets/*.tar.gz ./assets/acestream-runtime-linux-x86_64.tar.gz
+          if [ ! -f ./internal/app/assets/acestream-runtime-linux-x86_64.tar.gz ]; then
+            mv ./internal/app/assets/*.tar.gz ./internal/app/assets/acestream-runtime-linux-x86_64.tar.gz
           fi
-          ls -la ./assets/
+          ls -la ./internal/app/assets/
 
       - name: Build
         run: |
@@ -309,17 +303,14 @@ jobs:
 
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
             go build \
-              -ldflags="-X 'main/update.VersionBuild=${VERSION_BUILD}' ${TELEMETRY_LDFLAGS}" \
-              -o ./build/portable .
+              -ldflags="-X 'tevasalpalo/update.VersionBuild=${VERSION_BUILD}' ${TELEMETRY_LDFLAGS}" \
+              -o ./build/portable ./cmd/portable
 
       - name: Unit tests
         run: |
-          # El módulo se llama "main", que no es importable, así que go test
-          # sobre el paquete raíz falla con "cannot import main". Se prueba en
-          # una copia con el módulo renombrado.
-          cp -r . /tmp/t && cd /tmp/t
-          sed -i 's|^module main$|module acestreamtest|' go.mod
-          sed -i 's|"main/update"|"acestreamtest/update"|' main.go server.go
+          # El módulo es importable ahora, así que go test ./... corre nativo
+          # sin trucos de sed. Los assets de linux ya están descargados
+          # arriba.
           go test ./...
 
       - uses: actions/upload-artifact@v4
