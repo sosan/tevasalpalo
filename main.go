@@ -41,6 +41,30 @@ func main() {
 		}
 	}
 
+	// Herramienta de build: volcar la base actual a la instantánea que se
+	// embebe. Se atiende aparte porque no arranca la app, solo lee la base y
+	// escribe el fichero.
+	generarSemillaPedida := false
+	for _, arg := range os.Args[1:] {
+		if arg == "--genera-semilla" {
+			generarSemillaPedida = true
+		}
+	}
+
+	// Y se resuelve aquí, antes que la telemetría y Tor: es una herramienta de
+	// build, no necesita proxy, red ni central, y si fuera más tarde
+	// arrancaría todo eso para nada y podría morir por un Tor ocupado.
+	if generarSemillaPedida {
+		if s := abrirStore(); s != nil {
+			defer cerrarStore()
+			if err := generarSemilla(); err != nil {
+				log.Fatal("❌ ", err)
+			}
+			return
+		}
+		log.Fatal("❌ no se pudo abrir la base de datos")
+	}
+
 	// Telemetría antes de nada más: a partir de aquí todo lo que escriba el
 	// log (incluido lo de arranque) queda en fichero, buffer y central.
 	telVersion = update.VersionBuild
@@ -98,6 +122,13 @@ func main() {
 	// fuentes remotas.
 	if s := abrirStore(); s != nil {
 		defer cerrarStore()
+
+		// Antes de leer nada: si la base está vacía (instalación nueva o
+		// borrada a mano), se siembra con la instantánea embebida. Así el
+		// listado que se carga un instante después ya tiene canales y la web
+		// no muestra una lista vacía mientras llegan las fuentes.
+		sembrarBaseVacia()
+
 		if guardados := len(s.cargarCanales()); guardados > 0 {
 			log.Printf("💾 Base de datos lista: %d canales del último arranque", guardados)
 		}

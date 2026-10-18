@@ -11,6 +11,9 @@ COPY ./views/ ./views/
 # con "pattern engine_overlay/sitecustomize.py: no matching files found", que no
 # dice nada del sitecustomize sino que parece un problema del compilador.
 COPY ./engine_overlay/ ./engine_overlay/
+# La base sembrada va embebida en el binario: sin esta copia el go build falla
+# con "pattern semilla/base.json.gz: no matching files found".
+COPY ./semilla/ ./semilla/
 
 RUN go mod download
 ARG ENV=dev

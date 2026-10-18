@@ -79,6 +79,13 @@ type canalRegistro struct {
 	// no se borra: sigue en la base como histórico y con Visto=false, para
 	// poder saying "estaba aquí y ahora no" en vez de perderlo en silencio.
 	Visto bool `json:"visto"`
+
+	// Permanente es para los canales de la base sembrada (ver semilla_base.go).
+	// Existen para que una instalación nueva no arranque con la lista vacía, y
+	// por eso no se retiran nunca: si ninguna fuente real los publica, siguen
+	// ahí como base. La capa de calidad de hashes es la que se encarga de
+	// apartar los que están muertos.
+	Permanente bool `json:"permanente,omitempty"`
 }
 
 // fuenteRegistro es lo que se guarda por fuente.
@@ -552,6 +559,12 @@ func (s *store) guardarRefresco(
 				PrimeraVez: ahora,
 				Visto:      true,
 			}
+			// Un canal de la base sembrada que además publica alguna fuente
+			// real pasa a mandar esa fuente, pero no pierde el respaldo de la
+			// base: si dejara de aparecer, no se retira.
+			if previa.Permanente {
+				reg.Permanente = true
+			}
 
 			switch {
 			case !existia:
@@ -602,6 +615,12 @@ func (s *store) guardarRefresco(
 		}
 		for nombre, reg := range previos {
 			if vistos[nombre] || !reg.Visto {
+				continue
+			}
+			// La base sembrada no se retira nunca: existe justo para que
+			// siempre haya algo que ofrecer. Si un enlace suyo está muerto,
+			// lo aparta la puntuación por disponibilidad, no esta regla.
+			if reg.Permanente {
 				continue
 			}
 			if !algunaFuenteRespondio(reg.Fuentes, estado) {

@@ -12,4 +12,5 @@ xray-links.txt
 settings.json
 .telemetry.env
 logs/*
+runtime/
 

@@ -135,7 +135,7 @@ func TestSourcesSinURLsConocidasMuertas(t *testing.T) {
 		{"lista_acestream_unificada.m3u", "404: el fichero se borró del repo"},
 		{"git.gay/TokyoGhoulles/AceStream_IDs", "404: repo movido; lo sustituye tokyo_elcano"},
 		{"ipns.dweb.link", "dweb.link ya solo es service-worker-gateway"},
-		{"ipfs.inbrowser.link", "solo sirve un bootstrap JS; el contenido va por pares"},
+		{"inbrowser.link", "solo sirve un bootstrap JS (403 o service worker); el contenido va por pares; cubre ipfs. e ipns.<id>.inbrowser.link"},
 		{"ipfs.io/ipns", "429 service-worker-only; este IPNS se sirve por filebase"},
 		{"/hashes.m3u", "mismos 126 hashes que hashes_acestream.m3u"},
 		{"lista_fuera_iptv", "mismos 400 hashes y nombres que listaplana"},

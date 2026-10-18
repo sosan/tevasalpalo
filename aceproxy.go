@@ -2,11 +2,17 @@ package main
 
 // Acceso al motor AceStream local o remoto a través de la cadena proxy.
 //
-// - ACESTREAM_API (defecto http://127.0.0.1:6878): base del engine. Con un
+// - ACESTREAM_API (defecto auto-detectado): base del engine. Con un
 //   motor remoto (p. ej. un VPS sin throttling) todo el tráfico HTTP entre
 //   esta app y el engine viaja por la cadena de transportes (xray/Tor), así
 //   los streams se ven a través de los clientes proxy. El P2P ocurre en el
 //   remoto; aquí solo viaja HTTP.
+//   Sin la variable, la base se descubre al primer uso sondeando el 6878:
+//   127.0.0.1 (la app lanza el motor), luego host.docker.internal y por
+//   último el gateway de la ruta por defecto del contenedor (en Docker es el
+//   host, donde el compose publica el puerto del servicio acestream).
+//   En compose con engine como servicio hermano basta ACESTREAM_API=
+//   http://acestream:6878 para no depender del descubrimiento.
 // - Loopback nunca va por proxy: un SOCKS resolvería 127.0.0.1 en SU lado.
 //   Con el engine local el comportamiento es idéntico al anterior.
 
@@ -18,6 +24,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -27,12 +34,173 @@ import (
 )
 
 // acestreamAPI devuelve la base del engine sin barra final.
+//
+// ACESTREAM_API manda. Si está vacía, la base se descubre una sola vez al
+// primer uso (sync.Once, no depende de que llamen); es lo que hace que la app
+// arranque contra el engine sin configurar nada:
+//
+//   - 127.0.0.1: la app misma lanza el motor (RunAceStream) o corre en el host.
+//     Se comprueba primero y si el puerto responde, nada más toca.
+//   - host.docker.internal: Docker Desktop / Linux con extra_hosts.
+//   - gateway de la ruta por defecto del contenedor: en Docker es el host, y
+//     el compose publica el 6878 del servicio acestream (6878:6878). Este es
+//     el caso que se rompía: dentro de un contenedor 127.0.0.1 no tiene salida
+//     hacia el host, y el engine vive en el host o en el servicio hermano.
+//
+// Si nada responde, se queda en loopback (comportamiento anterior). El
+// descubrimiento toca red solo una vez: los candidatos se sondean con un dial
+// corto, no peticiones HTTP.
 func acestreamAPI() string {
-	base := strings.TrimSpace(os.Getenv("ACESTREAM_API"))
-	if base == "" {
-		return "http://127.0.0.1:6878"
+	if base := strings.TrimSpace(os.Getenv("ACESTREAM_API")); base != "" {
+		return strings.TrimSuffix(base, "/")
 	}
-	return strings.TrimSuffix(base, "/")
+	acestreamBaseOnce.Do(func() {
+		acestreamBaseFall = baseEngineDescubierta()
+	})
+	return acestreamBaseFall
+}
+
+var (
+	acestreamBaseOnce sync.Once
+	acestreamBaseFall string
+)
+
+// baseEngineDescubierta elige la base del engine sondeando el puerto una vez.
+// Si nada responde, loopback, como siempre.
+func baseEngineDescubierta() string {
+	return baseEngineConSondeo(httpPort, engineDialHost, gatewayIPPorDefecto)
+}
+
+// baseEngineConSondeo es la lógica pura del descubrimiento: sondea el puerto
+// del engine en 127.0.0.1, host.docker.internal y (si existe) el gateway de
+// la ruta por defecto, y devuelve la primera base que responde. El gateway
+// llega como función para que las pruebas no lean /proc net real.
+func baseEngineConSondeo(puerto int, sondear func(string, int) bool, gateway func() (string, bool)) string {
+	candidatos := []struct {
+		host   string
+		origen string
+	}{
+		{"127.0.0.1", "loopback"},
+		{"host.docker.internal", "Docker extra_hosts"},
+	}
+	if gw, ok := gateway(); ok {
+		candidatos = append(candidatos, struct {
+			host   string
+			origen string
+		}{gw, "gateway de la ruta por defecto"})
+	}
+	for _, c := range candidatos {
+		if sondear(c.host, puerto) {
+			log.Printf("🔧 ACESTREAM_API vacía: engine en http://%s:%d (%s)", c.host, puerto, c.origen)
+			return fmt.Sprintf("http://%s:%d", c.host, puerto)
+		}
+	}
+	log.Printf("⚠️  ACESTREAM_API vacía y ningún candidato responde en el puerto %d (127.0.0.1, host.docker.internal, gateway); base por defecto: 127.0.0.1", puerto)
+	return fmt.Sprintf("http://127.0.0.1:%d", puerto)
+}
+
+// engineDialHost sondea el puerto TCP de un host (resuelve DNS también),
+// para ver si ahí vive el engine. Dial corto: si no responde ya, no va a
+// responder al pedirle el manifest tampoco.
+func engineDialHost(host string, puerto int) bool {
+	addrs, err := net.LookupHost(host)
+	if err != nil || len(addrs) == 0 {
+		return false
+	}
+	conn, err := (&net.Dialer{Timeout: timeDialEngine}).Dial("tcp", net.JoinHostPort(addrs[0], strconv.Itoa(puerto)))
+	if err != nil {
+		return false
+	}
+	_ = conn.Close()
+	return true
+}
+
+// timeDialEngine: timeout del dial de sondeo. El engine es local/red local:
+// más largo es solo retraso del usuario esperando el arranque.
+const timeDialEngine = 1 * time.Second
+
+// gatewayIPPorDefecto devuelve la IP del gateway de la ruta por defecto, que
+// en Docker es el host (donde el engine suele estar publicado en 6878).
+// Se cachea: la tabla de rutas del contenedor no cambia en ejecución y
+// decidir direct/proxy lee esto en cada salto del engine.
+func gatewayIPPorDefecto() (string, bool) {
+	gatewayIPOnce.Do(func() {
+		gatewayIPCache, gatewayIPOK = gatewayFromRouteFile("/proc/net/route")
+	})
+	return gatewayIPCache, gatewayIPOK
+}
+
+var (
+	gatewayIPOnce  sync.Once
+	gatewayIPCache string
+	gatewayIPOK    bool
+)
+
+// esEngineLocalDirecto dice si una URL de /ace/* apunta a infraestructura del
+// propio entorno y debe ir SIEMPRE directa (nunca por Tor/xray): loopback,
+// host.docker.internal o la IP del gateway del contenedor (la dirección del
+// host en Docker). El host configurado con ACESTREAM_API no entra aquí a
+// propósito: si es un VPS remoto, ese tráfico sí va por la cadena.
+func esEngineLocalDirecto(raw string) bool {
+	if isLoopbackURL(raw) {
+		return true
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return false
+	}
+	h := strings.ToLower(u.Hostname())
+	switch h {
+	case "", "host.docker.internal":
+		return h != ""
+	}
+	if gw, ok := gatewayIPPorDefecto(); ok && h == gw {
+		return true
+	}
+	// El host de la base descubierta (env vacía) ya solo puede ser loopback
+	// (arriba), host.docker.internal o el propio gateway: cubierto.
+	return false
+}
+
+// gatewayFromRouteFile lee un fichero estilo /proc/net/route y devuelve la IP
+// del gateway de la entrada de destino 00000000 (la ruta por defecto), o false
+// si no existe (Windows/macOS nativo, donde 127.0.0.1 sigue siendo correcto)
+// o no hay ruta por defecto con gateway.
+//
+// Formato de cada línea (Iface la columna 0, Destination la 1, Gateway la 2):
+//
+//	Iface Destination Gateway    Flags ...
+//	eth0  00000000    010011AC   ...
+//
+// El gateway va como dword little-endian en hex: "010011AC" -> bytes
+// 01 00 11 AC en orden inverso -> AC.11.00.01 -> 172.17.0.1.
+func gatewayFromRouteFile(rutaFichero string) (string, bool) {
+	data, err := os.ReadFile(rutaFichero)
+	if err != nil {
+		return "", false
+	}
+	for _, línea := range strings.Split(string(data), "\n") {
+		campos := strings.Fields(línea)
+		if len(campos) < 3 {
+			continue
+		}
+		if campos[0] == "Iface" || campos[1] != "00000000" {
+			continue
+		}
+		if len(campos[2]) != 8 {
+			continue
+		}
+		var b [4]byte
+		for i := 0; i < 4; i++ {
+			byteVal, err := strconv.ParseUint(campos[2][i*2:i*2+2], 16, 8)
+			if err != nil {
+				return "", false
+			}
+			b[3-i] = byte(byteVal)
+		}
+		return net.IPv4(b[0], b[1], b[2], b[3]).String(), true
+	}
+	return "", false
 }
 
 // acestreamEngineHosts devuelve los hosts a reescribir en manifests:
@@ -360,8 +528,8 @@ func aceDoTimeout(targetURL string, allowProxy bool, timeout time.Duration, do a
 // sobre todos los siguientes.
 func aceDoSalto(targetURL string, timeout time.Duration, allowProxy bool, do aceReqFunc) (*http.Response, string, error) {
 	transports := []string{"direct"}
-	loopback := isLoopbackURL(targetURL)
-	if !loopback && allowProxy {
+	local := esEngineLocalDirecto(targetURL)
+	if !local && allowProxy {
 		transports = proxyChainWithDirectFallback()
 	}
 	lastErr := fmt.Errorf("sin transportes disponibles")
