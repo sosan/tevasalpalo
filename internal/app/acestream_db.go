@@ -42,6 +42,7 @@ import (
 	"time"
 
 	bolt "go.etcd.io/bbolt"
+	"tevasalpalo/internal/telemetry"
 )
 
 const (
@@ -958,7 +959,7 @@ func (s *store) resumen() map[string]any {
 		"desaparecidos": canales - vistos,
 		"de_una_fuente": soloUnaFuente,
 		"eventos":       s.contarEventos(),
-		"bytes":         tamanoFichero(s.rutaActual()),
+		"bytes":         telemetry.TamanoFichero(s.rutaActual()),
 	}
 }
 

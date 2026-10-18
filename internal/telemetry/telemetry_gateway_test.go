@@ -1,4 +1,4 @@
-package app
+package telemetry
 
 // Test contra el gateway real de Grafana. Solo se ejecuta si hay
 // TELEMETRY_OTLP_URL y TELEMETRY_PASSWORD en el entorno, para no meter
@@ -26,8 +26,8 @@ func TestGatewayRealDeGrafana(t *testing.T) {
 		otlpURL:   url,
 		user:      os.Getenv("TELEMETRY_USER"),
 		password:  os.Getenv("TELEMETRY_PASSWORD"),
-		maxBatch:  envIntTel("TELEMETRY_MAX_BATCH", 200),
-		bufferCap: envIntTel("TELEMETRY_BUFFER", 2000),
+		maxBatch:  EnvInt("TELEMETRY_MAX_BATCH", 200),
+		bufferCap: EnvInt("TELEMETRY_BUFFER", 2000),
 		clientID:  clientID(),
 	}
 	exp, err := newOTLPExporter(cfg)

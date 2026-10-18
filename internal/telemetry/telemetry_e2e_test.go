@@ -1,4 +1,4 @@
-package app
+package telemetry
 
 // Prueba de extremo a extremo del camino completo: un log.Printf normal debe
 // acabar en el exportador y llegar al destino OTLP. No necesita credenciales

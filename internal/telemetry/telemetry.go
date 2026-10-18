@@ -1,4 +1,4 @@
-package app
+package telemetry
 
 // Telemetría y logs centralizados.
 //
@@ -70,9 +70,14 @@ var (
 	telBatch   *otlpExporter
 	telReady   bool
 	ipHasher   func(string) string
-	telVersion = "dev"
-	telOS      = ""
-	telArch    = ""
+)
+
+// Identidad del binario para los eventos. El arranque la fija antes de
+// InitTelemetry (versión del build, GOOS/GOARCH).
+var (
+	TelVersion = "dev"
+	TelOS      = ""
+	TelArch    = ""
 )
 
 func envBoolTel(name string, def bool) bool {
@@ -89,7 +94,7 @@ func envBoolTel(name string, def bool) bool {
 	return def
 }
 
-func envIntTel(name string, def int) int {
+func EnvInt(name string, def int) int {
 	v := strings.TrimSpace(os.Getenv(name))
 	if v == "" {
 		return def
@@ -124,15 +129,15 @@ func loadTelemetryConfig() telemetryConfig {
 		logDir:       strings.TrimSpace(os.Getenv("TELEMETRY_LOG_DIR")),
 		fileName:     "streaming.log",
 		eventFile:    "events.jsonl",
-		maxSize:      int64(envIntTel("TELEMETRY_LOG_MAX_BYTES", 8<<20)),
-		maxFiles:     envIntTel("TELEMETRY_LOG_MAX_FILES", 5),
+		maxSize:      int64(EnvInt("TELEMETRY_LOG_MAX_BYTES", 8<<20)),
+		maxFiles:     EnvInt("TELEMETRY_LOG_MAX_FILES", 5),
 		hashSalt:     os.Getenv("TELEMETRY_HASH_SALT"),
-		flushEvery:   time.Duration(envIntTel("TELEMETRY_FLUSH_MS", 5000)) * time.Millisecond,
-		maxBatch:     envIntTel("TELEMETRY_MAX_BATCH", 200),
-		bufferCap:    envIntTel("TELEMETRY_BUFFER", 2000),
+		flushEvery:   time.Duration(EnvInt("TELEMETRY_FLUSH_MS", 5000)) * time.Millisecond,
+		maxBatch:     EnvInt("TELEMETRY_MAX_BATCH", 200),
+		bufferCap:    EnvInt("TELEMETRY_BUFFER", 2000),
 		clientID:     clientID(),
 		exportLogs:   envBoolTel("TELEMETRY_EXPORT_LOGS", true),
-		spoolMaxSize: int64(envIntTel("TELEMETRY_SPOOL_BYTES", 16<<20)),
+		spoolMaxSize: int64(EnvInt("TELEMETRY_SPOOL_BYTES", 16<<20)),
 	}
 	if dir := cfg.logDir; dir != "" {
 		cfg.spoolPath = filepath.Join(dir, "spool.jsonl")
@@ -148,7 +153,33 @@ func clientID() string {
 	if host == "" {
 		host = "desconocido"
 	}
-	return host + "@" + telVersion
+	return host + "@" + TelVersion
+}
+
+// avisoMu y avisoTelesMensaje guardan un mensaje que un paquete de
+// configuración temprana (hoy Infisical) quiere emitir, pero que todavía no
+// puede: InitTelemetry aún no ha montado el log global y los log.Printf se
+// perderían. Se emite cuando InitTelemetry termina.
+var (
+	avisoMu           sync.Mutex
+	avisoTelesMensaje string
+)
+
+// AvisoDiferido guarda un mensaje para emitirlo al montar el log, en orden de
+// último gana: solo hay una cola de un elemento porque los avisos de este
+// tipo son resumen de arranque, no un stream.
+func AvisoDiferido(m string) {
+	avisoMu.Lock()
+	avisoTelesMensaje = m
+	avisoMu.Unlock()
+}
+
+func tomarAvisoDiferido() string {
+	avisoMu.Lock()
+	defer avisoMu.Unlock()
+	m := avisoTelesMensaje
+	avisoTelesMensaje = ""
+	return m
 }
 
 // InitTelemetry engancha la telemetría. Safe de llamar aunque esté todo
@@ -228,7 +259,7 @@ func InitTelemetry() {
 
 	// Los avisos de Infisical se emiten aquí, no en su propia función: cuando
 	// se descargan, el log global aún no estaba redirigido y se habrían perdido.
-	if m := takeInfisicalStatus(); m != "" {
+	if m := tomarAvisoDiferido(); m != "" {
 		log.Print(m)
 	}
 }
@@ -335,9 +366,9 @@ func buildRecord(event string, fields map[string]any) map[string]any {
 	rec := map[string]any{
 		"time":    time.Now().UTC().Format(time.RFC3339),
 		"event":   event,
-		"version": telVersion,
-		"os":      telOS,
-		"arch":    telArch,
+		"version": TelVersion,
+		"os":      TelOS,
+		"arch":    TelArch,
 	}
 	if cfg.clientID != "" {
 		rec["client_id"] = cfg.clientID
@@ -369,17 +400,17 @@ func RecordPlayer(event string, fields map[string]any, remoteIP string) {
 // lotes de 20; se deja margen pero sin permitir que una racha de errores de
 // HLS.js llene la cola central.
 const (
-	telMaxBody     = 64 << 10
-	telMaxEvents   = 50
-	telMaxEventLen = 80
-	telMaxFieldLen = 60
+	TelMaxBody     = 64 << 10
+	TelMaxEvents   = 50
+	TelMaxEventLen = 80
+	TelMaxFieldLen = 60
 )
 
-// telAutorizado decide quién puede leer /api/logs: el loopback siempre (es el
+// TelAutorizado decide quién puede leer /api/logs: el loopback siempre (es el
 // caso normal: el navegador está en la misma máquina) y el resto solo si hay
 // TELEMETRY_API_TOKEN configurado. Comparación en tiempo constante para no
 // filtrar el token por temporización.
-func telAutorizado(c fiber.Ctx) bool {
+func TelAutorizado(c fiber.Ctx) bool {
 	token := strings.TrimSpace(os.Getenv("TELEMETRY_API_TOKEN"))
 	if token == "" {
 		return isLoopbackIP(c.IP())
@@ -406,8 +437,8 @@ func isLoopbackIP(ip string) bool {
 	return false
 }
 
-// tailRecent devuelve las últimas líneas del buffer (para /api/logs).
-func tailRecent(limit int) []string {
+// TailRecent devuelve las últimas líneas del buffer (para /api/logs).
+func TailRecent(limit int) []string {
 	if telBuf == nil {
 		return nil
 	}
@@ -437,8 +468,8 @@ func closeTelemetryWriters() {
 	}
 }
 
-// telemetryConfigSnapshot para exponer el estado en /api/logs.
-func telemetryConfigSnapshot() map[string]any {
+// ConfigSnapshot para exponer el estado en /api/logs.
+func ConfigSnapshot() map[string]any {
 	telMu.RLock()
 	defer telMu.RUnlock()
 	return map[string]any{

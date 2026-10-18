@@ -1,4 +1,4 @@
-package app
+package telemetry
 
 // Envío asíncrono de eventos a Grafana Cloud por OTLP.
 //
@@ -98,7 +98,7 @@ func newOTLPExporter(cfg telemetryConfig) (*otlpExporter, error) {
 	res, err := resource.Merge(resource.Default(), resource.NewWithAttributes(
 		"", // sin schema URL: si no, el merge falla
 		attribute.String("service.name", "streaming"),
-		attribute.String("service.version", telVersion),
+		attribute.String("service.version", TelVersion),
 		attribute.String("client_id", cfg.clientID),
 	))
 	if err != nil {
@@ -653,4 +653,13 @@ func quotearValor(v string) string {
 		return strconv.Quote(v)
 	}
 	return v
+}
+
+// ExporterStats expone el estado del exporter central para /api/logs. Nil
+// significa que no hay central configurada.
+func ExporterStats() map[string]any {
+	if telBatch == nil {
+		return nil
+	}
+	return telBatch.stats()
 }

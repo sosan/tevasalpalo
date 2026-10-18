@@ -1,4 +1,4 @@
-package app
+package telemetry
 
 // Buffer circular en memoria: guarda las últimas N líneas para poder
 // descargarlas desde /api/logs o para el diagnóstico de errores sin tener que

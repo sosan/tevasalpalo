@@ -1,4 +1,4 @@
-package app
+package telemetry
 
 // Cola de eventos persistente en disco.
 //
@@ -41,11 +41,11 @@ func newDiskSpool(path string, maxBytes int64) (*diskSpool, error) {
 	s := &diskSpool{path: path, maxBytes: maxBytes}
 	// Si quedó una cola a medias de un envío anterior, se recupera: son
 	// líneas completas, porque solo se hace rename tras escribir entero.
-	s.bytes = tamanoFichero(path)
+	s.bytes = TamanoFichero(path)
 	return s, nil
 }
 
-func tamanoFichero(path string) int64 {
+func TamanoFichero(path string) int64 {
 	st, err := os.Stat(path)
 	if err != nil {
 		return 0

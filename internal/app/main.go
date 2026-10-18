@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"sync"
 	"syscall"
+	"tevasalpalo/internal/telemetry"
 	"tevasalpalo/update"
 	"time"
 )
@@ -67,12 +68,12 @@ func Main() {
 
 	// Telemetría antes de nada más: a partir de aquí todo lo que escriba el
 	// log (incluido lo de arranque) queda en fichero, buffer y central.
-	telVersion = update.VersionBuild
-	if telVersion == "" {
-		telVersion = "dev"
+	telemetry.TelVersion = update.VersionBuild
+	if telemetry.TelVersion == "" {
+		telemetry.TelVersion = "dev"
 	}
-	telOS = runtime.GOOS
-	telArch = runtime.GOARCH
+	telemetry.TelOS = runtime.GOOS
+	telemetry.TelArch = runtime.GOARCH
 
 	// Secretos incrustados antes que el resto: pueden traer la configuración
 	// de Infisical y otras variables que la telemetría necesita. Solo rellena
@@ -87,7 +88,7 @@ func Main() {
 		FetchSecretsFromInfisical()
 	}
 
-	InitTelemetry()
+	telemetry.InitTelemetry()
 
 	avisoEnlacesXray()
 
@@ -220,7 +221,7 @@ func Main() {
 
 	// Último envío al central: sin esto se pierden justo los eventos del
 	// cierre, que suelen ser los que explican un fallo.
-	ShutdownTelemetry(3 * time.Second)
+	telemetry.ShutdownTelemetry(3 * time.Second)
 }
 
 // avisoEnlacesXray recuerda dónde pegar los enlaces de proxy, para no tener que

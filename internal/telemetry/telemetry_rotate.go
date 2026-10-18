@@ -1,4 +1,4 @@
-package app
+package telemetry
 
 // Escritura en fichero con rotación por tamaño, sin dependencias externas.
 //

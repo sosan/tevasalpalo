@@ -26,8 +26,9 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"sync"
 	"time"
+
+	"tevasalpalo/internal/telemetry"
 )
 
 const infisicalDefaultURL = "https://app.infisical.com"
@@ -74,7 +75,7 @@ func loadInfisicalConfig() (infisicalConfig, bool) {
 	// TLS y resolver DNS, y eso se come los primeros segundos. Con 5s fallaba
 	// de forma intermitente justo en el arranque, que es cuando más lo
 	// necesitas. Una vez caliente, la misma petición responde en ~100 ms.
-	cfg.timeout = time.Duration(envIntTel("INFISICAL_TIMEOUT_MS", 15000)) * time.Millisecond
+	cfg.timeout = time.Duration(telemetry.EnvInt("INFISICAL_TIMEOUT_MS", 15000)) * time.Millisecond
 
 	// Sin token, project ID o entorno no se puede pedir nada. No es un error:
 	// la app funciona igual sin Infisical.
@@ -278,7 +279,7 @@ func applySecrets(secrets map[string]string) []string {
 //
 // El resultado no se loguea aquí a propósito: en este punto el log global
 // todavía no está redirigido (InitTelemetry corre después) y estos mensajes se
-// perderían. Se guardan en infisicalStatus y InitTelemetry los emite cuando el
+// perderían. Se guarda en telemetría (AvisoDiferido) y InitTelemetry lo emite cuando
 // log ya está montado.
 func FetchSecretsFromInfisical() bool {
 	cfg, ok := loadInfisicalConfig()
@@ -291,36 +292,17 @@ func FetchSecretsFromInfisical() bool {
 	if err != nil {
 		// Un fallo aquí no debe impedir arrancar la app: la telemetría se
 		// queda sin central, pero el usuario puede seguir viendo el vídeo.
-		setInfisicalStatus(fmt.Sprintf("⚠️  Infisical: %v (sigo con la configuración local)", err))
+		telemetry.AvisoDiferido(fmt.Sprintf("⚠️  Infisical: %v (sigo con la configuración local)", err))
 		return false
 	}
 
 	aplicadas := applySecrets(secrets)
 	if len(aplicadas) == 0 {
-		setInfisicalStatus(fmt.Sprintf("🔑 Infisical: %d secretos descargados, ninguno aplicaba", len(secrets)))
+		telemetry.AvisoDiferido(fmt.Sprintf("🔑 Infisical: %d secretos descargados, ninguno aplicaba", len(secrets)))
 		return false
 	}
-	setInfisicalStatus(fmt.Sprintf("🔑 Infisical: %d secretos de %s (%s) aplicados: %s",
+	telemetry.AvisoDiferido(fmt.Sprintf("🔑 Infisical: %d secretos de %s (%s) aplicados: %s",
 		len(aplicadas), cfg.pathHint(), cfg.env, strings.Join(aplicadas, ", ")))
 	return true
 }
 
-// infisicalStatus guarda los mensajes hasta que el log está montado.
-var (
-	infisicalMu      sync.Mutex
-	infisicalMensaje string
-)
-
-func setInfisicalStatus(m string) {
-	infisicalMu.Lock()
-	infisicalMensaje = m
-	infisicalMu.Unlock()
-}
-
-func takeInfisicalStatus() string {
-	infisicalMu.Lock()
-	defer infisicalMu.Unlock()
-	m := infisicalMensaje
-	infisicalMensaje = ""
-	return m
-}

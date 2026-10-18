@@ -15,10 +15,11 @@ import (
 	"sync"
 
 	"log"
-	"tevasalpalo/update"
 	"net/http"
 	"net/url"
 	"strconv"
+	"tevasalpalo/internal/telemetry"
+	"tevasalpalo/update"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -494,7 +495,7 @@ func StartWebServer() (*fiber.App, error) {
 	// local: sin tope, un bucle de reintentos de HLS.js podría meter miles de
 	// líneas en la cola central.
 	app.Post("/api/telemetry", func(c fiber.Ctx) error {
-		if n := len(c.Body()); n > telMaxBody {
+		if n := len(c.Body()); n > telemetry.TelMaxBody {
 			return c.Status(413).JSON(fiber.Map{"error": "cuerpo demasiado grande"})
 		}
 		var body struct {
@@ -513,23 +514,23 @@ func StartWebServer() (*fiber.App, error) {
 		aceptados := 0
 		registrar := func(event string, fields fiber.Map) {
 			event = strings.TrimSpace(event)
-			if event == "" || len(event) > telMaxEventLen {
+			if event == "" || len(event) > telemetry.TelMaxEventLen {
 				return
 			}
 			f := map[string]any{}
 			for k, v := range fields {
-				if len(k) > telMaxFieldLen {
+				if len(k) > telemetry.TelMaxFieldLen {
 					continue
 				}
 				f[k] = v
 			}
-			RecordPlayer(event, f, ip)
+			telemetry.RecordPlayer(event, f, ip)
 			aceptados++
 		}
 
 		if len(body.Events) > 0 {
 			for _, ev := range body.Events {
-				if aceptados >= telMaxEvents {
+				if aceptados >= telemetry.TelMaxEvents {
 					break
 				}
 				registrar(ev.Event, ev.Fields)
@@ -550,12 +551,12 @@ func StartWebServer() (*fiber.App, error) {
 	// con token: el log lleva URLs y hashes literales y no cualquiera de la
 	// red debería poder leerlos.
 	app.Get("/api/logs", func(c fiber.Ctx) error {
-		if !telAutorizado(c) {
+		if !telemetry.TelAutorizado(c) {
 			return c.Status(403).JSON(fiber.Map{
 				"error": "requiere TELEMETRY_API_TOKEN o conexión desde localhost",
 			})
 		}
-		lines := envIntTel("API_LOG_LINES", 200)
+		lines := telemetry.EnvInt("API_LOG_LINES", 200)
 		if v := c.Query("lines"); v != "" {
 			if n, err := strconv.Atoi(v); err == nil && n > 0 {
 				lines = n
@@ -565,11 +566,11 @@ func StartWebServer() (*fiber.App, error) {
 			lines = 2000
 		}
 		out := fiber.Map{
-			"config": telemetryConfigSnapshot(),
-			"lines":  tailRecent(lines),
+			"config": telemetry.ConfigSnapshot(),
+			"lines":  telemetry.TailRecent(lines),
 		}
-		if telBatch != nil {
-			out["exporter"] = telBatch.stats()
+		if st := telemetry.ExporterStats(); st != nil {
+			out["exporter"] = st
 		}
 		return c.JSON(out)
 	})
@@ -578,7 +579,7 @@ func StartWebServer() (*fiber.App, error) {
 	// historial. Todo de solo lectura y con las mismas protecciones que
 	// /api/logs, porque el historial contiene nombres de canal y hashes.
 	app.Get("/api/db", func(c fiber.Ctx) error {
-		if !telAutorizado(c) {
+		if !telemetry.TelAutorizado(c) {
 			return c.Status(403).JSON(fiber.Map{
 				"error": "requiere TELEMETRY_API_TOKEN o conexión desde localhost",
 			})
