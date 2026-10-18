@@ -1,4 +1,4 @@
-package app
+package secrets
 
 // Lectura de secretos desde Infisical.
 //
@@ -305,4 +305,3 @@ func FetchSecretsFromInfisical() bool {
 		len(aplicadas), cfg.pathHint(), cfg.env, strings.Join(aplicadas, ", ")))
 	return true
 }
-

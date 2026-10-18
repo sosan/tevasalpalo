@@ -333,7 +333,7 @@ Imprime el valor del secret ya sin envoltorio, delimitado para copiarlo tal cual
 1) Valor del secret de GitHub Actions (TELEMETRY_LDFLAGS):
 
 ┌────────────────────────────────────────────────────────────────────────────┐
-│ -X 'tevasalpalo/internal/app.embebidoSecretos=v1:BASE64' -X 'tevasalpalo/internal/app.claveSecretos=CLAVE'
+│ -X 'tevasalpalo/internal/secrets.EmbebidoSecretos=v1:BASE64' -X 'tevasalpalo/internal/secrets.ClaveSecretos=CLAVE'
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 

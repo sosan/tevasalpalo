@@ -1,4 +1,4 @@
-package app
+package secrets
 
 // Tests del contenedor cifrado de secretos.
 //
@@ -17,10 +17,10 @@ import (
 // aplicarSecretosIncrustadosCon es la versión con parámetros explícitos, para
 // poder probar el arranque sin tocar los globales que inyecta el linker.
 func aplicarSecretosIncrustadosCon(blob, clave string) bool {
-	anteriorBlob, anteriorClave := embebidoSecretos, claveSecretos
-	embebidoSecretos, claveSecretos = blob, clave
-	defer func() { embebidoSecretos, claveSecretos = anteriorBlob, anteriorClave }()
-	return aplicarSecretosIncrustados()
+	anteriorBlob, anteriorClave := EmbebidoSecretos, ClaveSecretos
+	EmbebidoSecretos, ClaveSecretos = blob, clave
+	defer func() { EmbebidoSecretos, ClaveSecretos = anteriorBlob, anteriorClave }()
+	return AplicarSecretosIncrustados()
 }
 
 func configDePrueba() configInfisical {
@@ -236,7 +236,7 @@ func TestGeneradorExigeLoBasico(t *testing.T) {
 	t.Setenv("INFISICAL_PROJECT_ID", "")
 	t.Setenv("INFISICAL_ENV", "")
 
-	if err := generarSecretosIncrustados(); err == nil {
+	if err := GenerarSecretosIncrustados(); err == nil {
 		t.Error("generó un contenedor sin datos")
 	}
 
@@ -244,7 +244,7 @@ func TestGeneradorExigeLoBasico(t *testing.T) {
 	t.Setenv("INFISICAL_TOKEN", "st.x.y.z")
 	t.Setenv("INFISICAL_PROJECT_ID", "p")
 	t.Setenv("INFISICAL_ENV", "prod")
-	if err := generarSecretosIncrustados(); err == nil {
+	if err := GenerarSecretosIncrustados(); err == nil {
 		t.Error("generó sin clave")
 	}
 }
@@ -255,7 +255,7 @@ func TestGeneradorExigeLoBasico(t *testing.T) {
 // Ninguna de las dos daba error visible: el linker soltaba su usage, y luego
 // la fecha vacía.
 func TestSnippetBuildEsEjecutable(t *testing.T) {
-	valor := "-X 'tevasalpalo/internal/app.embebidoSecretos=v1:BBBB' -X 'tevasalpalo/internal/app.claveSecretos=cccc'"
+	valor := "-X 'tevasalpalo/internal/secrets.EmbebidoSecretos=v1:BBBB' -X 'tevasalpalo/internal/secrets.ClaveSecretos=cccc'"
 	snippet := construirSnippetBuild(valor)
 
 	// La fecha debe llevar el + inicial.
@@ -284,7 +284,7 @@ func TestSnippetBuildEsEjecutable(t *testing.T) {
 // La línea de la fecha debe Expandirse a un valor utilizable, que es el
 // requisito real del bloque.
 func TestLaFechaDelSnippetSeEvalua(t *testing.T) {
-	snippet := construirSnippetBuild("-X 'tevasalpalo/internal/app.embebidoSecretos=v1:BBBB' -X 'tevasalpalo/internal/app.claveSecretos=cccc'")
+	snippet := construirSnippetBuild("-X 'tevasalpalo/internal/secrets.EmbebidoSecretos=v1:BBBB' -X 'tevasalpalo/internal/secrets.ClaveSecretos=cccc'")
 	var linea string
 	for _, l := range strings.Split(snippet, "\n") {
 		if strings.HasPrefix(strings.TrimSpace(l), "VERSION_BUILD=") {

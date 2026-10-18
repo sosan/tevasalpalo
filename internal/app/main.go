@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"sync"
 	"syscall"
+	"tevasalpalo/internal/secrets"
 	"tevasalpalo/internal/telemetry"
 	"tevasalpalo/update"
 	"time"
@@ -35,7 +36,7 @@ func Main() {
 	// -ldflags en stdout.
 	for _, arg := range os.Args[1:] {
 		if arg == "--genera-secretos" || arg == "--generar-secretos" {
-			if err := generarSecretosIncrustados(); err != nil {
+			if err := secrets.GenerarSecretosIncrustados(); err != nil {
 				log.Fatal("❌ ", err)
 			}
 			return
@@ -78,14 +79,14 @@ func Main() {
 	// Secretos incrustados antes que el resto: pueden traer la configuración
 	// de Infisical y otras variables que la telemetría necesita. Solo rellena
 	// lo que esté vacío, así que el entorno gana siempre.
-	aplicarSecretosIncrustados()
+	secrets.AplicarSecretosIncrustados()
 
 	// Secrets antes de la telemetría: el token de Grafana puede venir de
 	// Infisical, y para entonces el log global todavía no está redirigido (por
 	// si hay que avisar de algo). Es no bloqueante para el arranque: si falla,
 	// se sigue con lo que haya en el entorno.
 	if os.Getenv("INFISICAL_ENABLED") != "0" {
-		FetchSecretsFromInfisical()
+		secrets.FetchSecretsFromInfisical()
 	}
 
 	telemetry.InitTelemetry()

@@ -201,8 +201,8 @@ jobs:
           # amd64 sin que nadie se enterase.
           #
           # TELEMETRY_LDFLAGS lleva el contenedor cifrado de secretos
-          # (-X 'tevasalpalo/internal/app.embebidoSecretos=...'
-          # -X 'tevasalpalo/internal/app.claveSecretos=...'), tal y como lo
+          # (-X 'tevasalpalo/internal/secrets.EmbebidoSecretos=...'
+          # -X 'tevasalpalo/internal/secrets.ClaveSecretos=...'), tal y como lo
           # imprime "portable --genera-secretos". Va como secret de Actions,
           # NO en .env.prod: ese fichero se carga con xargs y sus valores
           # acaban en el log del build.

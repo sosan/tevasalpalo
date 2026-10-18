@@ -1,4 +1,4 @@
-package app
+package secrets
 
 // Prueba contra el Infisical real. Solo corre si defines INFISICAL_TOKEN,
 // INFISICAL_PROJECT_ID e INFISICAL_ENV, para no meter credenciales en el repo.

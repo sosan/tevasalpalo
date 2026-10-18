@@ -1,4 +1,4 @@
-package app
+package secrets
 
 // Contenedor cifrado para la configuración de secretos que se incrusta en el
 // binario.
@@ -63,16 +63,16 @@ const (
 	longitudNonce = 12
 )
 
-// embebidoSecretos es el contenedor cifrado, inyectado al compilar con:
+// EmbebidoSecretos es el contenedor cifrado, inyectado al compilar con:
 //
-//	-ldflags "-X 'tevasalpalo/internal/app.embebidoSecretos=v1:BASE64'"
-var embebidoSecretos = ""
+//	-ldflags "-X 'tevasalpalo/internal/secrets.EmbebidoSecretos=v1:BASE64'"
+var EmbebidoSecretos = ""
 
-// claveSecretos es la contraseña de la que se deriva la clave. También se
+// ClaveSecretos es la contraseña de la que se deriva la clave. También se
 // inyecta al compilar:
 //
-//	-ldflags "-X 'tevasalpalo/internal/app.claveSecretos=CLAVE'"
-var claveSecretos = ""
+//	-ldflags "-X 'tevasalpalo/internal/secrets.ClaveSecretos=CLAVE'"
+var ClaveSecretos = ""
 
 // configInfisical es lo que se guarda cifrado dentro del binario.
 type configInfisical struct {
@@ -116,7 +116,7 @@ func descifrarContenedor(blob, clave string) (*configInfisical, error) {
 	cifrado := crudo[longitudSalt+longitudNonce:]
 
 	if clave == "" {
-		return nil, errors.New("falta la clave de descifrado (main.claveSecretos)")
+		return nil, errors.New("falta la clave de descifrado (main.ClaveSecretos)")
 	}
 
 	gcm, err := nuevoGCM(salt, clave)
@@ -196,18 +196,18 @@ func cifrarContenedor(clave string, cfg configInfisical) (string, error) {
 	return versionContenedor + ":" + base64.StdEncoding.EncodeToString(empaquetado), nil
 }
 
-// aplicarSecretosIncrustados descifra el contenedor y aplica sus variables al
+// AplicarSecretosIncrustados descifra el contenedor y aplica sus variables al
 // entorno sin pisar lo que ya esté definido: el contenedor rellena huecos, no
 // decide. Así el entorno, o una rotación en Infisical, siguen mandando.
 //
 // Devuelve false si el binario no lleva secretos o si no se pudo abrir. En ese
 // último caso la app arranca igual, solo que sin telemetría central.
-func aplicarSecretosIncrustados() bool {
-	if strings.TrimSpace(embebidoSecretos) == "" {
+func AplicarSecretosIncrustados() bool {
+	if strings.TrimSpace(EmbebidoSecretos) == "" {
 		return false
 	}
 
-	cfg, err := descifrarContenedor(embebidoSecretos, claveSecretos)
+	cfg, err := descifrarContenedor(EmbebidoSecretos, ClaveSecretos)
 	if err != nil {
 		// Un contenedor ilegible no puede impedir arrancar la app: se pierde la
 		// telemetría, no el vídeo.
@@ -265,7 +265,7 @@ func construirSnippetBuild(valor string) string {
 `
 }
 
-// generarSecretosIncrustados implementa la bandera --genera-secretos: lee la
+// GenerarSecretosIncrustados implementa la bandera --genera-secretos: lee la
 // configuración del entorno, la cifra y escribe por stdout la línea de -ldflags
 // para el build.
 //
@@ -273,7 +273,7 @@ func construirSnippetBuild(valor string) string {
 // así quien tenga el portable puede rotar los secretos sin necesidad del
 // código fuente, y la bandera viaja con la versión que produjo el contenedor
 // (mismo formato que espera el build).
-func generarSecretosIncrustados() error {
+func GenerarSecretosIncrustados() error {
 	clave := os.Getenv("CLAVE_SECRETOS")
 	if clave == "" {
 		return errors.New("falta CLAVE_SECRETOS")
@@ -309,7 +309,7 @@ func generarSecretosIncrustados() error {
 	// Esto es literalmente el valor del secret TELEMETRY_LDFLAGS, sin
 	// envoltorio de -ldflags ni comillas: copiarlo tal cual entre los
 	// marcadores evita el error clásico de dejar una comilla pegada.
-	valor := fmt.Sprintf("-X 'tevasalpalo/internal/app.embebidoSecretos=%s' -X 'tevasalpalo/internal/app.claveSecretos=%s'", blob, clave)
+	valor := fmt.Sprintf("-X 'tevasalpalo/internal/secrets.EmbebidoSecretos=%s' -X 'tevasalpalo/internal/secrets.ClaveSecretos=%s'", blob, clave)
 
 	fmt.Println("1) Valor del secret de GitHub Actions (TELEMETRY_LDFLAGS):")
 	fmt.Println()
