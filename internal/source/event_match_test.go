@@ -1,4 +1,4 @@
-package app
+package source
 
 // Tests de las mejoras deterministas validadas offline con TypeSafe (13/13).
 // Sin red, sin API key: las decisiones del modelo se usaron solo en diseño

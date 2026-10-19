@@ -1,6 +1,6 @@
 //go:build ignore
 
-package app
+package source
 
 import (
 	"bufio"

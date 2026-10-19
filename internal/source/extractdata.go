@@ -1,4 +1,4 @@
-package app
+package source
 
 import (
 	"tevasalpalo/internal/ace"
@@ -485,7 +485,7 @@ func FetchUpdatedList() error {
 			// datos de AceStream interesa el listado completo, no el curado
 			// para la interfaz.
 			fusionadoBruto = fusionarListados(fusionadoBruto, extracted)
-			broadcasterToAcestream = updateBroadcasterMapWithGatewayTolerant(broadcasterToAcestream, extracted, s.Name)
+			BroadcasterToAcestream = updateBroadcasterMapWithGatewayTolerant(BroadcasterToAcestream, extracted, s.Name)
 			porFuente[s.Name] = extracted
 			fetchedCount++
 			mu.Unlock()
@@ -494,11 +494,11 @@ func FetchUpdatedList() error {
 	wg.Wait()
 
 	// Transformar una sola vez al final
-	broadcasterToAcestream = transformUriSafeBroadcasters(broadcasterToAcestream)
+	BroadcasterToAcestream = transformUriSafeBroadcasters(BroadcasterToAcestream)
 
 	// Poner el hash más probable primero en cada canal, para que el player no
 	// se coma un timeout probando uno que ya sabemos que está muerto.
-	ordenarListadoEnVivo(broadcasterToAcestream)
+	ordenarListadoEnVivo(BroadcasterToAcestream)
 	log.Printf("✅ Fuentes procesadas: %d/%d", fetchedCount, len(sources))
 
 	// Guardar el resultado en la base de datos: sirve para el arranque
@@ -531,15 +531,21 @@ func FetchUpdatedList() error {
 	log.Print("Filtrando canales TV....")
 	// transform uri links to base64 uri safe
 
-	topCompetitions = transformCompetitionsToTop(allCompetitions)
+	TopCompetitions = transformCompetitionsToTop(AllCompetitionsData)
 
-	if err := preloadProgramationTVData(); err != nil {
-		log.Printf("⚠️  Advertencia: No se pudieron pre-cargar datos: %v", err)
+	// El callback lo fija la capa web (server.go): source no puede importar
+	// a la web sin ciclo, así que tras cada refresco avisa "listado listo".
+	if OnListaRefrescada != nil {
+		if err := OnListaRefrescada(); err != nil {
+			log.Printf("⚠️  Advertencia: No se pudieron pre-cargar datos: %v", err)
+		}
 	}
-
-	startTVProgramationDataRefresh()
 	return nil
 }
+
+// OnListaRefrescada la fija la web (preloadProgramationTVData + goroutine de
+// refresco programado): se ejecuta tras cada FetchUpdatedList con éxito.
+var OnListaRefrescada func() error
 
 func extractDataFromWebElCano(body []byte) (map[string][]string, error) {
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
@@ -1002,7 +1008,7 @@ type pLink struct {
 // tras las redirecciones. Además, cuando un host falla se marca como muerto
 // para el resto de la pasada, así que N enlaces del mismo servidor muerto
 // cuestan un solo timeout en vez de N.
-func transformUriSafeBroadcasters(broadcasterToAcestream map[string]BroadcasterInfo) map[string]BroadcasterInfo {
+func transformUriSafeBroadcasters(BroadcasterToAcestream map[string]BroadcasterInfo) map[string]BroadcasterInfo {
 	isDev := os.Getenv("ENV") == "dev"
 
 	// Fase 1: recoger los enlaces "p;" sin tocar la red.
@@ -1013,7 +1019,7 @@ func transformUriSafeBroadcasters(broadcasterToAcestream map[string]BroadcasterI
 		initial  []string
 	}
 	var jobs []broadcasterJob
-	for key, info := range broadcasterToAcestream {
+	for key, info := range BroadcasterToAcestream {
 		job := broadcasterJob{key: key}
 		for i, link := range info.Links {
 			if strings.TrimSpace(link) == "" {
@@ -1101,15 +1107,15 @@ func transformUriSafeBroadcasters(broadcasterToAcestream map[string]BroadcasterI
 				newLinks = append(newLinks, link)
 			}
 		}
-		info := broadcasterToAcestream[job.key]
+		info := BroadcasterToAcestream[job.key]
 		info.Links = removeDuplicates(newLinks)
-		broadcasterToAcestream[job.key] = info
+		BroadcasterToAcestream[job.key] = info
 		// Solo avisar si tenía links y se quedó sin ninguno tras transformar (evita ruido de broadcasters que ya nacen vacíos como HYPERMOTION alias o DAZN LALIGA 3 recién creado)
 		if isDev && len(job.original) > 0 && len(newLinks) == 0 {
 			log.Printf("⚠️  [%s] quedó sin links válidos tras transformUriSafe (tenía %d, ahora 0)", job.key, len(job.original))
 		}
 	}
-	return broadcasterToAcestream
+	return BroadcasterToAcestream
 }
 
 // pLinkWorkers: nº de resoluciones "p;" simultáneas. Acota los conexiones a
@@ -1277,7 +1283,7 @@ func shouldProxyFallback(s Source, success, fatal bool) bool {
 	return !success && !fatal && !s.Proxied
 }
 
-// cargarListadoDesdeDisco pone el listado guardado en broadcasterToAcestream
+// CargarListadoDesdeDisco pone el listado guardado en BroadcasterToAcestream
 // para que la web pueda servir de inmediato. No sustituye a la red: cuando las
 // fuentes respondan, FetchUpdatedList lo reemplaza con datos frescos.
 //
@@ -1327,9 +1333,9 @@ func ordenarListadoEnVivo(mapa map[string]BroadcasterInfo) {
 	}
 }
 
-// cargarListadoDesdeDisco rehidrata el listado de la base (arranque rapido,
+// CargarListadoDesdeDisco rehidrata el listado de la base (arranque rapido,
 // sin esperar al refresco de las fuentes) y lo ordena igual que la version viva.
-func cargarListadoDesdeDisco() {
+func CargarListadoDesdeDisco() {
 	if store.Global == nil {
 		return
 	}
@@ -1353,9 +1359,9 @@ func cargarListadoDesdeDisco() {
 		}
 		tmp[nombre] = BroadcasterInfo{Name: nombre, Links: enlaces}
 	}
-	broadcasterToAcestream = tmp
-	ordenarListadoEnVivo(broadcasterToAcestream)
+	BroadcasterToAcestream = tmp
+	ordenarListadoEnVivo(BroadcasterToAcestream)
 
 	log.Printf("⚡ Listado cargado desde disco: %d canales (se refrescará con las fuentes)",
-		len(broadcasterToAcestream))
+		len(BroadcasterToAcestream))
 }

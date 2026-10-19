@@ -1,4 +1,4 @@
-package app
+package source
 
 import (
 	"errors"
@@ -218,7 +218,7 @@ func TestGatewayRellenaTargets(t *testing.T) {
 				t.Fatalf("%q resuelve a %v, se esperaba %q", tc.nombreFuente, targets, tc.destino)
 			}
 			// el destino tiene que existir de verdad como broadcaster
-			if _, ok := broadcasterToAcestream[tc.destino]; !ok {
+			if _, ok := BroadcasterToAcestream[tc.destino]; !ok {
 				t.Fatalf("el destino %q no está en vars.go", tc.destino)
 			}
 		})

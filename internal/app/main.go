@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"tevasalpalo/internal/ace"
 	"tevasalpalo/internal/secrets"
+	"tevasalpalo/internal/source"
 	"tevasalpalo/internal/store"
 	"tevasalpalo/internal/telemetry"
 	"tevasalpalo/internal/transport"
@@ -141,7 +142,7 @@ func Main() {
 
 	// El listado se carga de la base si hay, y la red se consulta después. Al
 	// revés, la web no arranca hasta que respondan las 7 fuentes.
-	cargarListadoDesdeDisco()
+	source.CargarListadoDesdeDisco()
 
 	webServer, err := StartWebServer()
 	if err != nil {
@@ -151,7 +152,7 @@ func Main() {
 	// Refresco de las fuentes en segundo plano: la web ya está sirviendo con
 	// lo que hay en la base y se actualiza sola cuando lleguen los datos.
 	go func() {
-		if err := FetchUpdatedList(); err != nil {
+		if err := source.FetchUpdatedList(); err != nil {
 			log.Printf("Error al obtener la programación")
 		}
 	}()
@@ -174,7 +175,7 @@ func Main() {
 			cmdAcestream = cmd
 			cmdAcestreamMu.Unlock()
 			// log.Println("🎉 Lista Canales TV lista. Abriendo interfaz...")
-			openBrowser(fmt.Sprintf("http://localhost:%d", ace.HttpWebServerPort))
+			source.OpenBrowser(fmt.Sprintf("http://localhost:%d", ace.HttpWebServerPort))
 		}()
 	}
 

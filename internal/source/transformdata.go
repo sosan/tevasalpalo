@@ -1,4 +1,4 @@
-package app
+package source
 
 import "sort"
 
@@ -8,18 +8,18 @@ type OrderedTopCompetition struct {
 }
 
 func transformCompetitionsToTop(allCompe AllCompetitions) map[string]CompetitionDetail {
-	topCompetitions := make(map[string]CompetitionDetail)
+	TopCompetitions := make(map[string]CompetitionDetail)
 	for _, countryComps := range allCompe {
 		for name, detail := range countryComps {
 			if detail.Top {
-				topCompetitions[name] = detail
+				TopCompetitions[name] = detail
 			}
 		}
 	}
-	return topCompetitions
+	return TopCompetitions
 }
 
-func getOrderedTopCompetitions(top map[string]CompetitionDetail) []OrderedTopCompetition {
+func GetOrderedTopCompetitions(top map[string]CompetitionDetail) []OrderedTopCompetition {
 	ordered := make([]OrderedTopCompetition, 0, len(top))
 	for name, detail := range top {
 		ordered = append(ordered, OrderedTopCompetition{Name: name, Detail: detail})

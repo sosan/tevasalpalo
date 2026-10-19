@@ -1,4 +1,4 @@
-package app
+package source
 
 // Opcionalmente, si los links tienen más información (como calidad, idioma, etc.)
 type AcestreamLink struct {
@@ -8,7 +8,7 @@ type AcestreamLink struct {
 }
 
 // Mapeo de broadcasters a su información detallada (incluyendo múltiples links)
-var broadcasterToAcestream = map[string]BroadcasterInfo{
+var BroadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN": {
 		Logo:  "dazn.png",
 		Links: []string{
@@ -1626,7 +1626,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	},
 }
 
-var allCompetitions = AllCompetitions{
+var AllCompetitionsData = AllCompetitions{
 	"Sports": CountryCompetitions{
 		"Tenis":                  {Titulo: "Tenis", Top: true, Icon: "tenis.png", Order: 19},
 		"FIFA Copa Mundial 2026": {Titulo: "Mundial", Top: true, Icon: "mundial.png", Order: 1},

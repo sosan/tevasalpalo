@@ -1,10 +1,10 @@
-package app
+package source
 
 import (
 	"strings"
 )
 
-func findBroadcaster(name string, competitionName, sport string) BroadcasterInfo {
+func FindBroadcaster(name string, competitionName, sport string) BroadcasterInfo {
 	// Coincidencia exacta
 	// quizas pasarlo a minisculas
 	nameUpper := strings.ToUpper(strings.TrimSpace(name))
@@ -49,27 +49,27 @@ func findBroadcaster(name string, competitionName, sport string) BroadcasterInfo
 	// Solo mapear a UFC si hay indicio UFC (en nombre o en competición), si no filtrar (ej: Paramount+ en LaLiga no es Acestream)
 	if strings.Contains(nameUpper, "PARAMOUNT") {
 		if strings.Contains(nameUpper, "UFC") {
-			if dataAce, exists := broadcasterToAcestream["PARAMOUNT+ UFC"]; exists && len(dataAce.Links) > 0 {
+			if dataAce, exists := BroadcasterToAcestream["PARAMOUNT+ UFC"]; exists && len(dataAce.Links) > 0 {
 				return dataAce
 			}
-			if dataAce, exists := broadcasterToAcestream["UFC"]; exists {
+			if dataAce, exists := BroadcasterToAcestream["UFC"]; exists {
 				return dataAce
 			}
 		}
 		if competitionName == "UFC" {
-			if dataAce, exists := broadcasterToAcestream["UFC"]; exists {
+			if dataAce, exists := BroadcasterToAcestream["UFC"]; exists {
 				return dataAce
 			}
 			// Alias genérico Paramount+ -> mapear a UFC solo si es UFC
 			nameUpper = "PARAMOUNT+ UFC"
-			if dataAce, exists := broadcasterToAcestream[nameUpper]; exists {
+			if dataAce, exists := BroadcasterToAcestream[nameUpper]; exists {
 				return dataAce
 			}
 			nameUpper = "PARAMOUNT+"
-			if dataAce, exists := broadcasterToAcestream[nameUpper]; exists {
+			if dataAce, exists := BroadcasterToAcestream[nameUpper]; exists {
 				return dataAce
 			}
-			if dataAce, exists := broadcasterToAcestream["UFC"]; exists {
+			if dataAce, exists := BroadcasterToAcestream["UFC"]; exists {
 				return dataAce
 			}
 		}
@@ -77,7 +77,7 @@ func findBroadcaster(name string, competitionName, sport string) BroadcasterInfo
 		return BroadcasterInfo{}
 	}
 	if strings.Contains(nameUpper, "CBS") && competitionName == "UFC" {
-		if dataAce, exists := broadcasterToAcestream["UFC"]; exists {
+		if dataAce, exists := BroadcasterToAcestream["UFC"]; exists {
 			return dataAce
 		}
 	}
@@ -134,7 +134,7 @@ func findBroadcaster(name string, competitionName, sport string) BroadcasterInfo
 			} else {
 				nameUpper = "M+ BALONCESTO"
 			}
-			if dataAce, exists := broadcasterToAcestream[nameUpper]; exists && len(dataAce.Links) > 0 {
+			if dataAce, exists := BroadcasterToAcestream[nameUpper]; exists && len(dataAce.Links) > 0 {
 				return dataAce
 			}
 			// fallback a DAZN si M+ aún está vacío
@@ -146,7 +146,7 @@ func findBroadcaster(name string, competitionName, sport string) BroadcasterInfo
 		} else {
 			nameUpper = "DAZN BALONCESTO 1"
 		}
-		if dataAce, exists := broadcasterToAcestream[nameUpper]; exists {
+		if dataAce, exists := BroadcasterToAcestream[nameUpper]; exists {
 			return dataAce
 		}
 	}
@@ -154,13 +154,13 @@ func findBroadcaster(name string, competitionName, sport string) BroadcasterInfo
 	// FOX UFC / UFC Fight Pass -> UFC (Paramount+ era)
 	if strings.Contains(nameUpper, "UFC") {
 		if strings.Contains(nameUpper, "FOX") || strings.Contains(nameUpper, "FIGHT PASS") || strings.Contains(nameUpper, "PREMIUM") {
-			if dataAce, exists := broadcasterToAcestream["UFC"]; exists {
+			if dataAce, exists := BroadcasterToAcestream["UFC"]; exists {
 				return dataAce
 			}
 		}
 	}
 
-	if dataAce, exists := broadcasterToAcestream[nameUpper]; exists {
+	if dataAce, exists := BroadcasterToAcestream[nameUpper]; exists {
 		return dataAce
 	}
 	return BroadcasterInfo{}
@@ -175,13 +175,13 @@ func findBroadcaster(name string, competitionName, sport string) BroadcasterInfo
 // 	if competitionName == "Bundesliga" && nameUpper == "SKY SPORTS" {
 // 		nameUpper = "SKY SPORTS BUNDESLIGA"
 // 	}
-// 	if dataAce, exists := broadcasterToAcestream[nameUpper]; exists {
+// 	if dataAce, exists := BroadcasterToAcestream[nameUpper]; exists {
 // 		return dataAce.Links
 // 	}
 
 // 	// Coincidencia parcial (como antes)
 // 	// nameUpper := strings.ToUpper(name)
-// 	for key, dataAce := range broadcasterToAcestream {
+// 	for key, dataAce := range BroadcasterToAcestream {
 // 		baseKey := strings.Split(key, " [")[0]
 // 		if strings.Contains(nameUpper, strings.ToUpper(baseKey)) {
 // 			// Preferir coincidencia exacta de base si es posible

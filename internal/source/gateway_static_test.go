@@ -1,4 +1,4 @@
-package app
+package source
 
 // Mapeos horneados a partir de juicios TypeSafe offline (sin runtime ni API key
 // en la app). Cada entrada se validó con una pregunta Choice contra la API y
@@ -93,7 +93,7 @@ func assertGatewayTargetsExist(t *testing.T, table map[string][]string, phantoms
 	t.Helper()
 	for raw, canonicals := range table {
 		for _, canonical := range canonicals {
-			if _, ok := broadcasterToAcestream[canonical]; !ok && !phantomsOK[canonical] {
+			if _, ok := BroadcasterToAcestream[canonical]; !ok && !phantomsOK[canonical] {
 				t.Errorf("raw %q apunta a canónico inexistente %q (crearía entrada fantasma sin logo)",
 					raw, canonical)
 			}
@@ -119,10 +119,10 @@ func TestGatewayUnknownStillFiltered(t *testing.T) {
 }
 
 func TestFindBroadcasterExactUntouched(t *testing.T) {
-	if got := findBroadcaster("DAZN 1", "LaLiga", "Fútbol"); got.Name == "" {
+	if got := FindBroadcaster("DAZN 1", "LaLiga", "Fútbol"); got.Name == "" {
 		t.Fatal("la vía exacta debe seguir resolviendo sin TypeSafe")
 	}
-	if got := findBroadcaster("Canal Inexistente XYZ", "LaLiga", "Fútbol"); got.Name != "" {
+	if got := FindBroadcaster("Canal Inexistente XYZ", "LaLiga", "Fútbol"); got.Name != "" {
 		t.Fatalf("lo desconocido debe filtrarse, got %q", got.Name)
 	}
 }

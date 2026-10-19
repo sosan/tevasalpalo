@@ -1,4 +1,4 @@
-package app
+package source
 
 import (
 	"tevasalpalo/internal/transport"
@@ -59,7 +59,7 @@ type CompetitionDetail struct {
 type CountryCompetitions map[string]CompetitionDetail
 type AllCompetitions map[string]CountryCompetitions
 
-var topCompetitions map[string]CompetitionDetail
+var TopCompetitions map[string]CompetitionDetail
 
 // Función auxiliar para obtener texto plano sin espacios extra
 func cleanTextForTabsNewlines(s string) string {
@@ -115,7 +115,7 @@ func getTeamName(cell *goquery.Selection) string {
 	return cleanTextForTabsNewlines(cell.Text())
 }
 
-func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
+func FetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 	// generalEvents, err := getCompetition("https://www.futbolenlatv.es/deporte", false)
 	// if err != nil {
 	// 	return nil, err
@@ -436,7 +436,7 @@ func prepareMatchDay(body []byte) ([]DayView, error) {
 				if sport == "Hockey Patines" && strings.ToUpper(competitionName) == "COPA DEL REY" {
 					competitionName = "Copa del Rey Hockey Patines"
 				}
-				broadcaster := findBroadcaster(channelName, competitionName, sport)
+				broadcaster := FindBroadcaster(channelName, competitionName, sport)
 				// filtrar broadcasters vacíos/desconocidos (name == "" -> no se conoce mapeo)
 				if broadcaster.Name == "" {
 					return
@@ -530,7 +530,7 @@ func cleanChannelNameFutbolEnCasa(s string) string {
 	s = strings.TrimSpace(s)
 	s = reOrangeNumber.ReplaceAllString(s, "")
 	s = strings.TrimSpace(s)
-	// Nota: el mapeo de LALIGA TV M1-M4 a Hypermotion se hace en findBroadcaster()
+	// Nota: el mapeo de LALIGA TV M1-M4 a Hypermotion se hace en FindBroadcaster()
 	// con contexto de competitionName, para no contaminar Serie A Italiana
 	// con enlaces de Hypermotion (ej: Genoa-Como con "LaLiga TV M3" -> no es Hypermotion)
 	return strings.TrimSpace(s)
@@ -701,7 +701,7 @@ func addNewBroadcaster(days []DayView, broadcasterNameDestination, competitionNa
 				continue
 			}
 			for l := range days[i].Competitions[o] {
-				newBroadcaster := broadcasterToAcestream[broadcasterNameDestination]
+				newBroadcaster := BroadcasterToAcestream[broadcasterNameDestination]
 				days[i].Competitions[o][l].Broadcasters = append(days[i].Competitions[o][l].Broadcasters, newBroadcaster)
 			}
 		}
@@ -863,7 +863,7 @@ func changeBroadcasterName(days []DayView, broadcasterNameOrigin, broadcasterNam
 				for m := range days[i].Competitions[o][l].Broadcasters {
 					if strings.EqualFold(days[i].Competitions[o][l].Broadcasters[m].Name, broadcasterNameOrigin) {
 						// days[i].Competitions[o][l].Broadcasters[m].Name = broadcasterNameDestination // "sky sports" "SKY SPORTS BUNDESLIGA"
-						currentBroadcaster := broadcasterToAcestream[broadcasterNameDestination]
+						currentBroadcaster := BroadcasterToAcestream[broadcasterNameDestination]
 						days[i].Competitions[o][l].Broadcasters[m] = currentBroadcaster
 
 					}
@@ -1004,7 +1004,7 @@ func changeCompetitionName(days []DayView, competitionNameOrigin, competitionNam
 // 				var broadcaster BroadcasterInfo
 // 				channelName := channelNameMap[channelKey]
 // 				if channelName != "" {
-// 					broadcaster = broadcasterToAcestream[channelName]
+// 					broadcaster = BroadcasterToAcestream[channelName]
 // 					// links := findLinkForBroadcaster(channelName, "premiere league")
 // 					// // broadcaster = append(broadcasters, BroadcasterInfo{Name: channelName, Links: links})
 // 					// broadcaster := BroadcasterInfo{

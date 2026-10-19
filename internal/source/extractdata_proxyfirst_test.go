@@ -1,4 +1,4 @@
-package app
+package source
 
 import (
 	"tevasalpalo/internal/transport"

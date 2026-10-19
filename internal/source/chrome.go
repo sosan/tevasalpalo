@@ -1,12 +1,12 @@
-package app
+package source
 
 import (
 	"os/exec"
 	"runtime"
 )
 
-// openBrowser abre el navegador según el sistema
-func openBrowser(url string) {
+// OpenBrowser abre el navegador según el sistema
+func OpenBrowser(url string) {
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "windows":

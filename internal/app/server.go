@@ -19,6 +19,7 @@ import (
 	"net/url"
 	"strconv"
 	"tevasalpalo/internal/ace"
+	"tevasalpalo/internal/source"
 	"tevasalpalo/internal/store"
 	"tevasalpalo/internal/telemetry"
 	"tevasalpalo/internal/transport"
@@ -41,14 +42,14 @@ var (
 )
 
 type CachedData struct {
-	Days                   []DayView
+	Days                   []source.DayView
 	DaysJSON               template.JS
 	TopCompetitionsJSON    template.JS
-	AllCompetitions        AllCompetitions
-	TopCompetitions        map[string]CompetitionDetail
-	TopCompetitionsOrdered []OrderedTopCompetition
-	Broadcasters           map[string]BroadcasterInfo
-	BroadcastersOrdered    []BroadcasterInfo
+	AllCompetitions        source.AllCompetitions
+	TopCompetitions        map[string]source.CompetitionDetail
+	TopCompetitionsOrdered []source.OrderedTopCompetition
+	Broadcasters           map[string]source.BroadcasterInfo
+	BroadcastersOrdered    []source.BroadcasterInfo
 }
 
 func preloadProgramationTVData() error {
@@ -58,8 +59,8 @@ func preloadProgramationTVData() error {
 		return fmt.Errorf("error preloading data: %v", err)
 	}
 
-	broadcastersMap := broadcasterToAcestream
-	broadcastersSlice := make([]BroadcasterInfo, 0, len(broadcastersMap))
+	broadcastersMap := source.BroadcasterToAcestream
+	broadcastersSlice := make([]source.BroadcasterInfo, 0, len(broadcastersMap))
 
 	for _, info := range broadcastersMap {
 		if info.ShowListChannels {
@@ -78,17 +79,17 @@ func preloadProgramationTVData() error {
 		return broadcastersSlice[i].Order < broadcastersSlice[j].Order
 	})
 
-	topOrdered := getOrderedTopCompetitions(topCompetitions)
+	topOrdered := source.GetOrderedTopCompetitions(source.TopCompetitions)
 
 	dataMutex.Lock()
 	cachedData = CachedData{
 		Days:                   days,
 		DaysJSON:               *daysJSON,
 		TopCompetitionsJSON:    *topCompetitionsJSON,
-		AllCompetitions:        allCompetitions,
-		TopCompetitions:        topCompetitions,
+		AllCompetitions:        source.AllCompetitionsData,
+		TopCompetitions:        source.TopCompetitions,
 		TopCompetitionsOrdered: topOrdered,
-		Broadcasters:           broadcasterToAcestream,
+		Broadcasters:           source.BroadcasterToAcestream,
 		BroadcastersOrdered:    broadcastersSlice,
 	}
 	lastDataUpdate = time.Now()
@@ -115,6 +116,16 @@ func StartWebServer() (*fiber.App, error) {
 	// El ajuste guardado en settings.json alimenta el flag de WARP del
 	// runtime: warpEnabled ya no lee el fichero por su cuenta (ver warp.go).
 	transport.SetWarpAuto(loadSettings().WarpEnabled)
+
+	// El refresco de fuentes avista a la web cuando hay listado nuevo
+	// (source no puede importar server: ciclo).
+	source.OnListaRefrescada = func() error {
+		if err := preloadProgramationTVData(); err != nil {
+			return err
+		}
+		go startTVProgramationDataRefresh()
+		return nil
+	}
 
 	sub, err := fs.Sub(viewsFS, "views")
 	if err != nil {
@@ -411,8 +422,8 @@ func StartWebServer() (*fiber.App, error) {
 		dataMutex.RUnlock()
 		return c.Render("index", fiber.Map{
 			"Days":                   data.Days,
-			"allCompetitions":        data.AllCompetitions,
-			"topCompetitions":        data.TopCompetitions,
+			"source.AllCompetitionsData":        data.AllCompetitions,
+			"source.TopCompetitions":        data.TopCompetitions,
 			"topCompetitionsOrdered": data.TopCompetitionsOrdered,
 			"DaysJSON":               data.DaysJSON,
 			"topCompetitionsJSON":    data.TopCompetitionsJSON,
@@ -429,8 +440,8 @@ func StartWebServer() (*fiber.App, error) {
 			"Broadcasters":           data.BroadcastersOrdered,
 			"DaysJSON":               data.DaysJSON,
 			"Days":                   data.Days,
-			"allCompetitions":        data.AllCompetitions,
-			"topCompetitions":        data.TopCompetitions,
+			"source.AllCompetitionsData":        data.AllCompetitions,
+			"source.TopCompetitions":        data.TopCompetitions,
 			"topCompetitionsOrdered": data.TopCompetitionsOrdered,
 			"topCompetitionsJSON":    data.TopCompetitionsJSON,
 		})
@@ -787,12 +798,12 @@ func StartWebServer() (*fiber.App, error) {
 	return app, nil
 }
 
-func fetchEvents() ([]DayView, *template.JS, *template.JS, error) {
+func fetchEvents() ([]source.DayView, *template.JS, *template.JS, error) {
 	// TODO: retry si da err 520, retry
 	var err error
-	var days []DayView
+	var days []source.DayView
 	for i := 1; i < 3; i++ {
-		days, err = fetchScheduleMatchesFutbolEnCasa()
+		days, err = source.FetchScheduleMatchesFutbolEnCasa()
 		if err != nil {
 			log.Printf("Error fetching schedule: %v", err)
 			time.Sleep(3 * time.Second)
@@ -813,7 +824,7 @@ func fetchEvents() ([]DayView, *template.JS, *template.JS, error) {
 	}
 	daysJSON := template.JS(daysJSONBytes)
 
-	topCompetitionsBytes, err := json.Marshal(topCompetitions)
+	topCompetitionsBytes, err := json.Marshal(source.TopCompetitions)
 	if err != nil {
 		log.Printf("Error marshaling days to JSON: %v", err)
 		return nil, nil, nil, fmt.Errorf("3 Error al obtener la programación")
