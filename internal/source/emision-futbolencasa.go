@@ -1,21 +1,18 @@
 package source
 
 import (
-	"tevasalpalo/internal/transport"
-)
-
-import (
 	"bytes"
 	"fmt"
 	"log"
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
+	"tevasalpalo/internal/transport"
 	"time"
 	"unicode"
 
 	"github.com/PuerkitoBio/goquery"
-	"sync"
 )
 
 type Match struct {

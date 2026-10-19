@@ -1,20 +1,17 @@
 package source
 
 import (
+	"fmt"
+	"sync/atomic"
+	"testing"
 	"tevasalpalo/internal/transport"
+	"time"
 )
 
 // Tests de la política proxy-primero para las fuentes de canales que el ISP
 // estrangula en salida directa (ipfs/filebase). Antes se reintentaba en
 // directo hasta agotar maxFetchAttempts y solo entonces se probaba el proxy,
 // lo que retrasaba el arranque varios segundos por fuente.
-
-import (
-	"fmt"
-	"sync/atomic"
-	"testing"
-	"time"
-)
 
 func TestFuenteProxyFirstUsaProxyYNoTocaDirecto(t *testing.T) {
 	var proxyCalls, directCalls atomic.Int32

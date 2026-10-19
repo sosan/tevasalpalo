@@ -139,13 +139,10 @@ func Main() {
 		log.Printf("❌ Error en servidor web: %v", err)
 	}
 
-	// Refresco de las fuentes en segundo plano: la web ya está sirviendo con
-	// lo que hay en la base y se actualiza sola cuando lleguen los datos.
-	go func() {
-		if err := source.FetchUpdatedList(); err != nil {
-			log.Printf("Error al obtener la programación")
-		}
-	}()
+	// Refresco de las fuentes: inmediato al arrancar, luego cada 6h (alineado
+	// con el ticker de datos de la web). La web ya está sirviendo con lo que
+	// hay en la base y se actualiza sola cuando lleguen los datos.
+	source.IniciarRefrescoCiclico(6 * time.Hour)
 
 	log.Println("🌐 Servidor web iniciando en http://localhost:3000")
 	time.Sleep(10 * time.Second)
