@@ -21,14 +21,18 @@ import (
 
 var shutdownChan = make(chan struct{})
 
-func init() {
-	env := os.Getenv("ENV")
+// autoActualizar imprime la versión y, salvo en dev, intenta la autoupdate.
+// Antes vivía en init() del paquete: cualquier import de app la disparaba
+// (incluidos los tests y las herramientas de build). Ahora solo corre cuando
+// Main la llama y después de las herramientas de build (--genera-secretos /
+// --genera-semilla), que no arrancan la app y antes podían arrastrar una
+// autoupdate y su red de gratis.
+func autoActualizar() {
 	fmt.Println(update.GetVersionBuild())
-	if env == "dev" {
+	if os.Getenv("ENV") == "dev" {
 		return
 	}
-	needUpdate, updatedOk := update.AutoUpdate()
-	if needUpdate && !updatedOk {
+	if needUpdate, updatedOk := update.AutoUpdate(); needUpdate && !updatedOk {
 		log.Printf("NECESARIO ACTUALIZAR PERO NO HA SIDO POSIBLE!!")
 	}
 }
@@ -69,6 +73,8 @@ func Main() {
 		}
 		log.Fatal("❌ no se pudo abrir la base de datos")
 	}
+
+	autoActualizar()
 
 	// Telemetría antes de nada más: a partir de aquí todo lo que escriba el
 	// log (incluido lo de arranque) queda en fichero, buffer y central.
