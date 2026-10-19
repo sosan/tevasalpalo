@@ -9,10 +9,10 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"runtime"
 	"sync"
 
 	"tevasalpalo/internal/ace"
-	"tevasalpalo/internal/source"
 	"tevasalpalo/internal/transport"
 )
 
@@ -82,7 +82,7 @@ func (p *Procesos) ArrancarEngine() {
 		p.cmdAce = cmd
 		p.mu.Unlock()
 		// log.Println("🎉 Lista Canales TV lista. Abriendo interfaz...")
-		source.OpenBrowser(fmt.Sprintf("http://localhost:%d", ace.HttpWebServerPort))
+		abrirNavegador(fmt.Sprintf("http://localhost:%d", ace.HttpWebServerPort))
 	}()
 }
 
@@ -113,6 +113,21 @@ func (p *Procesos) Parar() {
 	} else if cmdAce != nil {
 		log.Println("✅ Cerrado ace correctamente")
 	}
+}
+
+// abrirNavegador abre la interfaz en el navegador del sistema. Best effort:
+// un fallo (p. ej. xdg-open ausente) no debe tumbar la app.
+func abrirNavegador(url string) {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+	case "darwin":
+		cmd = exec.Command("open", url)
+	default: // Linux, etc.
+		cmd = exec.Command("xdg-open", url)
+	}
+	_ = cmd.Start()
 }
 
 // avisoEnlacesXray recuerda dónde pegar los enlaces de proxy, para no tener
