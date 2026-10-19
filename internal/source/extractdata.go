@@ -427,6 +427,11 @@ func FetchUpdatedList() error {
 	}
 
 	pausadas := map[string]bool{}
+	// El refresco se construye sobre un mapa privado y se publica al final
+	// con una sola asignación (invariante copy-on-write): los lectores
+	// concurrentes de la web nunca ven un mapa a medio escribir.
+	vivo := clonarBroadcasters(BroadcasterToAcestream)
+
 	for _, src := range sources {
 		if _, dormida := enPausa[src.Name]; dormida && !src.Obligatoria {
 			// No se descarga, pero se comunica a la base para que su cadencia
@@ -485,7 +490,7 @@ func FetchUpdatedList() error {
 			// datos de AceStream interesa el listado completo, no el curado
 			// para la interfaz.
 			fusionadoBruto = fusionarListados(fusionadoBruto, extracted)
-			BroadcasterToAcestream = updateBroadcasterMapWithGatewayTolerant(BroadcasterToAcestream, extracted, s.Name)
+			vivo = updateBroadcasterMapWithGatewayTolerant(vivo, extracted, s.Name)
 			porFuente[s.Name] = extracted
 			fetchedCount++
 			mu.Unlock()
@@ -494,11 +499,15 @@ func FetchUpdatedList() error {
 	wg.Wait()
 
 	// Transformar una sola vez al final
-	BroadcasterToAcestream = transformUriSafeBroadcasters(BroadcasterToAcestream)
+	vivo = transformUriSafeBroadcasters(vivo)
 
 	// Poner el hash más probable primero en cada canal, para que el player no
 	// se coma un timeout probando uno que ya sabemos que está muerto.
-	ordenarListadoEnVivo(BroadcasterToAcestream)
+	ordenarListadoEnVivo(vivo)
+
+	// Publicar: una asignación, mapa nuevo; los lectores con vistas viejas
+	// siguen con el mapa anterior sin ver escrituras a medias.
+	BroadcasterToAcestream = vivo
 	log.Printf("✅ Fuentes procesadas: %d/%d", fetchedCount, len(sources))
 
 	// Guardar el resultado en la base de datos: sirve para el arranque

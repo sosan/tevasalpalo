@@ -8,6 +8,13 @@ type AcestreamLink struct {
 }
 
 // Mapeo de broadcasters a su información detallada (incluyendo múltiples links)
+//
+// INVARIANTE copy-on-write: este mapa (y TopCompetitions) solo se publica
+// asignando un mapa NUEVO; nunca se muta un mapa ya publicado. Los
+// escritores (FetchUpdatedList) construyen sobre una copia privada
+// (clonarBroadcasters) y la intercambian al final. Los lectores concurrentes
+// (handlers de la web, ticker de 6h) hacen snapshot una vez — vía
+// SnapshotBroadcasters/SnapshotTopCompetitions — y usan su copia sin locks.
 var BroadcasterToAcestream = map[string]BroadcasterInfo{
 	"DAZN": {
 		Logo:  "dazn.png",
@@ -1784,4 +1791,36 @@ var AllCompetitionsData = AllCompetitions{
 	"Arabia Saudita": CountryCompetitions{
 		"Saudi Professional League": {Titulo: "Saudi Professional League", Top: false, Icon: "uefa.png"},
 	},
+}
+
+// SnapshotBroadcasters devuelve una copia profunda del listado vivo de
+// broadcasters (mapa + slices de links). Pensado para capturar una vista
+// estable antes de usarla sin locks.
+func SnapshotBroadcasters() map[string]BroadcasterInfo {
+	return clonarBroadcasters(BroadcasterToAcestream)
+}
+
+// SnapshotTopCompetitions devuelve una copia del detalle de competiciones
+// top en vivo. CompetitionDetail es plano (strings/ints), así que basta con
+// copiar el mapa.
+func SnapshotTopCompetitions() map[string]CompetitionDetail {
+	out := make(map[string]CompetitionDetail, len(TopCompetitions))
+	for k, v := range TopCompetitions {
+		out[k] = v
+	}
+	return out
+}
+
+// clonarBroadcasters copia el mapa y los slices de Links de cada canal. Se
+// usa antes de mutar un listado: un append sobre un slice compartido podría
+// tocar el array del mapa publicado si hay capacidad libre.
+func clonarBroadcasters(m map[string]BroadcasterInfo) map[string]BroadcasterInfo {
+	out := make(map[string]BroadcasterInfo, len(m))
+	for k, info := range m {
+		links := make([]string, len(info.Links))
+		copy(links, info.Links)
+		info.Links = links
+		out[k] = info
+	}
+	return out
 }

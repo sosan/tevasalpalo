@@ -59,7 +59,7 @@ func preloadProgramationTVData() error {
 		return fmt.Errorf("error preloading data: %v", err)
 	}
 
-	broadcastersMap := source.BroadcasterToAcestream
+	broadcastersMap := source.SnapshotBroadcasters()
 	broadcastersSlice := make([]source.BroadcasterInfo, 0, len(broadcastersMap))
 
 	for _, info := range broadcastersMap {
@@ -79,7 +79,8 @@ func preloadProgramationTVData() error {
 		return broadcastersSlice[i].Order < broadcastersSlice[j].Order
 	})
 
-	topOrdered := source.GetOrderedTopCompetitions(source.TopCompetitions)
+	topSnapshot := source.SnapshotTopCompetitions()
+	topOrdered := source.GetOrderedTopCompetitions(topSnapshot)
 
 	dataMutex.Lock()
 	cachedData = CachedData{
@@ -87,9 +88,9 @@ func preloadProgramationTVData() error {
 		DaysJSON:               *daysJSON,
 		TopCompetitionsJSON:    *topCompetitionsJSON,
 		AllCompetitions:        source.AllCompetitionsData,
-		TopCompetitions:        source.TopCompetitions,
+		TopCompetitions:        topSnapshot,
 		TopCompetitionsOrdered: topOrdered,
-		Broadcasters:           source.BroadcasterToAcestream,
+		Broadcasters:           broadcastersMap,
 		BroadcastersOrdered:    broadcastersSlice,
 	}
 	lastDataUpdate = time.Now()
@@ -421,12 +422,12 @@ func StartWebServer() (*fiber.App, error) {
 		data := cachedData
 		dataMutex.RUnlock()
 		return c.Render("index", fiber.Map{
-			"Days":                       data.Days,
-			"source.AllCompetitionsData": data.AllCompetitions,
-			"source.TopCompetitions":     data.TopCompetitions,
-			"topCompetitionsOrdered":     data.TopCompetitionsOrdered,
-			"DaysJSON":                   data.DaysJSON,
-			"topCompetitionsJSON":        data.TopCompetitionsJSON,
+			"Days":                   data.Days,
+			"allCompetitions":        data.AllCompetitions,
+			"topCompetitions":        data.TopCompetitions,
+			"topCompetitionsOrdered": data.TopCompetitionsOrdered,
+			"DaysJSON":               data.DaysJSON,
+			"topCompetitionsJSON":    data.TopCompetitionsJSON,
 		})
 	})
 
@@ -437,13 +438,13 @@ func StartWebServer() (*fiber.App, error) {
 
 		return c.Render("broadcasters", fiber.Map{
 			//
-			"Broadcasters":               data.BroadcastersOrdered,
-			"DaysJSON":                   data.DaysJSON,
-			"Days":                       data.Days,
-			"source.AllCompetitionsData": data.AllCompetitions,
-			"source.TopCompetitions":     data.TopCompetitions,
-			"topCompetitionsOrdered":     data.TopCompetitionsOrdered,
-			"topCompetitionsJSON":        data.TopCompetitionsJSON,
+			"Broadcasters":           data.BroadcastersOrdered,
+			"DaysJSON":               data.DaysJSON,
+			"Days":                   data.Days,
+			"allCompetitions":        data.AllCompetitions,
+			"topCompetitions":        data.TopCompetitions,
+			"topCompetitionsOrdered": data.TopCompetitionsOrdered,
+			"topCompetitionsJSON":    data.TopCompetitionsJSON,
 		})
 	})
 
@@ -824,7 +825,7 @@ func fetchEvents() ([]source.DayView, *template.JS, *template.JS, error) {
 	}
 	daysJSON := template.JS(daysJSONBytes)
 
-	topCompetitionsBytes, err := json.Marshal(source.TopCompetitions)
+	topCompetitionsBytes, err := json.Marshal(source.SnapshotTopCompetitions())
 	if err != nil {
 		log.Printf("Error marshaling days to JSON: %v", err)
 		return nil, nil, nil, fmt.Errorf("3 Error al obtener la programación")
