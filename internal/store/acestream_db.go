@@ -1241,13 +1241,19 @@ func (s *Store) OrdenarHashesPuntuados(hashes []string) ([]string, int) {
 			return nil
 		}
 		for i, h := range hashes {
-			reg := HashRegistro{Hash: h}
-			if v := b.Get([]byte(NormalizarHash(h))); v != nil {
+			// Se devuelve el hash NORMALIZADO, no la cadena de entrada: los
+			// enlaces del listado vivo llegan ya con "acestream://" delante
+			// (y el que viene del disco también), y quien reordena vuelve a
+			// prefijar al reconstruir los enlaces. Devolver la entrada sin
+			// limpiar producía "acestream://acestream://<hash>".
+			limpio := NormalizarHash(h)
+			reg := HashRegistro{Hash: limpio}
+			if v := b.Get([]byte(limpio)); v != nil {
 				if err := json.Unmarshal(v, &reg); err != nil {
-					reg = HashRegistro{Hash: h}
+					reg = HashRegistro{Hash: limpio}
 				}
 			}
-			items = append(items, conPuntos{hash: h, punto: reg.puntuar(), pos: i, vivo: reg.vivo()})
+			items = append(items, conPuntos{hash: limpio, punto: reg.puntuar(), pos: i, vivo: reg.vivo()})
 		}
 		return nil
 	})
