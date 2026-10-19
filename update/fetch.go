@@ -29,7 +29,6 @@ func GetRequestRaw(uri string, token string) (*io.ReadCloser, int) {
 	return &resp.Body, resp.StatusCode
 }
 
-
 func GetRequest(uri string, token string) ([]byte, int) {
 
 	clientHttp := http.Client{Timeout: time.Duration(60) * time.Second}
