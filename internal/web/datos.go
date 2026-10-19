@@ -30,8 +30,9 @@ type CachedData struct {
 	AllCompetitions        source.AllCompetitions
 	TopCompetitions        map[string]source.CompetitionDetail
 	TopCompetitionsOrdered []source.OrderedTopCompetition
-	Broadcasters           map[string]source.BroadcasterInfo
-	BroadcastersOrdered    []source.BroadcasterInfo
+	// BroadcastersOrdered es la lista para la web: solo los que muestran
+	// canales, ordenados por su Order (el mapa de origen ya nadie lo usa).
+	BroadcastersOrdered []source.BroadcasterInfo
 }
 
 func preloadProgramationTVData() error {
@@ -40,26 +41,6 @@ func preloadProgramationTVData() error {
 	if err != nil {
 		return fmt.Errorf("error preloading data: %v", err)
 	}
-
-	broadcastersMap := source.SnapshotBroadcasters()
-	broadcastersSlice := make([]source.BroadcasterInfo, 0, len(broadcastersMap))
-
-	for _, info := range broadcastersMap {
-		if info.ShowListChannels {
-			broadcastersSlice = append(broadcastersSlice, info)
-		}
-	}
-
-	// based in order value
-	sort.Slice(broadcastersSlice, func(i, j int) bool {
-		if broadcastersSlice[i].Order == 0 && broadcastersSlice[j].Order != 0 {
-			return false
-		}
-		if broadcastersSlice[j].Order == 0 && broadcastersSlice[i].Order != 0 {
-			return true
-		}
-		return broadcastersSlice[i].Order < broadcastersSlice[j].Order
-	})
 
 	topSnapshot := source.SnapshotTopCompetitions()
 	topOrdered := source.GetOrderedTopCompetitions(topSnapshot)
@@ -72,14 +53,36 @@ func preloadProgramationTVData() error {
 		AllCompetitions:        source.AllCompetitionsData,
 		TopCompetitions:        topSnapshot,
 		TopCompetitionsOrdered: topOrdered,
-		Broadcasters:           broadcastersMap,
-		BroadcastersOrdered:    broadcastersSlice,
+		BroadcastersOrdered:    broadcastersOrdenados(source.SnapshotBroadcasters()),
 	}
 	lastDataUpdate = time.Now()
 	dataMutex.Unlock()
 
 	log.Println("✅ Datos pre-cargados en memoria")
 	return nil
+}
+
+// broadcastersOrdenados parte el snapshot en los que la web lista
+// (ShowListChannels) y los ordena por su Order. Los Order 0 van al final
+// (sin orden definido) y a igualdad gana la posición del mapa: estable.
+func broadcastersOrdenados(snapshot map[string]source.BroadcasterInfo) []source.BroadcasterInfo {
+	broadcastersSlice := make([]source.BroadcasterInfo, 0, len(snapshot))
+	for _, info := range snapshot {
+		if info.ShowListChannels {
+			broadcastersSlice = append(broadcastersSlice, info)
+		}
+	}
+	// based in order value
+	sort.Slice(broadcastersSlice, func(i, j int) bool {
+		if broadcastersSlice[i].Order == 0 && broadcastersSlice[j].Order != 0 {
+			return false
+		}
+		if broadcastersSlice[j].Order == 0 && broadcastersSlice[i].Order != 0 {
+			return true
+		}
+		return broadcastersSlice[i].Order < broadcastersSlice[j].Order
+	})
+	return broadcastersSlice
 }
 
 // Refrescar datos periódicamente
