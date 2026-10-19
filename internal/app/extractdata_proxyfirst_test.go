@@ -1,5 +1,9 @@
 package app
 
+import (
+	"tevasalpalo/internal/transport"
+)
+
 // Tests de la política proxy-primero para las fuentes de canales que el ISP
 // estrangula en salida directa (ipfs/filebase). Antes se reintentaba en
 // directo hasta agotar maxFetchAttempts y solo entonces se probaba el proxy,
@@ -22,7 +26,7 @@ func TestFuenteProxyFirstUsaProxyYNoTocaDirecto(t *testing.T) {
 		directCalls.Add(1)
 		return nil, fmt.Errorf("no debería llamarse directo")
 	}
-	defer func() { fetchWebData = FetchWebData }()
+	defer func() { fetchWebData = transport.FetchWebData }()
 
 	src := Source{Name: "prueba", Proxied: true, ProxyFirst: true}
 	res := fetchSourceBody(src, true)
@@ -48,7 +52,7 @@ func TestFuenteProxyFirstCaeADirectoSiProxyFalla(t *testing.T) {
 		directCalls.Add(1)
 		return []byte("EXTINF:-1,OK\n"), nil
 	}
-	defer func() { fetchWebData = FetchWebData }()
+	defer func() { fetchWebData = transport.FetchWebData }()
 
 	src := Source{Name: "prueba", Proxied: true, ProxyFirst: true}
 	res := fetchSourceBody(src, true)
@@ -75,7 +79,7 @@ func TestFuenteProxyFirstNoReintentaAnte4xx(t *testing.T) {
 		}
 		return nil, err404()
 	}
-	defer func() { fetchWebData = FetchWebData }()
+	defer func() { fetchWebData = transport.FetchWebData }()
 
 	src := Source{Name: "prueba", Proxied: true, ProxyFirst: true}
 	res := fetchSourceBody(src, true)
@@ -94,7 +98,7 @@ func TestFetchSourceBodyProxyFirstRegistraCuantoTarda(t *testing.T) {
 		proxyCalls.Add(1)
 		return nil, fmt.Errorf("proxy caído")
 	}
-	defer func() { fetchWebData = FetchWebData }()
+	defer func() { fetchWebData = transport.FetchWebData }()
 
 	src := Source{Name: "prueba", Proxied: true, ProxyFirst: true}
 	start := time.Now()

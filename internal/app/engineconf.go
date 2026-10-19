@@ -20,6 +20,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"tevasalpalo/internal/runtimefs"
 )
 
 const aceConfName = "acestream.conf"
@@ -117,7 +118,7 @@ func writeAceConf(runtimePath string, spec engineSpec) error {
 			return nil
 		}
 		backup := filepath.Join(dir, aceConfBackup)
-		if !fileExists(backup) {
+		if !runtimefs.ExisteFichero(backup) {
 			if err := os.WriteFile(backup, current, 0644); err != nil {
 				return err
 			}

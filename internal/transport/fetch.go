@@ -1,4 +1,4 @@
-package app
+package transport
 
 import (
 	"context"
@@ -10,28 +10,24 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"golang.org/x/net/proxy"
 )
 
-type CompetitionRequest struct {
-	URL     string
-	Proxied bool
-	Name    string
-	// Timeout por source. 0 = timeTimeout. Alguna web de horarios tarda >20s
-	// en responder y con el timeout global se caía siempre.
-	Timeout time.Duration
-}
-
 const (
-	timeTimeout = 20 * time.Second
+	// timeTimeout: timeout por defecto de las peticiones de listado.
+	TimeTimeout = 20 * time.Second
+
+	// PLinkTimeout: timeout para resolver una URL "p;". Solo interesa la URL
+	// final tras redirecciones, así que no hace falta esperar el manifiesto
+	// entero ni pagar los 20 s de TimeTimeout por cada servidor caído.
+	PLinkTimeout = 6 * time.Second
 )
 
 // IinitializeRedirectClients devuelve el cliente para resolver URLs "p;".
 // El timeout es corto a propósito: aquí solo se busca la URL final tras las
-// redirecciones, no el manifiesto. Con timeTimeout (20 s) cada servidor
+// redirecciones, no el manifiesto. Con TimeTimeout (20 s) cada servidor
 // directo caído costaba 20 s de arranque.
 func IinitializeRedirectClients() *http.Client {
 	return &http.Client{
@@ -41,7 +37,7 @@ func IinitializeRedirectClients() *http.Client {
 			}
 			return http.ErrUseLastResponse
 		},
-		Timeout: pLinkTimeout,
+		Timeout: PLinkTimeout,
 	}
 }
 
@@ -54,23 +50,23 @@ func StopRedirectClient(client *http.Client) {
 }
 
 func FetchWebData(url string, proxied bool) ([]byte, error) {
-	return FetchWebDataTimeout(url, proxied, timeTimeout)
+	return FetchWebDataTimeout(url, proxied, TimeTimeout)
 }
 
 // FetchWebDataTimeout es FetchWebData con timeout por llamada. Recorre la cadena
 // de transportes (direct o la de proxy) girando al siguiente si uno falla.
 func FetchWebDataTimeout(url string, proxied bool, timeout time.Duration) ([]byte, error) {
 	if timeout <= 0 {
-		timeout = timeTimeout
+		timeout = TimeTimeout
 	}
 	transports := []string{"direct"}
 	if proxied {
-		transports = proxyChain()
+		transports = ProxyChain()
 	}
 
 	var lastErr error
 	for idx, tr := range transports {
-		client, err := clientForTransportTimeout(tr, timeout)
+		client, err := ClientForTransportTimeout(tr, timeout)
 		if err != nil {
 			lastErr = fmt.Errorf("transporte %s: %w", tr, err)
 			continue
@@ -127,7 +123,7 @@ func doFetchWithClient(client *http.Client, url string) ([]byte, error) {
 }
 
 func createSOCKS5Client() (*http.Client, error) {
-	return newSOCKS5Client("localhost:" + portTor)
+	return newSOCKS5Client("localhost:" + PortTor)
 }
 
 // ---------------------------------------------------------------------------
@@ -175,7 +171,7 @@ func proxyMode() string {
 	return m
 }
 
-func socks5Addr() string {
+func Socks5Addr() string {
 	if addr := strings.TrimSpace(os.Getenv("SOCKS5_ADDR")); addr != "" {
 		return addr
 	}
@@ -184,7 +180,7 @@ func socks5Addr() string {
 
 // isFatalFetchErr dice si el error no merece reintento: 4xx salvo 429
 // (rate limit, que sí reintenta con backoff).
-func isFatalFetchErr(err error) bool {
+func IsFatalFetchErr(err error) bool {
 	if err == nil {
 		return false
 	}
@@ -195,14 +191,14 @@ func isFatalFetchErr(err error) bool {
 
 // maxNetworkRetries: intentos contra la misma salida cuando el fallo es de
 // red (DNS/conexión) antes de rotating de transporte.
-const maxNetworkRetries = 3
+const MaxNetworkRetries = 3
 
 // isNetworkErr detecta fallos de transporte: el resolver local no encuentra el
 // host, o no hay quien acepte la conexión. Reintentar 10 veces contra la MISMA
 // salida no lo arregla (el resolver local sigue roto), pero cambiar de
 // transporte sí: el proxy resuelve el DNS por su cuenta. Medido con
 // ipfs.filebase.io: 32 s de reintentos por directa y 1 s por proxy.
-func isNetworkErr(err error) bool {
+func IsNetworkErr(err error) bool {
 	if err == nil {
 		return false
 	}
@@ -228,16 +224,10 @@ func isNetworkErr(err error) bool {
 	return false
 }
 
-// shouldProxyFallback decide el último recurso para fuentes directas
-// agotadas sin error fatal (p. ej. 429 persistente = IP limitada).
-func shouldProxyFallback(s Source, success, fatal bool) bool {
-	return !success && !fatal && !s.Proxied
-}
-
-// proxyChain orden de transportes a probar para peticiones proxied.
+// ProxyChain orden de transportes a probar para peticiones proxied.
 // El secundario es el otro SOCKS disponible. "direct" entra al final salvo que
 // PROXY_FALLBACK_DIRECT esté desactivado (ver proxyFallbackDirect).
-func proxyChain() []string {
+func ProxyChain() []string {
 	var chain []string
 	switch proxyMode() {
 	case "off", "direct", "none":
@@ -251,6 +241,26 @@ func proxyChain() []string {
 		chain = append(chain, "direct")
 	}
 	return chain
+}
+
+// proxyChainWithDirectFallback añade "direct" al final si no está.
+// ON = proxies primero, directa última (nunca duplicada).
+//
+// Con WARP habilitado (warpEnabled) se antepone "warp": es el transporte que
+// corresponde al tráfico de reproducción, y como el túnel es on-demand puede
+// no estar levantado todavía. Si no lo está, el dial da "connection refused" y
+// la rotación sigue con el resto de la cadena sin coste apreciable.
+func ProxyChainWithDirectFallback() []string {
+	chain := ProxyChain()
+	if WarpEnabled() {
+		chain = append([]string{"warp"}, chain...)
+	}
+	for _, tr := range chain {
+		if tr == "direct" {
+			return chain
+		}
+	}
+	return append(chain, "direct")
 }
 
 // proxyFallbackDirect decide si "direct" se añade al final de la cadena de
@@ -269,9 +279,9 @@ func proxyFallbackDirect() bool {
 	return true
 }
 
-// clientForTransport construye el cliente HTTP de un transporte de la cadena.
-func clientForTransport(name string) (*http.Client, error) {
-	return clientForTransportTimeout(name, timeTimeout)
+// ClientForTransport construye el cliente HTTP de un transporte de la cadena.
+func ClientForTransport(name string) (*http.Client, error) {
+	return ClientForTransportTimeout(name, TimeTimeout)
 }
 
 // directDialer fuerza IPv4 en las conexiones directas.
@@ -308,24 +318,24 @@ func directTransport() *http.Transport {
 	}
 }
 
-func clientForTransportTimeout(name string, timeout time.Duration) (*http.Client, error) {
+func ClientForTransportTimeout(name string, timeout time.Duration) (*http.Client, error) {
 	switch name {
 	case "direct":
 		return &http.Client{Timeout: timeout, Transport: directTransport()}, nil
 	case "socks5":
-		return newSOCKS5ClientTimeout(socks5Addr(), timeout)
+		return newSOCKS5ClientTimeout(Socks5Addr(), timeout)
 	case "warp":
 		// El SOCKS lo publica el outbound wireguard de xray-core levantado por
 		// WarpStreamStart (warp.go). Si no está, el dial falla y la rotación
 		// de proxyChain sigue con el siguiente transporte.
-		return newSOCKS5ClientTimeout(warpSocksAddr(), timeout)
+		return newSOCKS5ClientTimeout(WarpSocksAddr(), timeout)
 	default: // "tor" y desconocidos: comportamiento anterior
-		return newSOCKS5ClientTimeout("localhost:"+portTor, timeout)
+		return newSOCKS5ClientTimeout("localhost:"+PortTor, timeout)
 	}
 }
 
 func newSOCKS5Client(addr string) (*http.Client, error) {
-	return newSOCKS5ClientTimeout(addr, timeTimeout)
+	return newSOCKS5ClientTimeout(addr, TimeTimeout)
 }
 
 func newSOCKS5ClientTimeout(addr string, timeout time.Duration) (*http.Client, error) {
@@ -422,36 +432,12 @@ func testSOCKS5Proxy(proxyAddr string) bool {
 	select {
 	case success := <-result:
 		return success
-	case <-time.After(timeTimeout): // Usar el timeout aquí también
+	case <-time.After(TimeTimeout): // Usar el timeout aquí también
 		return false
 	}
 }
 
-func FetchCompetitionsParallel(requests []CompetitionRequest, getFunc func(req CompetitionRequest) ([]DayView, error)) map[string][]DayView {
-	results := make(map[string][]DayView)
-	var mu sync.Mutex
-	var wg sync.WaitGroup
-
-	for _, req := range requests {
-		wg.Add(1)
-		go func(req CompetitionRequest) {
-			defer wg.Done()
-			events, err := getFunc(req)
-			if err != nil {
-				log.Printf("❌ Error en %s: %v", req.Name, err)
-				return
-			}
-			mu.Lock()
-			results[req.Name] = events
-			mu.Unlock()
-		}(req)
-	}
-
-	wg.Wait()
-	return results
-}
-
-// func fetchWithRedirects(initialURL string, proxified bool) (finalURL string, finalHeaders http.Header, manifestBody []byte, err error) {
+// func FetchWithRedirects(initialURL string, proxified bool) (finalURL string, finalHeaders http.Header, manifestBody []byte, err error) {
 // 	client := &http.Client{
 // 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 // 			if len(via) >= 10 {
@@ -460,7 +446,7 @@ func FetchCompetitionsParallel(requests []CompetitionRequest, getFunc func(req C
 
 // 			return http.ErrUseLastResponse
 // 		},
-// 		Timeout: timeTimeout,
+// 		Timeout: TimeTimeout,
 // 	}
 
 // 	if proxified {
@@ -518,7 +504,7 @@ func FetchCompetitionsParallel(requests []CompetitionRequest, getFunc func(req C
 // 	}
 // }
 
-func fetchWithRedirects(initialURL string, client *http.Client) (finalURL string, finalHeaders http.Header, manifestBody []byte, err error) {
+func FetchWithRedirects(initialURL string, client *http.Client) (finalURL string, finalHeaders http.Header, manifestBody []byte, err error) {
 	currentURL := initialURL
 	redirectCount := 0
 
@@ -559,5 +545,16 @@ func fetchWithRedirects(initialURL string, client *http.Client) (finalURL string
 		}
 
 		return resp.Request.URL.String(), resp.Header, body, nil
+	}
+}
+
+func ParseBoolEnv(key string, def bool) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(key))) {
+	case "1", "true", "yes", "on":
+		return true
+	case "0", "false", "no", "off":
+		return false
+	default:
+		return def
 	}
 }

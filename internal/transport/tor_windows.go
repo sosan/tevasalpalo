@@ -1,7 +1,7 @@
 //go:build windows
 // +build windows
 
-package app
+package transport
 
 import (
 	"fmt"

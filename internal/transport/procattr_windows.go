@@ -1,10 +1,10 @@
 //go:build windows
 // +build windows
 
-package app
+package transport
 
 import "os/exec"
 
-func setSysProcAttr(cmd *exec.Cmd) {
+func SetSysProcAttr(cmd *exec.Cmd) {
 	// No hacer nada en Windows
 }

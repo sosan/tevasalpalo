@@ -1,6 +1,10 @@
 package app
 
 import (
+	"tevasalpalo/internal/transport"
+)
+
+import (
 	"bytes"
 	"fmt"
 	"log"
@@ -11,6 +15,7 @@ import (
 	"unicode"
 
 	"github.com/PuerkitoBio/goquery"
+	"sync"
 )
 
 type Match struct {
@@ -228,6 +233,40 @@ func fetchScheduleMatchesFutbolEnCasa() ([]DayView, error) {
 
 }
 
+type CompetitionRequest struct {
+	URL     string
+	Proxied bool
+	Name    string
+	// Timeout por source. 0 = timeTimeout. Alguna web de horarios tarda >20s
+	// en responder y con el timeout global se caía siempre.
+	Timeout time.Duration
+}
+
+func FetchCompetitionsParallel(requests []CompetitionRequest, getFunc func(req CompetitionRequest) ([]DayView, error)) map[string][]DayView {
+	results := make(map[string][]DayView)
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
+	for _, req := range requests {
+		wg.Add(1)
+		go func(req CompetitionRequest) {
+			defer wg.Done()
+			events, err := getFunc(req)
+			if err != nil {
+				log.Printf("❌ Error en %s: %v", req.Name, err)
+				return
+			}
+			mu.Lock()
+			results[req.Name] = events
+			mu.Unlock()
+		}(req)
+	}
+
+	wg.Wait()
+	return results
+}
+
+// getCompetition baja el índice de un torneo concreto y parsea cada día.
 func getCompetition(req CompetitionRequest) ([]DayView, error) {
 	// Se empieza por el proxy y no por directo: con el ISP cortando por DNS,
 	// el directo se come los 10 intentos (y los timeouts) antes de llegar al
@@ -252,7 +291,7 @@ func getCompetition(req CompetitionRequest) ([]DayView, error) {
 	for _, a := range attempts {
 		var err error
 		for i := 1; i <= intentosPorTransporte; i++ {
-			body, err = FetchWebDataTimeout(req.URL, a.proxied, req.Timeout)
+			body, err = transport.FetchWebDataTimeout(req.URL, a.proxied, req.Timeout)
 			if err == nil && len(body) != 0 {
 				if a.label == "proxy" {
 					log.Printf("🔄 [%s] recuperado vía proxy (intento %d/%d)", req.Name, i, intentosPorTransporte)
@@ -860,7 +899,7 @@ func changeCompetitionName(days []DayView, competitionNameOrigin, competitionNam
 // 		parsedDate, _ := time.Parse("02-01-2006", generalEvents[i].DateKey)
 // 		usaParsedDate := parsedDate.Format("2006-01-02")
 // 		uri := fmt.Sprintf("https://tvepg.eu/es/spain/epg/sports/%s", usaParsedDate)
-// 		body, err := FetchWebData(uri, false)
+// 		body, err := transport.FetchWebData(uri, false)
 // 		if err != nil {
 // 			return nil, err
 // 		}

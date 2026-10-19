@@ -1,6 +1,10 @@
 package app
 
 import (
+	"tevasalpalo/internal/transport"
+)
+
+import (
 	"context"
 	"encoding/json"
 	"encoding/xml"
@@ -224,8 +228,8 @@ func TestHostOnly(t *testing.T) {
 		"":                 "",
 	}
 	for in, want := range cases {
-		if got := hostOnly(in); got != want {
-			t.Errorf("hostOnly(%q) = %q, se esperaba %q", in, got, want)
+		if got := transport.HostOnly(in); got != want {
+			t.Errorf("transport.HostOnly(%q) = %q, se esperaba %q", in, got, want)
 		}
 	}
 }

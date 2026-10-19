@@ -1,4 +1,4 @@
-package app
+package transport
 
 // Traza de diagnóstico del camino de red.
 //
@@ -21,19 +21,19 @@ import (
 // traceEnabled indica si ACE_TRACE está activo.
 var traceEnabled = strings.TrimSpace(os.Getenv("ACE_TRACE")) != ""
 
-// traceLog escribe una línea de traza solo si ACE_TRACE está activo.
-func traceLog(format string, args ...any) {
+// TraceLog escribe una línea de traza solo si ACE_TRACE está activo.
+func TraceLog(format string, args ...any) {
 	if traceEnabled {
 		log.Printf("🔍 "+format, args...)
 	}
 }
 
-// traceOnceLog escribe una línea de traza solo la primera vez que se cumple una
+// TraceOnceLog escribe una línea de traza solo la primera vez que se cumple una
 // condición. Sirve para eventos que se repiten mucho (el motor reintenta) y que
-// solo interesa ver una vez, sin llenar el log igual que con traceLog.
+// solo interesa ver una vez, sin llenar el log igual que con TraceLog.
 var traceSeen sync.Map
 
-func traceOnce(key, format string, args ...any) {
+func TraceOnce(key, format string, args ...any) {
 	if !traceEnabled {
 		return
 	}

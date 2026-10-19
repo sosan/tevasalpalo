@@ -1,4 +1,4 @@
-package app
+package transport
 
 // xray-core embebido como librería Go: sin binario externo, sin proceso
 // separado y sin credenciales en disco (el enlace solo vive en env y en
@@ -42,6 +42,7 @@ import (
 	// registered".
 	_ "github.com/xtls/xray-core/main/distro/all"
 	"golang.org/x/net/proxy"
+	"tevasalpalo/internal/runtimefs"
 )
 
 const xrayDefaultSocks = "127.0.0.1:10808"
@@ -846,8 +847,8 @@ func xrayStreamSettings(ep *xrayEndpoint) map[string]any {
 // Ciclo de vida en-proceso (sin binario externo ni credenciales en disco)
 // ---------------------------------------------------------------------------
 
-// xrayHandle es una instancia xray-core corriendo en este proceso.
-type xrayHandle struct {
+// XrayHandle es una instancia xray-core corriendo en este proceso.
+type XrayHandle struct {
 	instance *core.Instance
 	desc     string
 }
@@ -878,7 +879,7 @@ func xraySubURL() string {
 	if v, ok := os.LookupEnv("XRAY_SUB"); ok {
 		return strings.TrimSpace(v)
 	}
-	if p := xrayLocalFile(); p != "" {
+	if p := XrayLocalFile(); p != "" {
 		return p
 	}
 	return xrayDefaultSub
@@ -887,7 +888,7 @@ func xraySubURL() string {
 // xraySubMaxBytes limita lo que se lee de una subscripción o fichero local.
 const xraySubMaxBytes = 2 << 20
 
-// xrayLinksFile es el fichero donde pegar los enlaces de proxy (vless, vmess,
+// XrayLinksFile es el fichero donde pegar los enlaces de proxy (vless, vmess,
 // trojan, ss, socks, wireguard). Se autodetecta: si existe junto al ejecutable
 // o en el directorio de trabajo, se usa sin configurar nada. Está en .gitignore
 // porque contiene credenciales de terceros.
@@ -898,26 +899,26 @@ const xraySubMaxBytes = 2 << 20
 // │  Para usar tus enlaces: pégalos en  xray-links.txt  junto al .exe        │
 // │  (vale un volcado de Telegram tal cual: deduplica y descarta el ruido)  │
 // └──────────────────────────────────────────────────────────────────────────┘
-const xrayLinksFile = "xray-links.txt"
+const XrayLinksFile = "xray-links.txt"
 
-// xrayLocalFile devuelve el fichero local de enlaces, si existe. Se busca
+// XrayLocalFile devuelve el fichero local de enlaces, si existe. Se busca
 // primero junto al ejecutable y luego en el directorio de trabajo, para que
 // sirva tanto en el portable como en el repo.
-func xrayLocalFile() string {
+func XrayLocalFile() string {
 	if p := strings.TrimSpace(os.Getenv("XRAY_FILE")); p != "" {
-		if fileExists(p) {
+		if runtimefs.ExisteFichero(p) {
 			return p
 		}
 		return p // se devuelve igualmente para que el error diga el nombre
 	}
 	if exe, err := os.Executable(); err == nil {
-		p := filepath.Join(filepath.Dir(exe), xrayLinksFile)
-		if fileExists(p) {
+		p := filepath.Join(filepath.Dir(exe), XrayLinksFile)
+		if runtimefs.ExisteFichero(p) {
 			return p
 		}
 	}
-	if fileExists(xrayLinksFile) {
-		return xrayLinksFile
+	if runtimefs.ExisteFichero(XrayLinksFile) {
+		return XrayLinksFile
 	}
 	return ""
 }
@@ -1149,16 +1150,16 @@ func probeEndpoint(socksAddr string) bool {
 	return true
 }
 func xraySocksListen() (string, int, error) {
-	host, portStr, err := net.SplitHostPort(socks5Addr())
+	host, portStr, err := net.SplitHostPort(Socks5Addr())
 	if err != nil {
-		return "", 0, fmt.Errorf("SOCKS5_ADDR inválido %q (formato host:port)", socks5Addr())
+		return "", 0, fmt.Errorf("SOCKS5_ADDR inválido %q (formato host:port)", Socks5Addr())
 	}
 	if host == "" {
 		host = "127.0.0.1"
 	}
 	port, err := strconv.Atoi(portStr)
 	if err != nil || port <= 0 || port > 65535 {
-		return "", 0, fmt.Errorf("SOCKS5_ADDR con puerto inválido %q", socks5Addr())
+		return "", 0, fmt.Errorf("SOCKS5_ADDR con puerto inválido %q", Socks5Addr())
 	}
 	return host, port, nil
 }
@@ -1166,7 +1167,7 @@ func xraySocksListen() (string, int, error) {
 // MaybeRunXray arranca xray-core en-proceso si hay XRAY_SUB o XRAY_LINK.
 // Nunca es fatal: sin fuentes devuelve (nil,nil); con error lo devuelve y el
 // llamador cae a Tor vía la cadena de transportes.
-func MaybeRunXray() (*xrayHandle, error) {
+func MaybeRunXray() (*XrayHandle, error) {
 	link, sub := xrayLink(), xraySubURL()
 	if link == "" && sub == "" {
 		return nil, nil
@@ -1202,14 +1203,14 @@ func MaybeRunXray() (*xrayHandle, error) {
 			continue
 		}
 		log.Printf("✅ xray listo (en-proceso): %s vía SOCKS %s (reserva: Tor)", desc, addr)
-		return &xrayHandle{instance: inst, desc: desc}, nil
+		return &XrayHandle{instance: inst, desc: desc}, nil
 	}
 	return nil, fmt.Errorf("ningún endpoint responde tras probar %d", tried)
 }
 
 // CheckXray dice si el SOCKS en-proceso responde (para estado/diagnóstico).
 func CheckXray() bool {
-	conn, err := net.DialTimeout("tcp", socks5Addr(), 3*time.Second)
+	conn, err := net.DialTimeout("tcp", Socks5Addr(), 3*time.Second)
 	if err != nil {
 		return false
 	}
@@ -1230,7 +1231,7 @@ func waitSocksReady(addr string, timeout time.Duration) error {
 }
 
 // StopXray detiene la instancia en-proceso (nil-safe).
-func StopXray(h *xrayHandle) error {
+func StopXray(h *XrayHandle) error {
 	if h == nil || h.instance == nil {
 		return nil
 	}

@@ -1,4 +1,4 @@
-package app
+package transport
 
 // Tests de la traza de diagnóstico (trace.go).
 //
@@ -39,7 +39,7 @@ func TestTraceLeeFlag(t *testing.T) {
 	traceEnabled = strings.TrimSpace(os.Getenv("ACE_TRACE")) != ""
 }
 
-// TestTraceOnceNoRepite documenta que traceOnce solo emite una vez por clave:
+// TestTraceOnceNoRepite documenta que TraceOnce solo emite una vez por clave:
 // los reintentos del motor se repiten muchas veces y sin dedupe el log se llena
 // de la misma línea.
 func TestTraceOnceNoRepite(t *testing.T) {
@@ -52,8 +52,8 @@ func TestTraceOnceNoRepite(t *testing.T) {
 	}()
 	// Se llama dos veces con la misma clave; si no hubiera dedupe, la segunda
 	// habría escrito otra línea.
-	traceOnce("test-clave", "primera vez")
-	traceOnce("test-clave", "segunda vez")
+	TraceOnce("test-clave", "primera vez")
+	TraceOnce("test-clave", "segunda vez")
 	// Con clave distinta sí escribe.
-	traceOnce("otra-clave", "otra")
+	TraceOnce("otra-clave", "otra")
 }

@@ -1,4 +1,4 @@
-package app
+package transport
 
 // Tests de WARP. Todo offline: respuestas de /reg sintéticas y ninguna
 // credencial real (la identidad que se probó a mano no entra al repo).
@@ -168,9 +168,9 @@ func TestWarpEndpointCandidates(t *testing.T) {
 		}
 	}
 	// Sin IP v4, solo el host con nombre.
-	hostOnly := warpEndpointCandidates(&warpIdentity{EndpointHost: "engage.cloudflareclient.com:2408"})
-	if len(hostOnly) != 1 || hostOnly[0] != "engage.cloudflareclient.com:2408" {
-		t.Fatalf("solo host = %v", hostOnly)
+	HostOnly := warpEndpointCandidates(&warpIdentity{EndpointHost: "engage.cloudflareclient.com:2408"})
+	if len(HostOnly) != 1 || HostOnly[0] != "engage.cloudflareclient.com:2408" {
+		t.Fatalf("solo host = %v", HostOnly)
 	}
 	// Identidad inservible: sin candidatos en vez de inventar endpoints.
 	if extra := warpEndpointCandidates(&warpIdentity{}); len(extra) != 0 {
@@ -187,8 +187,8 @@ func TestWarpHostOnly(t *testing.T) {
 		"":                            "",
 	}
 	for in, want := range cases {
-		if got := hostOnly(in); got != want {
-			t.Fatalf("hostOnly(%q) = %q, want %q", in, got, want)
+		if got := HostOnly(in); got != want {
+			t.Fatalf("HostOnly(%q) = %q, want %q", in, got, want)
 		}
 	}
 }
@@ -419,19 +419,19 @@ func TestWarpEnabled(t *testing.T) {
 	for val, want := range tests {
 		t.Setenv("WARP", val)
 		t.Setenv("WARP_AUTO", "")
-		if got := warpEnabled(); got != want {
+		if got := WarpEnabled(); got != want {
 			t.Fatalf("WARP=%q -> %v, want %v", val, got, want)
 		}
 	}
 	// WARP vacío pero WARP_AUTO=1 habilita.
 	t.Setenv("WARP", "")
 	t.Setenv("WARP_AUTO", "1")
-	if !warpEnabled() {
+	if !WarpEnabled() {
 		t.Fatal("WARP_AUTO=1 debe habilitar")
 	}
 	// WARP=0 gana sobre WARP_AUTO=1.
 	t.Setenv("WARP", "0")
-	if warpEnabled() {
+	if WarpEnabled() {
 		t.Fatal("WARP=0 debe mandar sobre WARP_AUTO")
 	}
 }
@@ -461,7 +461,7 @@ func TestIsAceStreamPath(t *testing.T) {
 		"getstream/abc", "/ace/getstream", "content/123", "/hls/segment.ts",
 		"manifest.m3u8", "server/stream",
 	} {
-		if !isAceStreamPath(p) {
+		if !IsAceStreamPath(p) {
 			t.Fatalf("%q debería contar como stream", p)
 		}
 	}
@@ -469,7 +469,7 @@ func TestIsAceStreamPath(t *testing.T) {
 	for _, p := range []string{
 		"version", "settings/get", "app/tok/cmd/isonline", "playlist.m3u8", "",
 	} {
-		if isAceStreamPath(p) {
+		if IsAceStreamPath(p) {
 			t.Fatalf("%q no debería contar como stream", p)
 		}
 	}
@@ -487,14 +487,14 @@ func TestProxyChainWithWarp(t *testing.T) {
 	t.Setenv("PROXY_FALLBACK_DIRECT", "1")
 	t.Setenv("WARP", "0")
 	t.Setenv("WARP_AUTO", "")
-	base := proxyChainWithDirectFallback()
+	base := ProxyChainWithDirectFallback()
 	for _, tr := range base {
 		if tr == "warp" {
 			t.Fatal("warp no debe entrar en la cadena si está deshabilitado")
 		}
 	}
 	t.Setenv("WARP", "1")
-	withWarp := proxyChainWithDirectFallback()
+	withWarp := ProxyChainWithDirectFallback()
 	if len(withWarp) != len(base)+1 {
 		t.Fatalf("len = %d, want %d", len(withWarp), len(base)+1)
 	}

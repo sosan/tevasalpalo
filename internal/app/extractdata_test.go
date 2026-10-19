@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"tevasalpalo/internal/transport"
 	"time"
 )
 
@@ -247,7 +248,7 @@ func TestIsNetworkErr(t *testing.T) {
 		errors.New("lookup server misbehaving"),
 	}
 	for _, err := range red {
-		if !isNetworkErr(err) {
+		if !transport.IsNetworkErr(err) {
 			t.Errorf("debería detectarse como error de red: %v", err)
 		}
 	}
@@ -258,7 +259,7 @@ func TestIsNetworkErr(t *testing.T) {
 		errors.New("error al parsear el HTML: EOF inesperado"),
 	}
 	for _, err := range otros {
-		if isNetworkErr(err) {
+		if transport.IsNetworkErr(err) {
 			t.Errorf("no debería detectarse como error de red: %v", err)
 		}
 	}
@@ -281,8 +282,8 @@ func TestShouldProxyFallbackConErrorDeRed(t *testing.T) {
 	if shouldProxyFallback(proxied, false, false) {
 		t.Error("una fuente ya proxied no necesita fallback")
 	}
-	if maxNetworkRetries >= 10 {
-		t.Errorf("maxNetworkRetries=%d anula el ahorro: el bucle tiene 10 intentos", maxNetworkRetries)
+	if transport.MaxNetworkRetries >= 10 {
+		t.Errorf("transport.MaxNetworkRetries=%d anula el ahorro: el bucle tiene 10 intentos", transport.MaxNetworkRetries)
 	}
 }
 
@@ -451,8 +452,8 @@ func TestTxtRawConservaNombresNoASCII(t *testing.T) {
 // La resolución de enlaces "p;" no puede dejar el arranque en manos de un
 // único servidor caído: el timeout tiene que ser menor que el global.
 func TestPLinkTimeoutMenorQueGlobal(t *testing.T) {
-	if pLinkTimeout >= timeTimeout {
-		t.Errorf("pLinkTimeout=%s debe ser menor que timeTimeout=%s: aquí solo se busca la URL final", pLinkTimeout, timeTimeout)
+	if transport.PLinkTimeout >= transport.TimeTimeout {
+		t.Errorf("transport.PLinkTimeout=%s debe ser menor que transport.TimeTimeout=%s: aquí solo se busca la URL final", transport.PLinkTimeout, transport.TimeTimeout)
 	}
 	if pLinkWorkers < 2 {
 		t.Errorf("pLinkWorkers=%d deja la resolución en serie", pLinkWorkers)

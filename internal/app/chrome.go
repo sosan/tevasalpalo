@@ -22,8 +22,6 @@ func openBrowser(url string) {
 	_ = cmd.Start()
 }
 
-
-
 // isRelevant checks if the competition is one we are interested in.
 // You need to define your own logic here.
 // func isRelevant(competition string) bool {

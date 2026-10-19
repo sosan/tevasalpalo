@@ -1,4 +1,4 @@
-package app
+package transport
 
 // Tests del sidecar xray. Todo offline con enlaces sintéticos: ninguna
 // credencial real (ni las probadas manualmente) entra al repo.
@@ -247,7 +247,7 @@ func TestProxyModeWithLink(t *testing.T) {
 	if got := proxyMode(); got != "socks5" {
 		t.Fatalf("con XRAY_LINK el defecto debe ser socks5, got %q", got)
 	}
-	chain := proxyChain()
+	chain := ProxyChain()
 	// "direct" cierra la cadena por defecto: si xray o Tor no están
 	// levantados, la petición degrada en vez de romperse.
 	if len(chain) != 3 || chain[0] != "socks5" || chain[1] != "tor" || chain[2] != "direct" {
@@ -259,7 +259,7 @@ func TestProxyChainNoFallbackDirect(t *testing.T) {
 	t.Setenv("XRAY_SUB", "")
 	t.Setenv("XRAY_LINK", xrayTestTrojanWS)
 	t.Setenv("PROXY_FALLBACK_DIRECT", "0")
-	chain := proxyChain()
+	chain := ProxyChain()
 	if len(chain) != 2 || chain[0] != "socks5" || chain[1] != "tor" {
 		t.Fatalf("con PROXY_FALLBACK_DIRECT=0 no debe entrar direct, chain = %v", chain)
 	}
@@ -312,7 +312,7 @@ func TestXrayInProcessStart(t *testing.T) {
 	if !CheckXray() {
 		t.Fatal("CheckXray debería ver el SOCKS en-proceso")
 	}
-	if err := StopXray(&xrayHandle{instance: inst}); err != nil {
+	if err := StopXray(&XrayHandle{instance: inst}); err != nil {
 		t.Fatalf("Stop error: %v", err)
 	}
 }
@@ -676,7 +676,7 @@ func TestXraySubURLPriority(t *testing.T) {
 	}
 	os.Unsetenv("XRAY_SUB")
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, xrayLinksFile), []byte("vless://a@b.c:443\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, XrayLinksFile), []byte("vless://a@b.c:443\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 	wd, _ := os.Getwd()
@@ -684,7 +684,7 @@ func TestXraySubURLPriority(t *testing.T) {
 	if err := os.Chdir(dir); err != nil {
 		t.Fatal(err)
 	}
-	if got := xraySubURL(); got != xrayLinksFile {
-		t.Fatalf("autodetección = %q, want %q", got, xrayLinksFile)
+	if got := xraySubURL(); got != XrayLinksFile {
+		t.Fatalf("autodetección = %q, want %q", got, XrayLinksFile)
 	}
 }

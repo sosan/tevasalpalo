@@ -1,4 +1,4 @@
-package app
+package transport
 
 import (
 	"bufio"
@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	// "syscall"
+	"tevasalpalo/internal/runtimefs"
 	"time"
 )
 
@@ -17,7 +18,7 @@ const (
 	torDirName        = "socks"
 	torAssetNameWin   = "tor-expert-bundle-windows-x86_64.zip"
 	torAssetNameLinux = "tor-expert-bundle-linux-x86_64.zip"
-	portTor		 = "9050"
+	PortTor           = "9050"
 )
 
 func RunTor() (*exec.Cmd, error) {
@@ -42,9 +43,9 @@ func RunTor() (*exec.Cmd, error) {
 		torExecutablePath += ".exe"
 	}
 
-	if !fileExists(torExecutablePath) {
+	if !runtimefs.ExisteFichero(torExecutablePath) {
 		log.Println("📦 No se encontró Tor. Extrayendo...")
-		if err := extractRuntime(torDirName, zipTorFile); err != nil {
+		if err := runtimefs.ExtraerRuntime(torDirName, zipTorFile); err != nil {
 			return nil, err
 		}
 		log.Println("✅ Tor extraído exitosamente.")
@@ -53,7 +54,7 @@ func RunTor() (*exec.Cmd, error) {
 	}
 
 	args := []string{
-		"--SocksPort", portTor,
+		"--SocksPort", PortTor,
 		"--GeoIPFile", filepath.Join(extractedTorDir, "data", "geoip"),
 		"--GeoIPv6File", filepath.Join(extractedTorDir, "data", "geoip6"),
 		"--ClientOnly", "1", // Asegura modo cliente si es necesario
@@ -62,7 +63,7 @@ func RunTor() (*exec.Cmd, error) {
 
 	cmd := exec.Command(torExecutablePath, args...)
 	cmd.Dir = extractedTorDir
-	setSysProcAttr(cmd)
+	SetSysProcAttr(cmd)
 	// if runtime.GOOS != "windows" {
 	// 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	// }
@@ -75,24 +76,24 @@ func RunTor() (*exec.Cmd, error) {
 	// if err != nil {
 	// 	return nil, err
 	// }
-	
+
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
 
 	// go logPipe(stdout, "TOR")
-    // go logPipe(stderr, "TOR-ERR")
+	// go logPipe(stderr, "TOR-ERR")
 	time.Sleep(10 * time.Second)
 	// log.Println("🚀 Tor iniciado exitosamente.")
 	return cmd, nil
 }
 
 func logPipe(r io.Reader, prefix string) {
-    scanner := bufio.NewScanner(r)
-    for scanner.Scan() {
-        line := scanner.Text()
-        log.Printf("[%s] %s", prefix, line)
-    }
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		line := scanner.Text()
+		log.Printf("[%s] %s", prefix, line)
+	}
 }
 
 func changeOwnership(path string, newUID, newGID int) error {

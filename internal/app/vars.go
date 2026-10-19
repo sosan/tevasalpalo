@@ -74,7 +74,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Order:            14,
 	},
 	"DAZN LALIGA": {
-		Logo: "daznlaliga.png",
+		Logo:  "daznlaliga.png",
 		Links: []string{
 			// "19f28f60c908f987b1a03da078e63320d7bf29e8",
 			// "e2b8a4aba2f4ea3dd68992fcdb65c9e62d910b05",
@@ -100,8 +100,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Order:            16,
 	},
 	"DAZN LALIGA 3": {
-		Logo:  "daznlaliga.png",
-		Links: []string{},
+		Logo:             "daznlaliga.png",
+		Links:            []string{},
 		Name:             "DAZN LALIGA 3",
 		ShowListChannels: false,
 		Order:            17,
@@ -175,7 +175,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: true,
 		Order:            18,
 	},
-	
+
 	"DAZN BALONCESTO 1": {
 		Logo:  "daznbaloncesto.png",
 		Links: []string{
@@ -532,15 +532,15 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Order:            47,
 	},
 	"LALIGA HYPERMOTION 4": {
-		Logo:  "mlaligahyper.png",
-		Links: []string{},
+		Logo:             "mlaligahyper.png",
+		Links:            []string{},
 		Name:             "LALIGA HYPERMOTION 4",
 		ShowListChannels: true,
 		Order:            48,
 	},
 	"LALIGA HYPERMOTION 5": {
-		Logo:  "mlaligahyper.png",
-		Links: []string{},
+		Logo:             "mlaligahyper.png",
+		Links:            []string{},
 		Name:             "LALIGA HYPERMOTION 5",
 		ShowListChannels: true,
 		Order:            49,
@@ -560,7 +560,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Order:            49,
 	},
 	"M+ LALIGA": {
-		Logo: "mlaliga.png",
+		Logo:  "mlaliga.png",
 		Links: []string{
 			// "d2ddf9802ccfdc456f872eea4d24596880a638a0",
 			// "14b6cd8769cd485f2cffdca64be9698d9bfeac58",
@@ -582,7 +582,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Order:            40,
 	},
 	"LALIGA TV": {
-		Logo: "mlaligatv.png",
+		Logo:  "mlaligatv.png",
 		Links: []string{
 			// "d2ddf9802ccfdc456f872eea4d24596880a638a0",
 			// "c9321006921967d6258df6945f1d598a5c0cbf1e",
@@ -891,15 +891,15 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Order:            70,
 	},
 	"M+ BALONCESTO": {
-		Logo:  "movistarbaloncesto.jpg",
-		Links: []string{},
+		Logo:             "movistarbaloncesto.jpg",
+		Links:            []string{},
 		Name:             "M+ BALONCESTO",
 		ShowListChannels: true,
 		Order:            160,
 	},
 	"M+ BALONCESTO 2": {
-		Logo:  "movistarbaloncesto.jpg",
-		Links: []string{},
+		Logo:             "movistarbaloncesto.jpg",
+		Links:            []string{},
 		Name:             "M+ BALONCESTO 2",
 		ShowListChannels: true,
 		Order:            161,
@@ -938,7 +938,7 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Order:            880,
 	},
 	"GOL TV": {
-		Logo:  "goltv.png",
+		Logo: "goltv.png",
 		Links: []string{
 			"http://176.65.146.237:8401/play/a09k/index.m3u8",
 			// "http://181.188.216.5:18000/play/a0mj/index.m3u8",
@@ -1050,9 +1050,8 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 	},
 
 	"SKY SPORTS BUNDESLIGA": {
-		Logo:  "skysports.png",
-		Links: []string{
-		},
+		Logo:             "skysports.png",
+		Links:            []string{},
 		Name:             "SKY SPORTS BUNDESLIGA",
 		ShowListChannels: false,
 	},
@@ -1061,9 +1060,9 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Logo: "skysports.png",
 		Links: []string{
 			// "p;http://181.78.106.127:9000/play/ca028/index.m3u8", //
-		"p;http://181.78.106.127:9000/play/ca030/index.m3u8", //
-		"p;http://45.5.117.57:8200/play/a050/index.m3u8",
-		"p;http://179.60.224.196:8000/play/a0i7/index.m3u8",
+			"p;http://181.78.106.127:9000/play/ca030/index.m3u8", //
+			"p;http://45.5.117.57:8200/play/a050/index.m3u8",
+			"p;http://179.60.224.196:8000/play/a0i7/index.m3u8",
 			"p;http://190.92.10.66:4000/play/a001/index.m3u8",
 		},
 		Name:             "SKY SPORTS LA LIGA",
@@ -1078,9 +1077,9 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 			// "e9975d38aaa4475ac0b1fa0faa541bbadd85a662",
 			// "a9bddffdff085cdc18b34218d5dc1093b88e3c0a",
 			// "p;http://181.78.106.127:9000/play/ca028/index.m3u8", //
-		"p;http://181.78.106.127:9000/play/ca030/index.m3u8", //
-		"p;http://45.5.117.57:8200/play/a050/index.m3u8",
-		"p;http://179.60.224.196:8000/play/a0i7/index.m3u8",
+			"p;http://181.78.106.127:9000/play/ca030/index.m3u8", //
+			"p;http://45.5.117.57:8200/play/a050/index.m3u8",
+			"p;http://179.60.224.196:8000/play/a0i7/index.m3u8",
 			"p;http://190.92.10.66:4000/play/a001/index.m3u8",
 		},
 		Name:             "SKY SPORTS LA LIGA",
@@ -1157,7 +1156,6 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		ShowListChannels: true,
 		Order:            112,
 	},
-	
 
 	"BEIN SPORTS Ñ": {
 		Logo: "beinsportn.png",
@@ -1592,41 +1590,36 @@ var broadcasterToAcestream = map[string]BroadcasterInfo{
 		Order:            152,
 	},
 	"RALLY TV": {
-		Logo: "rallytv.png",
-		Links: []string{
-		},
+		Logo:             "rallytv.png",
+		Links:            []string{},
 		Name:             "RALLY TV",
 		ShowListChannels: true,
 		Order:            163,
 	},
 	"DAZN FIFA 1": {
-		Logo: "fifa.png",
-		Links: []string{
-		},
+		Logo:             "fifa.png",
+		Links:            []string{},
 		Name:             "DAZN FIFA 1",
 		ShowListChannels: true,
 		Order:            164,
 	},
 	"DAZN FIFA 2": {
-		Logo: "fifa.png",
-		Links: []string{
-		},
+		Logo:             "fifa.png",
+		Links:            []string{},
 		Name:             "DAZN FIFA 2",
 		ShowListChannels: true,
 		Order:            165,
 	},
 	"DAZN FIFA 3": {
-		Logo: "fifa.png",
-		Links: []string{
-		},
+		Logo:             "fifa.png",
+		Links:            []string{},
 		Name:             "DAZN FIFA 3",
 		ShowListChannels: true,
 		Order:            166,
 	},
 	"DAZN FIFA 4": {
-		Logo: "fifa.png",
-		Links: []string{
-		},
+		Logo:             "fifa.png",
+		Links:            []string{},
 		Name:             "DAZN FIFA 4",
 		ShowListChannels: true,
 		Order:            167,
@@ -1650,21 +1643,21 @@ var allCompetitions = AllCompetitions{
 		"LaLiga Futures":         {Titulo: "LaLigaFutures", Top: true, Icon: "mundial.png", Order: 27},
 	},
 	"España": CountryCompetitions{
-		"LaLiga":                  {Titulo: "LaLiga", Top: true, Icon: "liga.png", Order: 10},
-		"LaLiga Hypermotion":      {Titulo: "LaLiga Hypermotion", Top: true, Icon: "liga2.png", Order: 11},
-		"Liga Endesa":             {Titulo: "Liga Endesa", Top: true, Icon: "endesa.png", Order: 18},
-		"Minicopa Endesa":         {Titulo: "Minicopa Endesa", Top: true, Icon: "endesa.png", Order: 17},
-		"Copa del Rey Baloncesto": {Titulo: "Copa del Rey Baloncesto", Top: true, Icon: "endesa.png", Order: 16},
-		"Primera FEB":             {Titulo: "Primera FEB", Top: false, Icon: "primerafeb.png"},
-		"Primera Federación":      {Titulo: "Primera Federación", Top: false, Icon: "primerafede.png", Order: 20},
+		"LaLiga":                        {Titulo: "LaLiga", Top: true, Icon: "liga.png", Order: 10},
+		"LaLiga Hypermotion":            {Titulo: "LaLiga Hypermotion", Top: true, Icon: "liga2.png", Order: 11},
+		"Liga Endesa":                   {Titulo: "Liga Endesa", Top: true, Icon: "endesa.png", Order: 18},
+		"Minicopa Endesa":               {Titulo: "Minicopa Endesa", Top: true, Icon: "endesa.png", Order: 17},
+		"Copa del Rey Baloncesto":       {Titulo: "Copa del Rey Baloncesto", Top: true, Icon: "endesa.png", Order: 16},
+		"Primera FEB":                   {Titulo: "Primera FEB", Top: false, Icon: "primerafeb.png"},
+		"Primera Federación":            {Titulo: "Primera Federación", Top: false, Icon: "primerafede.png", Order: 20},
 		"Segunda Federación":            {Titulo: "Segunda Federación", Top: false, Icon: "segundafede.png"},
-		"Copa del Rey":              {Titulo: "Copa del Rey", Top: true, Icon: "uefa.png", Order: 9},
-		"Supercopa de España":       {Titulo: "Supercopa de España", Top: true, Icon: "uefa.png", Order: 6},
-		"Liga F Moeve":              {Titulo: "Liga F Moeve", Top: false, Icon: "uefa.png"},
-		"Copa Federación":           {Titulo: "Copa Federación", Top: false, Icon: "uefa.png"},
-		"Supercopa Femenina":        {Titulo: "Supercopa Femenina", Top: false, Icon: "uefa.png"},
-		"Copa de SM La Reina":       {Titulo: "Copa de SM La Reina", Top: false, Icon: "uefa.png"},
-		"División de Honor Juvenil": {Titulo: "División de Honor Juvenil", Top: false, Icon: "uefa.png"},
+		"Copa del Rey":                  {Titulo: "Copa del Rey", Top: true, Icon: "uefa.png", Order: 9},
+		"Supercopa de España":           {Titulo: "Supercopa de España", Top: true, Icon: "uefa.png", Order: 6},
+		"Liga F Moeve":                  {Titulo: "Liga F Moeve", Top: false, Icon: "uefa.png"},
+		"Copa Federación":               {Titulo: "Copa Federación", Top: false, Icon: "uefa.png"},
+		"Supercopa Femenina":            {Titulo: "Supercopa Femenina", Top: false, Icon: "uefa.png"},
+		"Copa de SM La Reina":           {Titulo: "Copa de SM La Reina", Top: false, Icon: "uefa.png"},
+		"División de Honor Juvenil":     {Titulo: "División de Honor Juvenil", Top: false, Icon: "uefa.png"},
 		"Primera Federación Women":      {Titulo: "Primera Federacion Women", Top: false, Icon: "primerafede.png"},
 		"Segunda Federación Femenina":   {Titulo: "Segunda Federación Femenina", Top: false, Icon: "segundafede.png"},
 		"Spain U19 Cup":                 {Titulo: "Spain U19 Cup", Top: false, Icon: "uefa.png"},
@@ -1763,8 +1756,8 @@ var allCompetitions = AllCompetitions{
 		"CONMEBOL Pre-Olympic":              {Titulo: "CONMEBOL Pre-Olympic", Top: false, Icon: "uefa.png"},
 	},
 	"Brasil": CountryCompetitions{
-		"Serie A":          {Titulo: "Serie A", Top: false, Icon: "uefa.png"},
-		"Copa do Brasil":   {Titulo: "Copa do Brasil", Top: false, Icon: "uefa.png"},
+		"Serie A":        {Titulo: "Serie A", Top: false, Icon: "uefa.png"},
+		"Copa do Brasil": {Titulo: "Copa do Brasil", Top: false, Icon: "uefa.png"},
 	},
 	"Argentina": CountryCompetitions{
 		"Primera División": {Titulo: "Primera División", Top: false, Icon: "uefa.png"},
@@ -1772,13 +1765,13 @@ var allCompetitions = AllCompetitions{
 	},
 
 	"Colombia": CountryCompetitions{
-		"Primera A":                {Titulo: "Primera A", Top: false, Icon: "uefa.png"},
+		"Primera A": {Titulo: "Primera A", Top: false, Icon: "uefa.png"},
 	},
 	"Venezuela": CountryCompetitions{
 		"Primera División": {Titulo: "Primera División", Top: false, Icon: "uefa.png"},
 	},
 	"Ecuador": CountryCompetitions{
-		"Serie A":      {Titulo: "Serie A", Top: false, Icon: "uefa.png"},
+		"Serie A": {Titulo: "Serie A", Top: false, Icon: "uefa.png"},
 	},
 	"Estados Unidos": CountryCompetitions{
 		"Major League Soccer (MLS)": {Titulo: "Major League Soccer (MLS)", Top: false, Icon: "uefa.png"},

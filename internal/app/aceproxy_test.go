@@ -1,5 +1,9 @@
 package app
 
+import (
+	"tevasalpalo/internal/transport"
+)
+
 // Tests del acceso al motor AceStream (local/remoto). Sin red real: solo
 // puertos cerrados en localhost (rechazo inmediato) y reescritura pura.
 
@@ -316,12 +320,12 @@ func TestParseBoolEnv(t *testing.T) {
 	// Nota: el Once ya corrió en este proceso; parseBoolEnv se prueba directo.
 	for in, want := range map[string]bool{"1": true, "true": true, "YES": true, "on": true, "0": false, "off": false, "banana": false} {
 		t.Setenv("T_FOO_X", in)
-		if got := parseBoolEnv("T_FOO_X", false); got != want {
-			t.Errorf("parseBoolEnv(%q) = %v, want %v", in, got, want)
+		if got := transport.ParseBoolEnv("T_FOO_X", false); got != want {
+			t.Errorf("transport.ParseBoolEnv(%q) = %v, want %v", in, got, want)
 		}
 	}
 	t.Setenv("T_FOO_X", "")
-	if got := parseBoolEnv("T_FOO_X", true); !got {
+	if got := transport.ParseBoolEnv("T_FOO_X", true); !got {
 		t.Error("vacío debe dar el defecto")
 	}
 }
@@ -349,11 +353,11 @@ func TestProxyChainWithDirectFallback(t *testing.T) {
 	t.Setenv("PROXY_MODE", "")
 	t.Setenv("XRAY_LINK", "")
 	t.Setenv("XRAY_SUB", "")
-	if got := proxyChainWithDirectFallback(); len(got) != 3 || got[2] != "direct" {
+	if got := transport.ProxyChainWithDirectFallback(); len(got) != 3 || got[2] != "direct" {
 		t.Fatalf("añade directa = %v", got)
 	}
 	t.Setenv("PROXY_FALLBACK_DIRECT", "1")
-	if got := proxyChainWithDirectFallback(); len(got) != 3 {
+	if got := transport.ProxyChainWithDirectFallback(); len(got) != 3 {
 		t.Fatalf("no debe duplicar directa = %v", got)
 	}
 }

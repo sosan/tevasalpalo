@@ -19,6 +19,7 @@ import (
 	"net/url"
 	"strconv"
 	"tevasalpalo/internal/telemetry"
+	"tevasalpalo/internal/transport"
 	"tevasalpalo/update"
 	"time"
 
@@ -109,6 +110,10 @@ func startTVProgramationDataRefresh() {
 }
 
 func StartWebServer() (*fiber.App, error) {
+	// El ajuste guardado en settings.json alimenta el flag de WARP del
+	// runtime: warpEnabled ya no lee el fichero por su cuenta (ver warp.go).
+	transport.SetWarpAuto(loadSettings().WarpEnabled)
+
 	sub, err := fs.Sub(viewsFS, "views")
 	if err != nil {
 		log.Fatalf("failed to create sub FS: %v", err)
@@ -177,15 +182,15 @@ func StartWebServer() (*fiber.App, error) {
 		// se resuelve con lo que hay y se completa más abajo.
 		hashProbado := hashDeRutaAce(acePath, queryString, false, "")
 
-		isAceStream := isAceStreamPath(acePath)
-		traceLog("/ace/* ruta=%q -> isAceStream=%v (WARP=%v)", acePath, isAceStream, warpEnabled())
+		isAceStream := transport.IsAceStreamPath(acePath)
+		transport.TraceLog("/ace/* ruta=%q -> isAceStream=%v (WARP=%v)", acePath, isAceStream, transport.WarpEnabled())
 		if isAceStream {
-			WarpStreamStart()
+			transport.WarpStreamStart()
 		}
 
 		// También es una línea por segmento. Con traza sale el detalle; sin
 		// ella, solo el resumen que ya escribe handleAceManifest.
-		traceLog("🔄 Proxy ACE: %s -> %s", c.Path(), targetURL)
+		transport.TraceLog("🔄 Proxy ACE: %s -> %s", c.Path(), targetURL)
 
 		// Crear la petición
 		req, err := http.NewRequest("GET", targetURL, nil)
@@ -214,7 +219,7 @@ func StartWebServer() (*fiber.App, error) {
 		// muere a los ~30s el síntoma es idéntico al de un binario viejo
 		// compilado antes de que existiera el timeout largo.
 		aceTimeout := aceTimeoutFor(acePath)
-		traceLog("/ace/* ruta=%q timeout=%v", acePath, aceTimeout)
+		transport.TraceLog("/ace/* ruta=%q timeout=%v", acePath, aceTimeout)
 		inicio := time.Now()
 		// Los redirects los sigue aceDoTimeout con timeout propio por salto,
 		// así que aquí hay que poder reconstruir la petición para una URL que
@@ -248,7 +253,7 @@ func StartWebServer() (*fiber.App, error) {
 		esSegmento := strings.HasSuffix(acePath, ".ts")
 		if err != nil {
 			if isAceStream {
-				WarpStreamStop()
+				transport.WarpStreamStop()
 			}
 			// Un manifest anidado /ace/m/*.m3u8 que no responde no es un
 			// fallo de reproducción: el engine lo retiene indefinidamente
@@ -285,11 +290,11 @@ func StartWebServer() (*fiber.App, error) {
 				acePath, rutaFinal, aceTimeout, time.Since(inicio).Round(time.Second), err)
 			return c.Status(502).SendString("Error conectando con Ace Stream: " + err.Error())
 		}
-		traceLog("/ace/* ruta=%q respondida en %v vía %s", acePath, time.Since(inicio).Round(time.Millisecond), via)
+		transport.TraceLog("/ace/* ruta=%q respondida en %v vía %s", acePath, time.Since(inicio).Round(time.Millisecond), via)
 		defer func() {
 			resp.Body.Close()
 			if isAceStream {
-				WarpStreamStop()
+				transport.WarpStreamStop()
 			}
 		}()
 		if via != "direct" {
@@ -321,7 +326,7 @@ func StartWebServer() (*fiber.App, error) {
 		if strings.HasSuffix(acePath, ".ts") {
 			c.Set("Content-Type", "video/mp2t")
 			// Una por segmento, igual que las anteriores.
-			traceLog("✅ Content-Type corregido para .ts: %s", acePath)
+			transport.TraceLog("✅ Content-Type corregido para .ts: %s", acePath)
 		}
 
 		// Asegurar CORS
@@ -469,7 +474,7 @@ func StartWebServer() (*fiber.App, error) {
 	// que no es lo mismo que "enabled": WARP es on-demand y solo levanta el
 	// túnel cuando entra un stream.
 	app.Get("/api/warp", func(c fiber.Ctx) error {
-		return c.JSON(warpStatus())
+		return c.JSON(transport.WarpStatus())
 	})
 
 	// Diagnóstico del bypass DNS/VAST: contadores del proxy local que se pone
@@ -479,8 +484,8 @@ func StartWebServer() (*fiber.App, error) {
 	app.Get("/api/bypass", func(c fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"addr":       engineBypassAddr,
-			"warp_on":    warpEnabled(),
-			"warp_socks": warpSocksAddr(),
+			"warp_on":    transport.WarpEnabled(),
+			"warp_socks": transport.WarpSocksAddr(),
 			"stats":      engineBypassStats.snapshot(),
 		})
 	})
@@ -631,20 +636,20 @@ func StartWebServer() (*fiber.App, error) {
 				"details": err.Error(),
 			})
 		}
+		// El flag va al mismo runtime que warpEnabled consulta; sin esto
+		// el ajuste solo valdría tras reiniciar.
+		transport.SetWarpAuto(*body.Enabled)
 		log.Printf("🛡️  WARP: %v (guardado)", *body.Enabled)
 		// Al desactivar y no haber stream, el túnel se para ya: si no se
 		// quedaría abierto hasta que saltara el temporizador de 60 s.
 		if !*body.Enabled {
-			warp.streamsMu.Lock()
-			idle := warp.streams == 0
-			warp.streamsMu.Unlock()
-			if idle {
-				if err := StopWarpIfRunning(); err != nil {
+			if transport.WarpStreamsIdle() {
+				if err := transport.StopWarpIfRunning(); err != nil {
 					log.Printf("⚠️  Error al cerrar WARP: %v", err)
 				}
 			}
 		}
-		return c.JSON(warpStatus())
+		return c.JSON(transport.WarpStatus())
 	})
 
 	app.Get("/player/index.html", func(c fiber.Ctx) error {
@@ -863,11 +868,11 @@ func copyHeaders(c fiber.Ctx, resp *http.Response) {
 
 func fetchAndProxy(c fiber.Ctx, targetURL string) error {
 	// WARP on-demand: equivalencia de http_stream_start en el cliente Android.
-	traceLog("fetchAndProxy: %s (WARP=%v)", targetURL, warpEnabled())
-	WarpStreamStart()
+	transport.TraceLog("fetchAndProxy: %s (WARP=%v)", targetURL, transport.WarpEnabled())
+	transport.WarpStreamStart()
 	resp, finalURL, err := openUpstream(targetURL, c.Get("Range"), mediaTransports())
 	if err != nil {
-		WarpStreamStop()
+		transport.WarpStreamStop()
 		if proxyMediaEnabled() {
 			return c.Status(502).SendString("Sin transporte multimedia (ni proxies ni directa): " + err.Error())
 		}
@@ -877,7 +882,7 @@ func fetchAndProxy(c fiber.Ctx, targetURL string) error {
 		resp.Body.Close()
 		// http_stream_stop del cliente Android: sin reproducción, WARP para
 		// a los 60 s (ver WarpStreamStop).
-		WarpStreamStop()
+		transport.WarpStreamStop()
 	}()
 
 	return serveUpstream(c, resp, finalURL, targetURL)

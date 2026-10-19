@@ -1,4 +1,4 @@
-package app
+package transport
 
 // Cloudflare WARP como transporte más, portado del cliente Android de
 // Ace Stream Pro (WarpManager / WarpRegistration / WarpVpnService,classes6.dex).
@@ -25,7 +25,7 @@ package app
 // ejecutable: credencial local de este dispositivo, nunca del repo.
 //
 // Opt-in: WARP=1 habilita el túnel; WARP_AUTO=1 lo habilita sin marcar.
-// WARP=0 desactiva. Ver warpEnabled().
+// WARP=0 desactiva. Ver WarpEnabled().
 
 import (
 	"bytes"
@@ -44,6 +44,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/xtls/xray-core/core"
@@ -114,7 +115,7 @@ type warpAccount struct {
 	} `json:"config"`
 }
 
-// warpEnabled decide si WARP entra en la cadena.
+// WarpEnabled decide si WARP entra en la cadena.
 //
 // Prioridad: WARP=0/1 (variable explícita) > el interruptor de la UI web
 // guardado en settings.json > WARP_AUTO. Así se puede forzar desde consola
@@ -122,21 +123,29 @@ type warpAccount struct {
 //
 // Opt-in por defecto: nada de tocar rutas del sistema ni salir por un túnel
 // sin querer.
-func warpEnabled() bool {
+// warpAuto lo fija la UI (settings.json, ver server.go) y el arranque: el
+// paquete transport no lee settings.json directamente para no acoplarse a la
+// capa web.
+var warpAuto atomic.Bool
+
+// SetWarpAuto define si el túnel WARP está activado por el usuario vía UI.
+func SetWarpAuto(v bool) { warpAuto.Store(v) }
+
+func WarpEnabled() bool {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv("WARP"))) {
 	case "0", "false", "no", "off":
 		return false
 	case "1", "true", "yes", "on":
 		return true
 	}
-	if loadSettings().WarpEnabled {
+	if warpAuto.Load() {
 		return true
 	}
-	return parseBoolEnv("WARP_AUTO", false)
+	return ParseBoolEnv("WARP_AUTO", false)
 }
 
-// warpSocksAddr es el inbound SOCKS que publica el túnel.
-func warpSocksAddr() string {
+// WarpSocksAddr es el inbound SOCKS que publica el túnel.
+func WarpSocksAddr() string {
 	if addr := strings.TrimSpace(os.Getenv("WARP_SOCKS_ADDR")); addr != "" {
 		return addr
 	}
@@ -144,9 +153,9 @@ func warpSocksAddr() string {
 }
 
 func warpSocksListen() (string, int, error) {
-	host, portStr, err := net.SplitHostPort(warpSocksAddr())
+	host, portStr, err := net.SplitHostPort(WarpSocksAddr())
 	if err != nil {
-		return "", 0, fmt.Errorf("WARP_SOCKS_ADDR inválido %q (formato host:port)", warpSocksAddr())
+		return "", 0, fmt.Errorf("WARP_SOCKS_ADDR inválido %q (formato host:port)", WarpSocksAddr())
 	}
 	if host == "" {
 		host = "127.0.0.1"
@@ -225,12 +234,12 @@ func warpRegisterBody(publicKey, installID string) (map[string]string, error) {
 	}, nil
 }
 
-// isAceStreamPath marca las rutas de /ace/ que sirven datos de reproducción.
+// IsAceStreamPath marca las rutas de /ace/ que sirven datos de reproducción.
 // Es la traducción a Go de _is_stream_path del parche Python del APK
 // (assets/engine/main.py), que intercepta SimpleServer.do_GET y dispara
 // droid.onEvent("http_stream_start"/"http_stream_stop"). Los manifests y los
 // comandos del webui no cuentan como stream.
-func isAceStreamPath(acePath string) bool {
+func IsAceStreamPath(acePath string) bool {
 	p := strings.ToLower(acePath)
 	for _, k := range []string{
 		"getstream", "content/", "hls/", "manifest", "server/stream",
@@ -242,8 +251,8 @@ func isAceStreamPath(acePath string) bool {
 	return false
 }
 
-// hostOnly quita el ":0" (o cualquier puerto) que Cloudflare devuelve en v4.
-func hostOnly(hostPort string) string {
+// HostOnly quita el ":0" (o cualquier puerto) que Cloudflare devuelve en v4.
+func HostOnly(hostPort string) string {
 	hostPort = strings.TrimSpace(hostPort)
 	if hostPort == "" {
 		return ""
@@ -283,7 +292,7 @@ func warpIdentityFromAccount(acc warpAccount, privateKey string) (*warpIdentity,
 		AddressV4:    v4,
 		AddressV6:    strings.TrimSpace(acc.Config.Interface.Addresses.V6),
 		EndpointHost: peer.Endpoint.Host,
-		EndpointV4:   hostOnly(peer.Endpoint.V4),
+		EndpointV4:   HostOnly(peer.Endpoint.V4),
 		Ports:        peer.Endpoint.Ports,
 		Token:        acc.Token,
 		DeviceID:     acc.ID,
@@ -500,11 +509,11 @@ var warp warpState
 // WarpStreamStart la llama el servidor web al entrar una petición de stream.
 // Equivale a ensureRunning() de WarpManager.
 func WarpStreamStart() {
-	if !warpEnabled() {
-		traceLog("WarpStreamStart: WARP deshabilitado, no se hace nada")
+	if !WarpEnabled() {
+		TraceLog("WarpStreamStart: WARP deshabilitado, no se hace nada")
 		return
 	}
-	traceLog("WarpStreamStart: WARP habilitado, registrando stream")
+	TraceLog("WarpStreamStart: WARP habilitado, registrando stream")
 	warp.streamsMu.Lock()
 	warp.streams++
 	first := warp.streams == 1
@@ -514,36 +523,36 @@ func WarpStreamStart() {
 	if warp.timer != nil {
 		warp.timer.Stop()
 		warp.timer = nil
-		traceLog("WarpStreamStart: cancelado el temporizador de parada")
+		TraceLog("WarpStreamStart: cancelado el temporizador de parada")
 	}
 	running := warp.handle != nil
 	warp.mu.Unlock()
 
 	if running {
-		traceLog("WarpStreamStart: el túnel ya está en marcha")
+		TraceLog("WarpStreamStart: el túnel ya está en marcha")
 		return
 	}
 	if !first {
-		traceLog("WarpStreamStart: no es el primer stream, otro ya pidió el arranque")
+		TraceLog("WarpStreamStart: no es el primer stream, otro ya pidió el arranque")
 		return
 	}
-	traceLog("WarpStreamStart: primer stream, lanzando startWarp()")
+	TraceLog("WarpStreamStart: primer stream, lanzando startWarp()")
 	go func() {
 		h, err := startWarp()
 		if err != nil {
 			log.Printf("⚠️  WARP no disponible, se continúa sin él: %v", err)
-			traceLog("startWarp falló: %v", err)
+			TraceLog("startWarp falló: %v", err)
 			return
 		}
 		log.Printf("🛡️  WARP activo: %s vía SOCKS %s", h.desc, h.socksAddr)
-		traceLog("startWarp OK: %s en %s", h.desc, h.socksAddr)
+		TraceLog("startWarp OK: %s en %s", h.desc, h.socksAddr)
 	}()
 }
 
 // WarpStreamStop la llama el servidor web al terminar un stream. Sin
 // reproducción durante warpStopDelay (60 s, como en el APK) el túnel se para.
 func WarpStreamStop() {
-	if !warpEnabled() {
+	if !WarpEnabled() {
 		return
 	}
 	warp.streamsMu.Lock()
@@ -595,9 +604,9 @@ func startWarp() (*warpHandle, error) {
 	}
 	addr := net.JoinHostPort(listen, strconv.Itoa(port))
 	eps := warpEndpointCandidates(ident)
-	traceLog("startWarp: %d endpoint(s) candidato(s), SOCKS en %s", len(eps), addr)
+	TraceLog("startWarp: %d endpoint(s) candidato(s), SOCKS en %s", len(eps), addr)
 	for _, ep := range eps {
-		traceLog("startWarp: probando endpoint %s", ep)
+		TraceLog("startWarp: probando endpoint %s", ep)
 		link, err := warpLink(ident, ep)
 		if err != nil {
 			log.Printf("⚠️  WARP: config inválida para %s: %v", ep, err)
@@ -611,17 +620,17 @@ func startWarp() (*warpHandle, error) {
 		inst, err := startXrayInstance(endpoint, listen, port)
 		if err != nil {
 			log.Printf("⚠️  WARP %s no arranca: %v", ep, err)
-			traceLog("startWarp %s: xray no arrancó: %v", ep, err)
+			TraceLog("startWarp %s: xray no arrancó: %v", ep, err)
 			continue
 		}
-		traceLog("startWarp %s: xray arrancado, probando tráfico real por el túnel", ep)
+		TraceLog("startWarp %s: xray arrancado, probando tráfico real por el túnel", ep)
 		if !probeEndpoint(addr) {
 			log.Printf("⚠️  WARP %s sin tráfico, probando siguiente...", ep)
-			traceLog("startWarp %s: la prueba de tráfico falló (handshake rechazado o sin salida)", ep)
+			TraceLog("startWarp %s: la prueba de tráfico falló (handshake rechazado o sin salida)", ep)
 			_ = inst.Close()
 			continue
 		}
-		traceLog("startWarp %s: la prueba de tráfico pasó", ep)
+		TraceLog("startWarp %s: la prueba de tráfico pasó", ep)
 		h := &warpHandle{instance: inst, desc: "wireguard " + ep, socksAddr: addr}
 		warp.mu.Lock()
 		warp.ident = ident
@@ -629,7 +638,7 @@ func startWarp() (*warpHandle, error) {
 		warp.mu.Unlock()
 		return h, nil
 	}
-	traceLog("startWarp: agotados los %d endpoint(s), WARP no disponible", len(eps))
+	TraceLog("startWarp: agotados los %d endpoint(s), WARP no disponible", len(eps))
 	return nil, fmt.Errorf("ningún endpoint WARP responde")
 }
 
@@ -641,8 +650,8 @@ func StopWarp(h *warpHandle) error {
 	return h.instance.Close()
 }
 
-// warpStatus resume el estado de WARP para la UI web.
-func warpStatus() map[string]any {
+// WarpStatus resume el estado de WARP para la UI web.
+func WarpStatus() map[string]any {
 	warp.mu.Lock()
 	active := warp.handle != nil
 	socks := ""
@@ -651,7 +660,7 @@ func warpStatus() map[string]any {
 	}
 	warp.mu.Unlock()
 	return map[string]any{
-		"enabled": warpEnabled(),
+		"enabled": WarpEnabled(),
 		"active":  active,
 		"socks":   socks,
 		// Si WARP=0/1 está puesto, el ajuste de la UI no manda.
@@ -675,4 +684,12 @@ func StopWarpIfRunning() error {
 	}
 	log.Println("🛡️  Cerrando WARP")
 	return StopWarp(h)
+}
+
+// WarpStreamsIdle dice si no hay streams activos: el servidor lo usa para
+// decidir si puede cerrar el tunel WARP ya en vez de esperar al temporizador.
+func WarpStreamsIdle() bool {
+	warp.streamsMu.Lock()
+	defer warp.streamsMu.Unlock()
+	return warp.streams == 0
 }

@@ -1,5 +1,9 @@
 package app
 
+import (
+	"tevasalpalo/internal/transport"
+)
+
 // Acceso al motor AceStream local o remoto a través de la cadena proxy.
 //
 // - ACESTREAM_API (defecto auto-detectado): base del engine. Con un
@@ -241,20 +245,9 @@ func isLoopbackURL(raw string) bool {
 var proxyMediaFlag atomic.Bool
 var proxyMediaOnce sync.Once
 
-func parseBoolEnv(key string, def bool) bool {
-	switch strings.ToLower(strings.TrimSpace(os.Getenv(key))) {
-	case "1", "true", "yes", "on":
-		return true
-	case "0", "false", "no", "off":
-		return false
-	default:
-		return def
-	}
-}
-
 func proxyMediaEnabled() bool {
 	proxyMediaOnce.Do(func() {
-		proxyMediaFlag.Store(parseBoolEnv("PROXY_MEDIA", false))
+		proxyMediaFlag.Store(transport.ParseBoolEnv("PROXY_MEDIA", false))
 	})
 	return proxyMediaFlag.Load()
 }
@@ -270,27 +263,7 @@ func mediaTransports() []string {
 	if !proxyMediaEnabled() {
 		return []string{"direct"}
 	}
-	return proxyChainWithDirectFallback()
-}
-
-// proxyChainWithDirectFallback añade "direct" al final si no está.
-// ON = proxies primero, directa última (nunca duplicada).
-//
-// Con WARP habilitado (warpEnabled) se antepone "warp": es el transporte que
-// corresponde al tráfico de reproducción, y como el túnel es on-demand puede
-// no estar levantado todavía. Si no lo está, el dial da "connection refused" y
-// la rotación sigue con el resto de la cadena sin coste apreciable.
-func proxyChainWithDirectFallback() []string {
-	chain := proxyChain()
-	if warpEnabled() {
-		chain = append([]string{"warp"}, chain...)
-	}
-	for _, tr := range chain {
-		if tr == "direct" {
-			return chain
-		}
-	}
-	return append(chain, "direct")
+	return transport.ProxyChainWithDirectFallback()
 }
 
 // socksDialContext construye un DialContext vía SOCKS (sin marcar: no abre
@@ -318,9 +291,9 @@ func streamClientFor(name string) (*http.Client, error) {
 		IdleConnTimeout:     90 * time.Second,
 	}
 	if name != "direct" {
-		addr := socks5Addr()
+		addr := transport.Socks5Addr()
 		if name == "tor" {
-			addr = "localhost:" + portTor
+			addr = "localhost:" + transport.PortTor
 		}
 		dialCtx, err := socksDialContext(addr)
 		if err != nil {
@@ -518,7 +491,7 @@ func aceDoTimeout(targetURL string, allowProxy bool, timeout time.Duration, do a
 		resp.Body.Close()
 		timeout = aceTimeoutFor(acePathFromURL(siguiente))
 		actual = siguiente
-		traceLog("↪️  ACE redirect -> %s (timeout=%v)", actual, timeout)
+		transport.TraceLog("↪️  ACE redirect -> %s (timeout=%v)", actual, timeout)
 	}
 }
 
@@ -530,7 +503,7 @@ func aceDoSalto(targetURL string, timeout time.Duration, allowProxy bool, do ace
 	transports := []string{"direct"}
 	local := esEngineLocalDirecto(targetURL)
 	if !local && allowProxy {
-		transports = proxyChainWithDirectFallback()
+		transports = transport.ProxyChainWithDirectFallback()
 	}
 	lastErr := fmt.Errorf("sin transportes disponibles")
 	for _, tr := range transports {
@@ -545,7 +518,7 @@ func aceDoSalto(targetURL string, timeout time.Duration, allowProxy bool, do ace
 		}
 		if tr != "direct" {
 			var err error
-			client, err = clientForTransport(tr)
+			client, err = transport.ClientForTransport(tr)
 			if err != nil {
 				lastErr = err
 				continue
@@ -609,7 +582,7 @@ func rewriteAceManifestLine(line, serverOrigin, localHost string, engineHosts []
 			// refrescan cada ~30s: son el grueso del volumen de telemetría y
 			// no dicen nada que el resumen no diga. El detalle queda para la
 			// traza.
-			traceLog("🔄 URL reescrita: %s -> %s", trimmed, newLine)
+			transport.TraceLog("🔄 URL reescrita: %s -> %s", trimmed, newLine)
 			return newLine
 		}
 	}
@@ -619,7 +592,7 @@ func rewriteAceManifestLine(line, serverOrigin, localHost string, engineHosts []
 		// ("otro://x.ts") se reescribía a una URL absurda del propio proxy.
 		if !strings.Contains(trimmed, "://") {
 			newURL := fmt.Sprintf("%s/ace/%s", serverOrigin, strings.TrimPrefix(trimmed, "/"))
-			traceLog("🔄 URL relativa convertida: %s -> %s", trimmed, newURL)
+			transport.TraceLog("🔄 URL relativa convertida: %s -> %s", trimmed, newURL)
 			return newURL
 		}
 	}

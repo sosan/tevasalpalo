@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"tevasalpalo/internal/secrets"
 	"tevasalpalo/internal/telemetry"
+	"tevasalpalo/internal/transport"
 	"tevasalpalo/update"
 	"time"
 )
@@ -94,7 +95,7 @@ func Main() {
 	avisoEnlacesXray()
 
 	// log.Println("📡 Iniciando Tor...")
-	cmdTor, err := RunTor()
+	cmdTor, err := transport.RunTor()
 	if err != nil {
 		log.Fatal("❌ Error al iniciar TOR: ", err)
 	}
@@ -102,10 +103,10 @@ func Main() {
 	// xray en-proceso opcional en segundo plano: con la sub hardcodeada puede
 	// tardar (prueba endpoints con tráfico); no bloquea el arranque — la
 	// cadena usa Tor mientras tanto y cambia sola a xray cuando esté listo.
-	var xh *xrayHandle
+	var xh *transport.XrayHandle
 	var xhMu sync.Mutex
 	go func() {
-		h, err := MaybeRunXray()
+		h, err := transport.MaybeRunXray()
 		if err != nil {
 			log.Printf("⚠️  xray no disponible, se usará Tor: %v", err)
 			return
@@ -194,20 +195,20 @@ func Main() {
 		log.Println("✅ Cerrado webserver correctamente")
 	}
 
-	if err := StopTor(cmdTor); err != nil {
+	if err := transport.StopTor(cmdTor); err != nil {
 		log.Printf("❌ Error al detener TOR: %v %v", err, cmdTor)
 	}
 
 	xhMu.Lock()
 	xhStopped := xh
 	xhMu.Unlock()
-	if err := StopXray(xhStopped); err != nil {
+	if err := transport.StopXray(xhStopped); err != nil {
 		log.Printf("❌ Error al cerrar xray: %v", err)
 	} else if xhStopped != nil {
 		log.Println("✅ Cerrado xray correctamente")
 	}
 
-	if err := StopWarpIfRunning(); err != nil {
+	if err := transport.StopWarpIfRunning(); err != nil {
 		log.Printf("❌ Error al cerrar WARP: %v", err)
 	}
 
@@ -230,8 +231,8 @@ func Main() {
 // no está: si ya existe, calla (el log de xray ya dice cuántos enlaces ha
 // encontrado).
 func avisoEnlacesXray() {
-	if p := xrayLocalFile(); p != "" {
+	if p := transport.XrayLocalFile(); p != "" {
 		return
 	}
-	log.Printf("💡 Para usar enlaces de proxy (vless/vmess/trojan/ss/socks/wireguard): pégalos en %s, junto al ejecutable", xrayLinksFile)
+	log.Printf("💡 Para usar enlaces de proxy (vless/vmess/trojan/ss/socks/wireguard): pégalos en %s, junto al ejecutable", transport.XrayLinksFile)
 }

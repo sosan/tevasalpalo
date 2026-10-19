@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"tevasalpalo/internal/runtimefs"
 )
 
 func TestAceConfFlagsBase(t *testing.T) {
@@ -104,7 +105,7 @@ func TestWriteAceConfBaseLeavesAssetConf(t *testing.T) {
 	if string(got) != shipped {
 		t.Fatalf("el perfil base reescribió el conf del asset: %q", got)
 	}
-	if fileExists(filepath.Join(dir, aceConfBackup)) {
+	if runtimefs.ExisteFichero(filepath.Join(dir, aceConfBackup)) {
 		t.Fatal("el perfil base no debe respaldar nada")
 	}
 }
@@ -193,7 +194,7 @@ func TestWriteAceConfIdempotent(t *testing.T) {
 		t.Fatal("una escritura sin cambios no debe reescribir el fichero")
 	}
 	// Y sin conf previo tampoco debe crear respaldo.
-	if fileExists(filepath.Join(runtime, spec.workDir, aceConfBackup)) {
+	if runtimefs.ExisteFichero(filepath.Join(runtime, spec.workDir, aceConfBackup)) {
 		t.Fatal("no debe respaldar si no habia conf previo")
 	}
 }

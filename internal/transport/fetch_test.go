@@ -1,4 +1,4 @@
-package app
+package transport
 
 // Tests del transporte directo: forzado de IPv4.
 //
@@ -56,9 +56,9 @@ func TestClientDirectUsaTransportePropio(t *testing.T) {
 	// El cliente "direct" debe llevar el transporte con IPv4 forzado; sin esto
 	// el cambio no llega a las fuentes de listas.
 	//
-	// Se pasa un timeout real: clientForTransportTimeout no normaliza el 0 a
-	// timeTimeout, eso lo hace FetchWebDataTimeout antes de llamar.
-	c, err := clientForTransportTimeout("direct", 25*time.Second)
+	// Se pasa un timeout real: ClientForTransportTimeout no normaliza el 0 a
+	// TimeTimeout, eso lo hace FetchWebDataTimeout antes de llamar.
+	c, err := ClientForTransportTimeout("direct", 25*time.Second)
 	if err != nil {
 		t.Fatal(err)
 	}

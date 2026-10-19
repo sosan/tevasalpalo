@@ -1,14 +1,14 @@
 //go:build !windows
 // +build !windows
 
-package app
+package transport
 
 import (
 	"os/exec"
 	"syscall"
 )
 
-func setSysProcAttr(cmd *exec.Cmd) {
+func SetSysProcAttr(cmd *exec.Cmd) {
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 	}

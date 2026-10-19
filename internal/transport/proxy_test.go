@@ -1,4 +1,4 @@
-package app
+package transport
 
 // Tests del transporte proxy configurable y la rotación automática.
 // Sin internet: solo conexiones a localhost con puerto cerrado (rechazo
@@ -37,12 +37,12 @@ func TestProxyModeValues(t *testing.T) {
 
 func TestSocks5Addr(t *testing.T) {
 	t.Setenv("SOCKS5_ADDR", "")
-	if got := socks5Addr(); got != "127.0.0.1:10808" {
-		t.Fatalf("socks5Addr por defecto = %q", got)
+	if got := Socks5Addr(); got != "127.0.0.1:10808" {
+		t.Fatalf("Socks5Addr por defecto = %q", got)
 	}
 	t.Setenv("SOCKS5_ADDR", " 10.0.0.2:1080 ")
-	if got := socks5Addr(); got != "10.0.0.2:1080" {
-		t.Fatalf("socks5Addr custom = %q", got)
+	if got := Socks5Addr(); got != "10.0.0.2:1080" {
+		t.Fatalf("Socks5Addr custom = %q", got)
 	}
 }
 
@@ -51,7 +51,7 @@ func TestNewSOCKS5Client(t *testing.T) {
 	if err != nil {
 		t.Fatalf("newSOCKS5Client válido error: %v", err)
 	}
-	if c == nil || c.Timeout != timeTimeout {
+	if c == nil || c.Timeout != TimeTimeout {
 		t.Fatal("cliente mal construido")
 	}
 	if _, err := newSOCKS5Client("ho st:1080"); err == nil {
@@ -78,27 +78,10 @@ func TestIsFatalFetchErr(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := isFatalFetchErr(tc.err); got != tc.fatal {
-				t.Fatalf("isFatalFetchErr(%v) = %v, want %v", tc.err, got, tc.fatal)
+			if got := IsFatalFetchErr(tc.err); got != tc.fatal {
+				t.Fatalf("IsFatalFetchErr(%v) = %v, want %v", tc.err, got, tc.fatal)
 			}
 		})
-	}
-}
-
-func TestShouldProxyFallback(t *testing.T) {
-	src := Source{Name: "x", URL: "http://example.com/", Type: SourceM3U, Proxied: false}
-	proxied := Source{Name: "y", URL: "http://example.com/", Type: SourceM3U, Proxied: true}
-	if !shouldProxyFallback(src, false, false) {
-		t.Fatal("directa agotada sin fatal debe caer a proxy")
-	}
-	if shouldProxyFallback(src, true, false) {
-		t.Fatal("éxito no necesita fallback")
-	}
-	if shouldProxyFallback(src, false, true) {
-		t.Fatal("error fatal (404) no debe ir a proxy")
-	}
-	if shouldProxyFallback(proxied, false, false) {
-		t.Fatal("fuente ya proxied no necesita fallback")
 	}
 }
 
@@ -126,7 +109,7 @@ func TestProxyChain(t *testing.T) {
 				t.Setenv("XRAY_SUB", "")
 			}
 			t.Setenv("PROXY_FALLBACK_DIRECT", tc.fallback)
-			got := proxyChain()
+			got := ProxyChain()
 			if len(got) != len(tc.want) {
 				t.Fatalf("proxyChain = %v, want %v", got, tc.want)
 			}
@@ -146,7 +129,7 @@ func TestClientForTransport(t *testing.T) {
 	// en una red sin IPv6 cada reintento se pierde el timeout entero. El test
 	// exigía Transport == nil, que era la invariante anterior al forzado de
 	// IPv4; ahora se exige que sea el transporte con DialContext.
-	c, err := clientForTransport("direct")
+	c, err := ClientForTransport("direct")
 	if err != nil {
 		t.Fatalf("direct error: %v", err)
 	}
@@ -157,10 +140,10 @@ func TestClientForTransport(t *testing.T) {
 	if tr.DialContext == nil {
 		t.Fatal("direct: el transporte no fija DialContext, se perdería el IPv4 forzado")
 	}
-	if _, err := clientForTransport("tor"); err != nil {
+	if _, err := ClientForTransport("tor"); err != nil {
 		t.Fatalf("tor error: %v", err)
 	}
-	if _, err := clientForTransport("socks5"); err != nil {
+	if _, err := ClientForTransport("socks5"); err != nil {
 		t.Fatalf("socks5 error: %v", err)
 	}
 }

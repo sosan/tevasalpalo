@@ -1,5 +1,9 @@
 package app
 
+import (
+	"tevasalpalo/internal/transport"
+)
+
 // Tests de los ajustes persistentes (settings.json).
 
 import (
@@ -84,19 +88,20 @@ func TestWarpEnabledPriority(t *testing.T) {
 	if err := setWarpEnabled(true); err != nil {
 		t.Fatal(err)
 	}
-	if !warpEnabled() {
+	transport.SetWarpAuto(true)
+	if !transport.WarpEnabled() {
 		t.Fatal("el ajuste guardado debe habilitar WARP")
 	}
 
 	// WARP=0 en el entorno manda sobre lo guardado.
 	t.Setenv("WARP", "0")
-	if warpEnabled() {
+	if transport.WarpEnabled() {
 		t.Fatal("WARP=0 debe ganar sobre settings.json")
 	}
 
 	// WARP=1 también.
 	t.Setenv("WARP", "1")
-	if !warpEnabled() {
+	if !transport.WarpEnabled() {
 		t.Fatal("WARP=1 debe habilitar")
 	}
 
@@ -104,14 +109,15 @@ func TestWarpEnabledPriority(t *testing.T) {
 	if err := setWarpEnabled(false); err != nil {
 		t.Fatal(err)
 	}
+	transport.SetWarpAuto(false)
 	t.Setenv("WARP", "")
-	if warpEnabled() {
+	if transport.WarpEnabled() {
 		t.Fatal("tras desguardar debe quedar desactivado")
 	}
 
 	// WARP_AUTO=1 sin guardado: habilitado.
 	t.Setenv("WARP_AUTO", "1")
-	if !warpEnabled() {
+	if !transport.WarpEnabled() {
 		t.Fatal("WARP_AUTO=1 debe habilitar")
 	}
 }
@@ -123,7 +129,8 @@ func TestWarpStatusShape(t *testing.T) {
 	if err := setWarpEnabled(true); err != nil {
 		t.Fatal(err)
 	}
-	s := warpStatus()
+	transport.SetWarpAuto(true)
+	s := transport.WarpStatus()
 	for _, k := range []string{"enabled", "active", "socks", "locked"} {
 		if _, ok := s[k]; !ok {
 			t.Fatalf("warpStatus sin clave %q: %v", k, s)
@@ -137,7 +144,7 @@ func TestWarpStatusShape(t *testing.T) {
 	}
 	// Con WARP=1 en el entorno, la UI debe saber que está fijada.
 	t.Setenv("WARP", "1")
-	if warpStatus()["locked"] != true {
-		t.Fatalf("locked = %v, con WARP=1 debe ser true", warpStatus()["locked"])
+	if transport.WarpStatus()["locked"] != true {
+		t.Fatalf("locked = %v, con WARP=1 debe ser true", transport.WarpStatus()["locked"])
 	}
 }

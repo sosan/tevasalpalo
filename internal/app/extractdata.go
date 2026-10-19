@@ -1,6 +1,10 @@
 package app
 
 import (
+	"tevasalpalo/internal/transport"
+)
+
+import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
@@ -118,7 +122,7 @@ var reElcanoBaseHref = regexp.MustCompile(`(?i)<base\s[^>]*href\s*=\s*["']([^"']
 
 // fetchParaTest permite sustituir el transporte en los tests del resolver.
 // En producción es FetchWebDataTimeout directamente.
-var fetchParaTest = FetchWebDataTimeout
+var fetchParaTest = transport.FetchWebDataTimeout
 
 // resolveElcanoFileURL devuelve un resolver que traduce la raíz del IPNS de
 // elcano en la URL real de un fichero publicado. El index es HTML con
@@ -133,7 +137,7 @@ func resolveElcanoFileURL(file string) func(string) (string, error) {
 		// con frecuencia) el resolver fallaba siempre, aunque la descarga
 		// principal fuera a salir por proxy. Resultado: la fuente se quedaba
 		// sin resolver y el fallback acababa bajando el índice en HTML.
-		body, err := fetchParaTest(index, false, timeTimeout)
+		body, err := fetchParaTest(index, false, transport.TimeTimeout)
 		if err != nil || len(body) == 0 {
 			// Reserva por proxy: es la misma salida que usará la descarga.
 			var errDirecto error
@@ -142,7 +146,7 @@ func resolveElcanoFileURL(file string) func(string) (string, error) {
 			} else {
 				errDirecto = errors.New("el índice vino vacío")
 			}
-			proxy, errProxy := fetchParaTest(index, true, timeTimeout)
+			proxy, errProxy := fetchParaTest(index, true, transport.TimeTimeout)
 			if errProxy != nil || len(proxy) == 0 {
 				if errProxy != nil {
 					return "", fmt.Errorf("no se pudo leer el índice %s (directo: %v; proxy: %v)",
@@ -200,7 +204,7 @@ func resolveAndFetch(s Source) ([]byte, error) {
 // fetchWebData permite a los tests sustituir el transporte para verificar la
 // política de reintentos sin tocar la red. En producción siempre vale
 // FetchWebData.
-var fetchWebData = FetchWebData
+var fetchWebData = transport.FetchWebData
 
 // fetchSourceBody descarga una fuente con reintentos y, como último recurso, vía
 // proxy. La política de reintento NO depende de si el fallo vino del resolver o
@@ -239,7 +243,7 @@ func fetchSourceBodyProxyFirst(s Source, isDev bool) fetchResult {
 			return fetchResult{body: body, attempts: res.attempts}
 		}
 		res.err = err
-		if isFatalFetchErr(err) {
+		if transport.IsFatalFetchErr(err) {
 			res.fatal4xx = true
 			break
 		}
@@ -255,7 +259,7 @@ func fetchSourceBodyProxyFirst(s Source, isDev bool) fetchResult {
 	log.Printf("🔄 [%s] proxy agotado, último recurso directo...", s.Name)
 	direct := s
 	direct.Proxied = false
-	return fetchSourceBodyPolitica(direct, isDev, maxNetworkRetries, defaultFetchBackoff, false)
+	return fetchSourceBodyPolitica(direct, isDev, transport.MaxNetworkRetries, defaultFetchBackoff, false)
 }
 
 // maxFetchAttempts: intentos contra la misma salida antes de rendirse.
@@ -305,9 +309,9 @@ func fetchSourceBodyPolitica(s Source, isDev bool, maxAttempts int, backoff fetc
 		// arregla (el resolver local sigue roto). Tras unos pocos intentos se
 		// deja pasar al fallback por proxy, que resuelve el DNS por su cuenta
 		// (no se marca fatal: el proxy sí puede resolverlo).
-		if isNetworkErr(err) {
+		if transport.IsNetworkErr(err) {
 			netErrs++
-			if netErrs >= maxNetworkRetries {
+			if netErrs >= transport.MaxNetworkRetries {
 				if isDev {
 					log.Printf("🔄 [%s] %d fallos de red seguidos, paso al proxy: %v", s.Name, netErrs, err)
 				}
@@ -318,7 +322,7 @@ func fetchSourceBodyPolitica(s Source, isDev bool, maxAttempts int, backoff fetc
 		}
 
 		// 429 (rate limit) SÍ reintenta con backoff; el resto de 4xx no.
-		if isFatalFetchErr(err) {
+		if transport.IsFatalFetchErr(err) {
 			res.fatal4xx = true
 			if isDev {
 				log.Printf("❌ [%s] 4xx no reintenta: %v", s.Name, err)
@@ -1050,9 +1054,9 @@ func transformUriSafeBroadcasters(broadcasterToAcestream map[string]BroadcasterI
 					return
 				}
 
-				client := IinitializeRedirectClients()
+				client := transport.IinitializeRedirectClients()
 				finalURL, _, _, err := resolveFinalManifestURL(p.initialURI, client)
-				StopRedirectClient(client)
+				transport.StopRedirectClient(client)
 
 				if err != nil || strings.TrimSpace(finalURL) == "" {
 					if host != "" {
@@ -1110,11 +1114,6 @@ func transformUriSafeBroadcasters(broadcasterToAcestream map[string]BroadcasterI
 // los servidores directos sin arrastrar una lluvia de peticiones.
 const pLinkWorkers = 8
 
-// pLinkTimeout: timeout para resolver una URL "p;". Solo interesa la URL final
-// tras redirecciones, así que no hace falta esperar el manifiesto entero ni
-// pagar los 20 s de timeTimeout por cada servidor caído.
-const pLinkTimeout = 6 * time.Second
-
 // hostDeURL extrae host:port de una URL para la cache de hosts caídos.
 func hostDeURL(u string) string {
 	parsed, err := url.Parse(strings.TrimSpace(u))
@@ -1158,7 +1157,7 @@ func extractDataFromM3U8(body []byte, filterList []string) (map[string][]string,
 }
 
 func resolveFinalManifestURL(initialURL string, redirectClient *http.Client) (finalURL string, finalHeaders http.Header, manifestBody []byte, err error) {
-	return fetchWithRedirects(initialURL, redirectClient)
+	return transport.FetchWithRedirects(initialURL, redirectClient)
 }
 
 func checkActiveLinks(broadcasters map[string]BroadcasterInfo) map[string]BroadcasterInfo {
@@ -1194,7 +1193,7 @@ func checkActiveLink(initialURL string) (bool, error) {
 			}
 			return http.ErrUseLastResponse
 		},
-		Timeout: timeTimeout,
+		Timeout: transport.TimeTimeout,
 	}
 
 	currentURL := initialURL
@@ -1268,4 +1267,10 @@ func quitarDuplicadosStrings(s []string) []string {
 		salida = append(salida, v)
 	}
 	return salida
+}
+
+// shouldProxyFallback decide el último recurso para fuentes directas
+// agotadas sin error fatal (p. ej. 429 persistente = IP limitada).
+func shouldProxyFallback(s Source, success, fatal bool) bool {
+	return !success && !fatal && !s.Proxied
 }

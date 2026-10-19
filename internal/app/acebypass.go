@@ -1,5 +1,9 @@
 package app
 
+import (
+	"tevasalpalo/internal/transport"
+)
+
 // Proxy de bloqueo para el tráfico saliente del motor AceStream.
 //
 // El bypass DNS/VAST del APK (engine/main.py) parchea el motor en Python: DNS
@@ -70,7 +74,7 @@ var adServerHosts = []string{
 // isAdServerHost dice si el host es de publicidad/salubridad del motor. Se usa
 // solo para dejar pasar esas peticiones, nunca para responderlas.
 func isAdServerHost(host string) bool {
-	h := strings.ToLower(hostOnly(host))
+	h := strings.ToLower(transport.HostOnly(host))
 	if h == "" {
 		return false
 	}
@@ -110,7 +114,7 @@ const emptyVAST = `<?xml version="1.0" encoding="UTF-8"?>` + "\n" +
 // "host" o "host:puerto" (el destino CONNECT viene con puerto) y compara
 // sufijos para cubrir los subdominios (*.torrentstream.org).
 func isDeadHost(host string) bool {
-	h := strings.ToLower(hostOnly(host))
+	h := strings.ToLower(transport.HostOnly(host))
 	if h == "" {
 		return false
 	}
@@ -139,7 +143,7 @@ func isDeadPath(path string) bool {
 // comparan host y ruta por separado: host y path llegan desglosados, no como
 // una URL entera.
 func isNotifURL(host, path string) bool {
-	h := strings.ToLower(hostOnly(host))
+	h := strings.ToLower(transport.HostOnly(host))
 	p := strings.ToLower(path)
 	return (h == notifHost || strings.HasSuffix(h, "."+notifHost)) && strings.Contains(p, notifPath)
 }
@@ -246,19 +250,19 @@ var bypassDialContext = func(ctx context.Context, network, addr string) (net.Con
 // la IP directa. Cuando ya es una IP, no hay nada que resolver y se va directo.
 func bypassDial(network, addr string) (net.Conn, error) {
 	host, _, splitErr := net.SplitHostPort(addr)
-	if splitErr == nil && net.ParseIP(host) == nil && warpEnabled() {
-		traceLog("dial %s: nombre, WARP activo -> intento DoH", host)
+	if splitErr == nil && net.ParseIP(host) == nil && transport.WarpEnabled() {
+		transport.TraceLog("dial %s: nombre, WARP activo -> intento DoH", host)
 		if ip, err := resolveOverWARPWithWait(host); err == nil {
 			engineBypassStats.add("dns_doh")
 			engineBypassStats.add("via_direct")
-			traceLog("dial %s: DoH OK -> %s (conexión directa)", host, ip)
+			transport.TraceLog("dial %s: DoH OK -> %s (conexión directa)", host, ip)
 			return (&net.Dialer{Timeout: 20 * time.Second}).Dial(network, net.JoinHostPort(ip, portOf(addr)))
 		} else {
 			engineBypassStats.add("dns_fail")
-			traceLog("dial %s: DoH falló (%v) -> DNS del ISP", host, err)
+			transport.TraceLog("dial %s: DoH falló (%v) -> DNS del ISP", host, err)
 		}
-	} else if warpEnabled() && splitErr == nil {
-		traceLog("dial %s: ya es IP, sin resolución que hacer", addr)
+	} else if transport.WarpEnabled() && splitErr == nil {
+		transport.TraceLog("dial %s: ya es IP, sin resolución que hacer", addr)
 	}
 	engineBypassStats.add("via_direct")
 	return (&net.Dialer{Timeout: 20 * time.Second}).Dial(network, addr)
@@ -273,7 +277,7 @@ func resolveOverWARPWithWait(host string) (string, error) {
 		if i > 0 {
 			time.Sleep(dnsWaitInterval)
 		}
-		dialCtx, err := socksDialContext(warpSocksAddr())
+		dialCtx, err := socksDialContext(transport.WarpSocksAddr())
 		if err != nil {
 			lastErr = err
 			continue
@@ -404,13 +408,13 @@ func (h *bypassHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// El orden importa: la respuesta vacía gana al corte. Si vast.php llegara
 	// antes a dead_dns (torrentstream.org), el motor recibiría un 502 en vez de
 	// un VAST vacío y podría tomarlo por un bloqueador de anuncios.
-	traceOnce("bypass-primera", "bypass: primera petición en claro del motor (HTTP_PROXY funciona)")
-	traceLog("bypass plain %s%s host=%q", r.Method, r.URL.Path, host)
+	transport.TraceOnce("bypass-primera", "bypass: primera petición en claro del motor (HTTP_PROXY funciona)")
+	transport.TraceLog("bypass plain %s%s host=%q", r.Method, r.URL.Path, host)
 	if isNotifURL(host, r.URL.Path) {
 		// Notificaciones: el APK devuelve {"notifications":[]} (JSON), no un
 		// VAST. Servirle XML a un endpoint que espera JSON no hace el bypass.
 		h.count("empty_notif")
-		traceLog("bypass NOTIF -> JSON vacío: %s%s", host, r.URL.Path)
+		transport.TraceLog("bypass NOTIF -> JSON vacío: %s%s", host, r.URL.Path)
 		writeEmptyNotif(w)
 		return
 	}
@@ -420,7 +424,7 @@ func (h *bypassHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// /get y /getsettings son peticiones normales del motor y responderles
 		// un VAST vacío rompe su flujo y acaba en "bloqueador detectado".
 		h.count("empty_vast")
-		traceLog("bypass VAST vacío: %s%s", host, r.URL.Path)
+		transport.TraceLog("bypass VAST vacío: %s%s", host, r.URL.Path)
 		writeEmptyVAST(w)
 		return
 	}
@@ -428,12 +432,12 @@ func (h *bypassHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// Se cuenta para ver en runtime cuánto pasa por aquí, pero no se
 		// intercepta: estas peticiones necesitan una respuesta real.
 		h.count("ad_passthrough")
-		traceLog("bypass publicidad pasa de largo: %s%s", host, r.URL.Path)
+		transport.TraceLog("bypass publicidad pasa de largo: %s%s", host, r.URL.Path)
 	}
-	if isDeadHost(hostOnly(host)) {
+	if isDeadHost(transport.HostOnly(host)) {
 		// DNS muerto de verdad: el motor no espera el timeout de resolución.
 		h.count("dead_dns")
-		traceLog("bypass DNS muerto (502): %s%s", host, r.URL.Path)
+		transport.TraceLog("bypass DNS muerto (502): %s%s", host, r.URL.Path)
 		w.WriteHeader(http.StatusBadGateway)
 		return
 	}
@@ -500,16 +504,16 @@ func (h *bypassHandler) serveConnect(w http.ResponseWriter, r *http.Request) {
 		host, port = target, "443"
 	}
 	h.count("connect")
-	traceLog("bypass CONNECT %s:%s", host, port)
+	transport.TraceLog("bypass CONNECT %s:%s", host, port)
 	if isDeadHost(host) && !isAdServerHost(host) {
 		h.count("dead_dns")
-		traceLog("bypass CONNECT DNS muerto (502): %s:%s", host, port)
+		transport.TraceLog("bypass CONNECT DNS muerto (502): %s:%s", host, port)
 		w.WriteHeader(http.StatusBadGateway)
 		return
 	}
 	if isAdServerHost(host) {
 		h.count("ad_passthrough")
-		traceLog("bypass CONNECT publicidad: se deja pasar %s:%s", host, port)
+		transport.TraceLog("bypass CONNECT publicidad: se deja pasar %s:%s", host, port)
 	}
 	hj, ok := w.(http.Hijacker)
 	if !ok {

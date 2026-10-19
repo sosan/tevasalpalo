@@ -24,6 +24,7 @@ import (
 	"path/filepath"
 	"strings"
 	"tevasalpalo/internal/assets"
+	"tevasalpalo/internal/runtimefs"
 )
 
 // overlayDirName es la carpeta del overlay dentro del runtime.
@@ -113,7 +114,7 @@ func overlayPlugins(runtimePath string, spec engineSpec) error {
 		}
 		src := filepath.Join(srcDir, e.Name())
 		dst := filepath.Join(dstDir, e.Name())
-		if fileExists(dst) && !fileExists(filepath.Join(backupDir, e.Name())) {
+		if runtimefs.ExisteFichero(dst) && !runtimefs.ExisteFichero(filepath.Join(backupDir, e.Name())) {
 			if err := os.MkdirAll(backupDir, 0755); err != nil {
 				return err
 			}
