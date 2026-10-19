@@ -1,6 +1,7 @@
 package app
 
 import (
+	"tevasalpalo/internal/ace"
 	"tevasalpalo/internal/store"
 	"tevasalpalo/internal/transport"
 )
@@ -667,7 +668,7 @@ func extractDataFromWebTxtRaw(body []byte) map[string][]string {
 	// Guarda contra el spam: si lo que llega es una página HTML en vez de la
 	// lista, avisar por cada línea genera cientos de mensajes que entierran
 	// el log y no explican nada. Se detecta una vez y se dice una vez.
-	if SeemsHTML(body) {
+	if ace.SeemsHTML(body) {
 		log.Printf("⚠️  txtRaw: la respuesta es HTML, no la lista (%.1f KB). "+
 			"Lo normal es haber bajado el índice en vez del fichero.",
 			float64(len(body))/1024)

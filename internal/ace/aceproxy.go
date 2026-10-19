@@ -1,4 +1,4 @@
-package app
+package ace
 
 import (
 	"tevasalpalo/internal/store"
@@ -41,7 +41,7 @@ import (
 	"golang.org/x/net/proxy"
 )
 
-// acestreamAPI devuelve la base del engine sin barra final.
+// AcestreamAPI devuelve la base del engine sin barra final.
 //
 // ACESTREAM_API manda. Si está vacía, la base se descubre una sola vez al
 // primer uso (sync.Once, no depende de que llamen); es lo que hace que la app
@@ -58,7 +58,7 @@ import (
 // Si nada responde, se queda en loopback (comportamiento anterior). El
 // descubrimiento toca red solo una vez: los candidatos se sondean con un dial
 // corto, no peticiones HTTP.
-func acestreamAPI() string {
+func AcestreamAPI() string {
 	if base := strings.TrimSpace(os.Getenv("ACESTREAM_API")); base != "" {
 		return strings.TrimSuffix(base, "/")
 	}
@@ -76,7 +76,7 @@ var (
 // baseEngineDescubierta elige la base del engine sondeando el puerto una vez.
 // Si nada responde, loopback, como siempre.
 func baseEngineDescubierta() string {
-	return baseEngineConSondeo(httpPort, engineDialHost, gatewayIPPorDefecto)
+	return baseEngineConSondeo(HttpPort, engineDialHost, gatewayIPPorDefecto)
 }
 
 // baseEngineConSondeo es la lógica pura del descubrimiento: sondea el puerto
@@ -211,11 +211,11 @@ func gatewayFromRouteFile(rutaFichero string) (string, bool) {
 	return "", false
 }
 
-// acestreamEngineHosts devuelve los hosts a reescribir en manifests:
+// AcestreamEngineHosts devuelve los hosts a reescribir en manifests:
 // el clásico local más el del ACESTREAM_API si es otro.
-func acestreamEngineHosts() []string {
+func AcestreamEngineHosts() []string {
 	hosts := []string{"127.0.0.1:6878"}
-	u, err := url.Parse(acestreamAPI())
+	u, err := url.Parse(AcestreamAPI())
 	if err == nil && u.Host != "" && u.Host != hosts[0] {
 		hosts = append(hosts, u.Host)
 	}
@@ -249,30 +249,30 @@ func isLoopbackURL(raw string) bool {
 var proxyMediaFlag atomic.Bool
 var proxyMediaOnce sync.Once
 
-func proxyMediaEnabled() bool {
+func ProxyMediaEnabled() bool {
 	proxyMediaOnce.Do(func() {
 		proxyMediaFlag.Store(transport.ParseBoolEnv("PROXY_MEDIA", false))
 	})
 	return proxyMediaFlag.Load()
 }
 
-func setProxyMedia(v bool) {
+func SetProxyMedia(v bool) {
 	proxyMediaOnce.Do(func() {})
 	proxyMediaFlag.Store(v)
 }
 
 // mediaTransports: directa si el interruptor está OFF; cadena + directa
 // final como último recurso si está ON (ver el stream manda).
-func mediaTransports() []string {
-	if !proxyMediaEnabled() {
+func MediaTransports() []string {
+	if !ProxyMediaEnabled() {
 		return []string{"direct"}
 	}
 	return transport.ProxyChainWithDirectFallback()
 }
 
-// socksDialContext construye un DialContext vía SOCKS (sin marcar: no abre
+// SocksDialContext construye un DialContext vía SOCKS (sin marcar: no abre
 // conexiones, el dial ocurre al usarlo).
-func socksDialContext(socksAddr string) (func(context.Context, string, string) (net.Conn, error), error) {
+func SocksDialContext(socksAddr string) (func(context.Context, string, string) (net.Conn, error), error) {
 	sockURL, err := url.Parse("socks5://" + socksAddr)
 	if err != nil {
 		return nil, err
@@ -286,9 +286,9 @@ func socksDialContext(socksAddr string) (func(context.Context, string, string) (
 	}, nil
 }
 
-// streamClientFor construye el cliente de streaming de un transporte con los
+// StreamClientFor construye el cliente de streaming de un transporte con los
 // mismos parámetros que el directo histórico (Timeout 0, sin redirects auto).
-func streamClientFor(name string) (*http.Client, error) {
+func StreamClientFor(name string) (*http.Client, error) {
 	tr := &http.Transport{
 		MaxIdleConns:        100,
 		MaxIdleConnsPerHost: 10,
@@ -299,7 +299,7 @@ func streamClientFor(name string) (*http.Client, error) {
 		if name == "tor" {
 			addr = "localhost:" + transport.PortTor
 		}
-		dialCtx, err := socksDialContext(addr)
+		dialCtx, err := SocksDialContext(addr)
 		if err != nil {
 			return nil, err
 		}
@@ -314,13 +314,13 @@ func streamClientFor(name string) (*http.Client, error) {
 	}, nil
 }
 
-// openUpstream obtiene la respuesta final (siguiendo redirects) rotando por
+// OpenUpstream obtiene la respuesta final (siguiendo redirects) rotando por
 // transportes ante errores de transporte. Los HTTP del origen se propagan.
 // El llamador cierra resp.Body. Mensajes idénticos a los históricos.
-func openUpstream(targetURL, rangeHeader string, transports []string) (*http.Response, string, error) {
+func OpenUpstream(targetURL, rangeHeader string, transports []string) (*http.Response, string, error) {
 	lastErr := fmt.Errorf("sin transportes disponibles")
 	for _, tr := range transports {
-		client, err := streamClientFor(tr)
+		client, err := StreamClientFor(tr)
 		if err != nil {
 			lastErr = err
 			continue
@@ -418,12 +418,12 @@ const aceTimeoutManifest = 120 * time.Second
 // bueno mientras el manifest principal sigue fluyendo.
 const aceTimeoutAnidado = 8 * time.Second
 
-// aceTimeoutFor elige el timeout según la ruta de /ace/: los anidados
+// AceTimeoutFor elige el timeout según la ruta de /ace/: los anidados
 // /ace/m/ fallan rápido a propósito, el manifest principal tolera largo
 // porque es long-poll, y los segmentos van cortos.
-func aceTimeoutFor(acePath string) time.Duration {
+func AceTimeoutFor(acePath string) time.Duration {
 	p := strings.ToLower(acePath)
-	if isAceNestedManifest(p) {
+	if IsAceNestedManifest(p) {
 		return aceTimeoutAnidado
 	}
 	if strings.HasSuffix(p, ".m3u8") {
@@ -432,12 +432,12 @@ func aceTimeoutFor(acePath string) time.Duration {
 	return aceTimeoutSegmento
 }
 
-// isAceNestedManifest indica si la ruta es un manifest anidado /ace/m/*.m3u8.
+// IsAceNestedManifest indica si la ruta es un manifest anidado /ace/m/*.m3u8.
 // El path que entrega Fiber no lleva barra inicial ("m/aa42/711b.m3u8"), así
 // que se compara por segmento y no con un Contains con barras, que nunca
 // casaría. Cuando estos fallan hay que responder 204 en lugar de 502: HLS.js
 // trata el 502 como error fatal de red y detiene la carga.
-func isAceNestedManifest(acePath string) bool {
+func IsAceNestedManifest(acePath string) bool {
 	p := strings.ToLower(acePath)
 	if !strings.HasSuffix(p, ".m3u8") {
 		return false
@@ -457,16 +457,16 @@ type aceReqFunc func(url string, client *http.Client) (*http.Response, error)
 // bucle no se convierta en una espera infinita.
 const aceRedirectsMax = 5
 
-// aceDo ejecuta la petición contra el engine: directa a loopback siempre;
+// AceDo ejecuta la petición contra el engine: directa a loopback siempre;
 // a remoto, cadena proxy (xray/Tor) si allowProxy o directa si no.
 // Devuelve el transporte usado. Solo rota ante errores de transporte, no
 // ante errores HTTP del engine (se propagan tal cual).
-func aceDo(targetURL string, allowProxy bool, do aceReqFunc) (*http.Response, string, error) {
-	resp, via, _, err := aceDoTimeout(targetURL, allowProxy, aceTimeoutSegmento, do)
+func AceDo(targetURL string, allowProxy bool, do aceReqFunc) (*http.Response, string, error) {
+	resp, via, _, err := AceDoTimeout(targetURL, allowProxy, aceTimeoutSegmento, do)
 	return resp, via, err
 }
 
-// aceDoTimeout es aceDo con timeout explícito por el primer salto. Sigue los
+// AceDoTimeout es AceDo con timeout explícito por el primer salto. Sigue los
 // redirects recalculando el timeout de cada destino, y devuelve la URL final
 // (la alcanzada, también si el salto falla) para que el llamador pueda
 // clasificar el fallo por la ruta por la que realmente se acabó pidiendo.
@@ -476,11 +476,11 @@ func aceDo(targetURL string, allowProxy bool, do aceReqFunc) (*http.Response, st
 // contra un manifest que el engine retiene indefinidamente esperando pares:
 // 120s y un 502 que HLS.js trata como error fatal de red. Es la diferencia
 // entre un arranque de stream y ninguno.
-func aceDoTimeout(targetURL string, allowProxy bool, timeout time.Duration, do aceReqFunc) (*http.Response, string, string, error) {
+func AceDoTimeout(targetURL string, allowProxy bool, timeout time.Duration, do aceReqFunc) (*http.Response, string, string, error) {
 	actual := targetURL
 	via := ""
 	for salto := 0; ; salto++ {
-		resp, tr, err := aceDoSalto(actual, timeout, allowProxy, do)
+		resp, tr, err := AceDoSalto(actual, timeout, allowProxy, do)
 		if err != nil {
 			return nil, "", actual, err
 		}
@@ -493,17 +493,17 @@ func aceDoTimeout(targetURL string, allowProxy bool, timeout time.Duration, do a
 			return resp, via, actual, nil
 		}
 		resp.Body.Close()
-		timeout = aceTimeoutFor(acePathFromURL(siguiente))
+		timeout = AceTimeoutFor(AcePathFromURL(siguiente))
 		actual = siguiente
 		transport.TraceLog("↪️  ACE redirect -> %s (timeout=%v)", actual, timeout)
 	}
 }
 
-// aceDoSalto ejecuta un único salto con rotación de transportes. El cliente
-// directo no sigue redirects (los lleva aceDoTimeout, que recalcula el
+// AceDoSalto ejecuta un único salto con rotación de transportes. El cliente
+// directo no sigue redirects (los lleva AceDoTimeout, que recalcula el
 // timeout por ruta); si los siguiera, el timeout del primer salto manda
 // sobre todos los siguientes.
-func aceDoSalto(targetURL string, timeout time.Duration, allowProxy bool, do aceReqFunc) (*http.Response, string, error) {
+func AceDoSalto(targetURL string, timeout time.Duration, allowProxy bool, do aceReqFunc) (*http.Response, string, error) {
 	transports := []string{"direct"}
 	local := esEngineLocalDirecto(targetURL)
 	if !local && allowProxy {
@@ -513,7 +513,7 @@ func aceDoSalto(targetURL string, timeout time.Duration, allowProxy bool, do ace
 	for _, tr := range transports {
 		client := &http.Client{
 			Timeout: timeout,
-			// Los redirects los lleva aceDoTimeout, que recalcula el timeout
+			// Los redirects los lleva AceDoTimeout, que recalcula el timeout
 			// por ruta. Si los siguiera el cliente, el timeout del primer
 			// salto mandaría sobre el anidado al que redirige.
 			CheckRedirect: func(*http.Request, []*http.Request) error {
@@ -559,9 +559,9 @@ func aceRedirectTarget(resp *http.Response) string {
 	return siguiente.String()
 }
 
-// acePathFromURL devuelve la ruta de una URL del engine sin el prefijo /ace,
-// con el formato que espera aceTimeoutFor e isAceNestedManifest.
-func acePathFromURL(rawURL string) string {
+// AcePathFromURL devuelve la ruta de una URL del engine sin el prefijo /ace,
+// con el formato que espera AceTimeoutFor e IsAceNestedManifest.
+func AcePathFromURL(rawURL string) string {
 	p, err := url.Parse(rawURL)
 	if err != nil {
 		return ""
@@ -571,10 +571,10 @@ func acePathFromURL(rawURL string) string {
 	return rest
 }
 
-// rewriteAceManifestLine reescribe una línea de manifest al origen local:
+// RewriteAceManifestLine reescribe una línea de manifest al origen local:
 // hosts del engine -> localHost; segmentos relativos -> absolutos.
 // Las líneas de comentario/vacías y URLs absolutas ajenas se dejan igual.
-func rewriteAceManifestLine(line, serverOrigin, localHost string, engineHosts []string) string {
+func RewriteAceManifestLine(line, serverOrigin, localHost string, engineHosts []string) string {
 	trimmed := strings.TrimSpace(line)
 	if trimmed == "" || strings.HasPrefix(trimmed, "#") {
 		return line
@@ -603,14 +603,14 @@ func rewriteAceManifestLine(line, serverOrigin, localHost string, engineHosts []
 	return line
 }
 
-// hashDePeticionAce saca el infohash de una ruta /ace/* cuando la petición es
+// HashDePeticionAce saca el infohash de una ruta /ace/* cuando la petición es
 // de datos de stream, que es donde se sabe si el hash está vivo.
 //
 // Solo cuenta getstream y las rutas de datos con el hash en la query. Los
 // manifests (principal y anidado) no dicen nada sobre el hash: el motor los
 // retiene aunque el flujo esté bien, y anotarlos como fallo mataría hashes que
 // funcionan a la perfection.
-func hashDePeticionAce(acePath, queryString string) string {
+func HashDePeticionAce(acePath, queryString string) string {
 	p := strings.ToLower(acePath)
 
 	// /ace/getstream?id=<hash> y /ace/h/<hash>/...
@@ -630,10 +630,10 @@ func hashDePeticionAce(acePath, queryString string) string {
 	return ""
 }
 
-// hashDeRutaAce saca el infohash de cualquier ruta /ace/* por la que pasen
+// HashDeRutaAce saca el infohash de cualquier ruta /ace/* por la que pasen
 // datos de un stream, incluidos los manifests.
 //
-// Es lo que completa a hashDePeticionAce para poder APRENDER de los enlaces:
+// Es lo que completa a HashDePeticionAce para poder APRENDER de los enlaces:
 // hasta ahora solo se anotaban getstream y /h/, que HLS.js no pide nunca, así
 // que el bucket hashes no recibía nada. Ahora sí se puede saber de un enlace
 // por el camino que el player usa de verdad:
@@ -646,7 +646,7 @@ func hashDePeticionAce(acePath, queryString string) string {
 //
 // Con redirect=true se mira también la ruta final, que es la que lleva el hash
 // en el caso normal del manifest principal.
-func hashDeRutaAce(acePath, queryString string, conRedirect bool, rutaFinal string) string {
+func HashDeRutaAce(acePath, queryString string, conRedirect bool, rutaFinal string) string {
 	p := strings.ToLower(acePath)
 	// m/<hash>/... y c/<hash>/...
 	for _, pre := range []string{"m/", "c/", "h/"} {
@@ -679,7 +679,7 @@ func hashDeRutaAce(acePath, queryString string, conRedirect bool, rutaFinal stri
 			}
 		}
 	}
-	return hashDePeticionAce(acePath, queryString)
+	return HashDePeticionAce(acePath, queryString)
 }
 
 // hashDeQuery busca un infohash de 40 hex en la query string. Se busca por

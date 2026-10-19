@@ -1,4 +1,4 @@
-package app
+package ace
 
 // Tests del acestream.conf del motor.
 

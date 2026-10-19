@@ -1,4 +1,4 @@
-package app
+package ace
 
 // Capa de parches sobre el motor extraído: hooks de red del APK y plugins.
 //

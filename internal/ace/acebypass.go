@@ -1,4 +1,4 @@
-package app
+package ace
 
 import (
 	"tevasalpalo/internal/transport"
@@ -191,7 +191,7 @@ func (s *bypassStats) snapshot() map[string]int {
 	}
 }
 
-func (s *bypassStats) add(field string) {
+func (s *bypassStats) Add(field string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	switch field {
@@ -215,9 +215,6 @@ func (s *bypassStats) add(field string) {
 		s.adPassthru++
 	}
 }
-
-// engineBypassStats son los contadores del proxy en marcha.
-var engineBypassStats = &bypassStats{}
 
 // Espera a que WARP esté levantado antes de rendirse al DNS del ISP.
 //
@@ -253,18 +250,18 @@ func bypassDial(network, addr string) (net.Conn, error) {
 	if splitErr == nil && net.ParseIP(host) == nil && transport.WarpEnabled() {
 		transport.TraceLog("dial %s: nombre, WARP activo -> intento DoH", host)
 		if ip, err := resolveOverWARPWithWait(host); err == nil {
-			engineBypassStats.add("dns_doh")
-			engineBypassStats.add("via_direct")
+			EngineBypassStats.Add("dns_doh")
+			EngineBypassStats.Add("via_direct")
 			transport.TraceLog("dial %s: DoH OK -> %s (conexión directa)", host, ip)
 			return (&net.Dialer{Timeout: 20 * time.Second}).Dial(network, net.JoinHostPort(ip, portOf(addr)))
 		} else {
-			engineBypassStats.add("dns_fail")
+			EngineBypassStats.Add("dns_fail")
 			transport.TraceLog("dial %s: DoH falló (%v) -> DNS del ISP", host, err)
 		}
 	} else if transport.WarpEnabled() && splitErr == nil {
 		transport.TraceLog("dial %s: ya es IP, sin resolución que hacer", addr)
 	}
-	engineBypassStats.add("via_direct")
+	EngineBypassStats.Add("via_direct")
 	return (&net.Dialer{Timeout: 20 * time.Second}).Dial(network, addr)
 }
 
@@ -277,7 +274,7 @@ func resolveOverWARPWithWait(host string) (string, error) {
 		if i > 0 {
 			time.Sleep(dnsWaitInterval)
 		}
-		dialCtx, err := socksDialContext(transport.WarpSocksAddr())
+		dialCtx, err := SocksDialContext(transport.WarpSocksAddr())
 		if err != nil {
 			lastErr = err
 			continue
@@ -364,9 +361,10 @@ func dohResolveOverWARP(dialCtx func(context.Context, string, string) (net.Conn,
 	return "", fmt.Errorf("sin respuesta A para %s", host)
 }
 
-// engineBypassAddr es la dirección en la que quedó escuchando el proxy, para
-// poder consultarla desde la API.
-var engineBypassAddr string
+// BypassEngineAddr es la dirección en la que quedó escuchando el proxy de
+// bypass del motor, para poder consultarla desde la API. Cadena vacía = no se
+// ha levantado.
+var BypassEngineAddr string
 
 // serveBypass arranca el proxy de bloqueo en loopback y devuelve la dirección
 // para inyectarla en el entorno del motor.
@@ -382,7 +380,7 @@ func serveBypass() (string, error) {
 	}
 	srv := &http.Server{
 		Addr:              ln.Addr().String(),
-		Handler:           &bypassHandler{dial: bypassDial, stats: engineBypassStats},
+		Handler:           &bypassHandler{dial: bypassDial, stats: EngineBypassStats},
 		ReadHeaderTimeout: 20 * time.Second,
 	}
 	go func() {
@@ -390,8 +388,8 @@ func serveBypass() (string, error) {
 			log.Printf("proxy de bypass del motor: %v", err)
 		}
 	}()
-	engineBypassAddr = ln.Addr().String()
-	return engineBypassAddr, nil
+	BypassEngineAddr = ln.Addr().String()
+	return BypassEngineAddr, nil
 }
 
 // ServeHTTP enruta CONNECT y peticiones en claro.
@@ -484,7 +482,7 @@ func (h *bypassHandler) count(field string) {
 	if h.stats == nil {
 		return
 	}
-	h.stats.add(field)
+	h.stats.Add(field)
 }
 
 // serveConnect hace de túnel CONNECT: bloqueo inmediato para hosts muertos y
@@ -595,3 +593,10 @@ func SeemsHTML(body []byte) bool {
 	}
 	return false
 }
+
+// EngineBypassStats son los contadores del proxy de bypass en marcha, para la
+// API de estado.
+var EngineBypassStats = &bypassStats{}
+
+// Stats expone una foto de los contadores.
+func (s *bypassStats) Stats() map[string]int { return s.snapshot() }

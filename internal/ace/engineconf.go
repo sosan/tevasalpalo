@@ -1,4 +1,4 @@
-package app
+package ace
 
 // acestream.conf: flags del motor.
 //

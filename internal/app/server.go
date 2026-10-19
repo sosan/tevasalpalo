@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"tevasalpalo/internal/ace"
 	"tevasalpalo/internal/store"
 	"tevasalpalo/internal/telemetry"
 	"tevasalpalo/internal/transport"
@@ -161,7 +162,7 @@ func StartWebServer() (*fiber.App, error) {
 		// Motor AceStream: local por defecto, remoto vía ACESTREAM_API.
 		// En remoto el tráfico va por la cadena proxy (xray/Tor); en local,
 		// directo como siempre (ver aceproxy.go).
-		targetURL := acestreamAPI() + "/ace/" + acePath
+		targetURL := ace.AcestreamAPI() + "/ace/" + acePath
 
 		// 🔥 SOLO añadir query string si realmente existe y no está vacío
 		queryString := string(c.Request().URI().QueryString())
@@ -172,8 +173,8 @@ func StartWebServer() (*fiber.App, error) {
 		// WARP on-demand: /ace/* con datos de stream es justo el caso que
 		// activa el túnel en el cliente Android (http_stream_start). Los
 		// manifests y comandos del webui no lo activan.
-		// Anotación del resultado del hash. Se usa hashDeRutaAce y no solo
-		// hashDePeticionAce porque el camino que el player recorre de verdad
+		// Anotación del resultado del hash. Se usa ace.HashDeRutaAce y no solo
+		// ace.HashDePeticionAce porque el camino que el player recorre de verdad
 		// (manifest.m3u8 -> /ace/m/<hash>/... -> /ace/c/<hash>/N.ts) no pasa
 		// por getstream ni por /h/, así que antes no se anotaba nada y el
 		// bucket hashes se quedaba vacío. Los segmentos son además la señal
@@ -181,7 +182,7 @@ func StartWebServer() (*fiber.App, error) {
 		//
 		// La ruta final solo se conoce después de la petición, así que aquí
 		// se resuelve con lo que hay y se completa más abajo.
-		hashProbado := hashDeRutaAce(acePath, queryString, false, "")
+		hashProbado := ace.HashDeRutaAce(acePath, queryString, false, "")
 
 		isAceStream := transport.IsAceStreamPath(acePath)
 		transport.TraceLog("/ace/* ruta=%q -> isAceStream=%v (WARP=%v)", acePath, isAceStream, transport.WarpEnabled())
@@ -219,14 +220,14 @@ func StartWebServer() (*fiber.App, error) {
 		// con uno corto. Se traza el timeout efectivo porque si un manifest
 		// muere a los ~30s el síntoma es idéntico al de un binario viejo
 		// compilado antes de que existiera el timeout largo.
-		aceTimeout := aceTimeoutFor(acePath)
+		aceTimeout := ace.AceTimeoutFor(acePath)
 		transport.TraceLog("/ace/* ruta=%q timeout=%v", acePath, aceTimeout)
 		inicio := time.Now()
-		// Los redirects los sigue aceDoTimeout con timeout propio por salto,
+		// Los redirects los sigue ace.AceDoTimeout con timeout propio por salto,
 		// así que aquí hay que poder reconstruir la petición para una URL que
 		// no es la original. El primer salto reutiliza req ya construida (y
 		// ya validada) para no perder el 500 con "Error creando petición".
-		resp, via, finalURL, err := aceDoTimeout(targetURL, proxyMediaEnabled(), aceTimeout, func(u string, client *http.Client) (*http.Response, error) {
+		resp, via, finalURL, err := ace.AceDoTimeout(targetURL, ace.ProxyMediaEnabled(), aceTimeout, func(u string, client *http.Client) (*http.Response, error) {
 			if u == targetURL {
 				return client.Do(req)
 			}
@@ -244,12 +245,12 @@ func StartWebServer() (*fiber.App, error) {
 		// Un manifest principal que redirige a /ace/m/... sigue siendo, a
 		// efectos del player, un manifest anidado: si expira hay que
 		// responder 204, no 502, aunque la ruta de entrada no lo parezca.
-		rutaFinal := acePathFromURL(finalURL)
-		esAnidado := isAceNestedManifest(acePath) || isAceNestedManifest(rutaFinal)
+		rutaFinal := ace.AcePathFromURL(finalURL)
+		esAnidado := ace.IsAceNestedManifest(acePath) || ace.IsAceNestedManifest(rutaFinal)
 		// Con la ruta final ya se puede completar el hash: el manifest
 		// principal llega sin hash en la ruta y lo trae en la que redirige.
 		if hashProbado == "" {
-			hashProbado = hashDeRutaAce(acePath, queryString, true, rutaFinal)
+			hashProbado = ace.HashDeRutaAce(acePath, queryString, true, rutaFinal)
 		}
 		esSegmento := strings.HasSuffix(acePath, ".ts")
 		if err != nil {
@@ -312,7 +313,7 @@ func StartWebServer() (*fiber.App, error) {
 
 		// 🔥 SI ES UN MANIFEST M3U8, MODIFICAR LAS URLs
 		if strings.HasSuffix(acePath, ".m3u8") {
-			return handleAceManifest(c, resp, acestreamEngineHosts(), hashProbado)
+			return handleAceManifest(c, resp, ace.AcestreamEngineHosts(), hashProbado)
 		}
 
 		// Para archivos .ts y otros
@@ -451,7 +452,7 @@ func StartWebServer() (*fiber.App, error) {
 	// (comportamiento actual); ON = /api/iptv/* y /ace/* remoto por Tor/xray.
 	app.Get("/api/proxy-media", func(c fiber.Ctx) error {
 		return c.JSON(fiber.Map{
-			"enabled": proxyMediaEnabled(),
+			"enabled": ace.ProxyMediaEnabled(),
 		})
 	})
 
@@ -464,10 +465,10 @@ func StartWebServer() (*fiber.App, error) {
 				"error": "JSON {enabled: bool} requerido",
 			})
 		}
-		setProxyMedia(*body.Enabled)
+		ace.SetProxyMedia(*body.Enabled)
 		log.Printf("🎚️  proxy multimedia: %v", *body.Enabled)
 		return c.JSON(fiber.Map{
-			"enabled": proxyMediaEnabled(),
+			"enabled": ace.ProxyMediaEnabled(),
 		})
 	})
 
@@ -484,10 +485,10 @@ func StartWebServer() (*fiber.App, error) {
 	// via_warp/via_direct dicen por dónde salió el tráfico del motor.
 	app.Get("/api/bypass", func(c fiber.Ctx) error {
 		return c.JSON(fiber.Map{
-			"addr":       engineBypassAddr,
+			"addr":       ace.BypassEngineAddr,
 			"warp_on":    transport.WarpEnabled(),
 			"warp_socks": transport.WarpSocksAddr(),
-			"stats":      engineBypassStats.snapshot(),
+			"stats":      ace.EngineBypassStats.Stats(),
 		})
 	})
 
@@ -871,10 +872,10 @@ func fetchAndProxy(c fiber.Ctx, targetURL string) error {
 	// WARP on-demand: equivalencia de http_stream_start en el cliente Android.
 	transport.TraceLog("fetchAndProxy: %s (WARP=%v)", targetURL, transport.WarpEnabled())
 	transport.WarpStreamStart()
-	resp, finalURL, err := openUpstream(targetURL, c.Get("Range"), mediaTransports())
+	resp, finalURL, err := ace.OpenUpstream(targetURL, c.Get("Range"), ace.MediaTransports())
 	if err != nil {
 		transport.WarpStreamStop()
-		if proxyMediaEnabled() {
+		if ace.ProxyMediaEnabled() {
 			return c.Status(502).SendString("Sin transporte multimedia (ni proxies ni directa): " + err.Error())
 		}
 		return c.Status(500).SendString("Failed to connect to stream: " + err.Error())
@@ -1038,7 +1039,7 @@ func handleAceManifest(c fiber.Ctx, resp *http.Response, engineHosts []string, h
 	lines := strings.Split(manifestContent, "\n")
 	reescritas := 0
 	for i, line := range lines {
-		nueva := rewriteAceManifestLine(line, serverOrigin, host, engineHosts)
+		nueva := ace.RewriteAceManifestLine(line, serverOrigin, host, engineHosts)
 		if nueva != line {
 			reescritas++
 		}

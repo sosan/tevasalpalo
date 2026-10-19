@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"sync"
 	"syscall"
+	"tevasalpalo/internal/ace"
 	"tevasalpalo/internal/secrets"
 	"tevasalpalo/internal/store"
 	"tevasalpalo/internal/telemetry"
@@ -165,7 +166,7 @@ func Main() {
 	env := os.Getenv("ENV")
 	if env != "dev" {
 		go func() {
-			cmd, err := RunAceStream()
+			cmd, err := ace.RunAceStream()
 			if err != nil {
 				log.Fatal("❌ Error al iniciar AceStream: ", err)
 			}
@@ -173,7 +174,7 @@ func Main() {
 			cmdAcestream = cmd
 			cmdAcestreamMu.Unlock()
 			// log.Println("🎉 Lista Canales TV lista. Abriendo interfaz...")
-			openBrowser(fmt.Sprintf("http://localhost:%d", httpWebServerPort))
+			openBrowser(fmt.Sprintf("http://localhost:%d", ace.HttpWebServerPort))
 		}()
 	}
 
@@ -216,7 +217,7 @@ func Main() {
 	cmdAcestreamMu.Lock()
 	aceCmd := cmdAcestream
 	cmdAcestreamMu.Unlock()
-	if err := StopAceStream(aceCmd); err != nil {
+	if err := ace.StopAceStream(aceCmd); err != nil {
 		log.Printf("❌ Error al cerrar Acestream: %v", err)
 	} else if aceCmd != nil {
 		log.Println("✅ Cerrado ace correctamente")

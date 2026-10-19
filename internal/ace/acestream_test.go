@@ -1,4 +1,4 @@
-package app
+package ace
 
 // Tests del arranque del motor: selección de asset por plataforma y
 // extracción segura. El asset de Linux se lee del embed real solo cuando

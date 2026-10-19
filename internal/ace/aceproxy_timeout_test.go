@@ -1,4 +1,4 @@
-package app
+package ace
 
 // Tests del timeout por tipo de ruta en /ace/.
 //
@@ -46,8 +46,8 @@ func TestAceTimeoutForDistingueManifestDeSegmento(t *testing.T) {
 		{"", aceTimeoutSegmento},
 	}
 	for _, c := range casos {
-		if got := aceTimeoutFor(c.ruta); got != c.want {
-			t.Errorf("aceTimeoutFor(%q) = %v, se esperaba %v", c.ruta, got, c.want)
+		if got := AceTimeoutFor(c.ruta); got != c.want {
+			t.Errorf("AceTimeoutFor(%q) = %v, se esperaba %v", c.ruta, got, c.want)
 		}
 	}
 }
@@ -66,8 +66,8 @@ func TestIsAceNestedManifest(t *testing.T) {
 		{"", false},
 	}
 	for _, c := range casos {
-		if got := isAceNestedManifest(c.ruta); got != c.want {
-			t.Errorf("isAceNestedManifest(%q) = %v, se esperaba %v", c.ruta, got, c.want)
+		if got := IsAceNestedManifest(c.ruta); got != c.want {
+			t.Errorf("IsAceNestedManifest(%q) = %v, se esperaba %v", c.ruta, got, c.want)
 		}
 	}
 }
@@ -75,16 +75,16 @@ func TestIsAceNestedManifest(t *testing.T) {
 // Un manifest anidado en minúsculas también cuenta: el navegador puede
 // pedirlo con cualquier capitalización.
 func TestAceTimeoutForIgnoraMayusculas(t *testing.T) {
-	if got := aceTimeoutFor("M/ABC.M3U8"); got != aceTimeoutAnidado {
+	if got := AceTimeoutFor("M/ABC.M3U8"); got != aceTimeoutAnidado {
 		t.Errorf("un manifest anidado en mayúsculas debería usar el timeout corto, hubo %v", got)
 	}
 }
 
-// aceDoTimeout debe respetar el timeout que le pasan, no el de segmento por
+// AceDoTimeout debe respetar el timeout que le pasan, no el de segmento por
 // defecto: es lo que permite que el manifest sobreviva.
 func TestAceDoTimeoutRespetaElTimeoutRecibido(t *testing.T) {
 	var visto time.Duration
-	_, _, _, err := aceDoTimeout("http://127.0.0.1:1/ace/x", false, 90*time.Second,
+	_, _, _, err := AceDoTimeout("http://127.0.0.1:1/ace/x", false, 90*time.Second,
 		func(u string, c *http.Client) (*http.Response, error) {
 			visto = c.Timeout
 			return nil, errConexionSimulada
@@ -100,12 +100,12 @@ func TestAceDoTimeoutRespetaElTimeoutRecibido(t *testing.T) {
 // La ruta más común: segmentos con timeout corto, para no retener conexiones.
 func TestAceDoPorDefectoUsaElTimeoutDeSegmento(t *testing.T) {
 	var visto time.Duration
-	aceDo("http://127.0.0.1:1/ace/x", false, func(u string, c *http.Client) (*http.Response, error) {
+	AceDo("http://127.0.0.1:1/ace/x", false, func(u string, c *http.Client) (*http.Response, error) {
 		visto = c.Timeout
 		return nil, errConexionSimulada
 	})
 	if visto != aceTimeoutSegmento {
-		t.Errorf("aceDo usa %v, se esperaba el de segmento %v", visto, aceTimeoutSegmento)
+		t.Errorf("AceDo( usa %v, se esperaba el de segmento %v", visto, aceTimeoutSegmento)
 	}
 }
 
@@ -127,7 +127,7 @@ func TestAceDoTimeoutRecalculaElTimeoutTrasRedirect(t *testing.T) {
 	defer engine.Close()
 
 	var timeouts []time.Duration
-	resp, _, finalURL, err := aceDoTimeout(engine.URL+"/ace/manifest.m3u8?id=abc", false, aceTimeoutManifest,
+	resp, _, finalURL, err := AceDoTimeout(engine.URL+"/ace/manifest.m3u8?id=abc", false, aceTimeoutManifest,
 		func(u string, c *http.Client) (*http.Response, error) {
 			timeouts = append(timeouts, c.Timeout)
 			req, err := http.NewRequest("GET", u, nil)
@@ -164,7 +164,7 @@ func TestAceDoTimeoutDevuelveLaRutaFinalCuandoFallaElRedirect(t *testing.T) {
 	}))
 	defer engine.Close()
 
-	_, _, finalURL, err := aceDoTimeout(engine.URL+"/ace/manifest.m3u8?id=abc", false, aceTimeoutManifest,
+	_, _, finalURL, err := AceDoTimeout(engine.URL+"/ace/manifest.m3u8?id=abc", false, aceTimeoutManifest,
 		func(u string, c *http.Client) (*http.Response, error) {
 			// El engine retiene el anidado: la petición acaba en timeout.
 			if strings.Contains(u, "/ace/m/") {
@@ -179,8 +179,8 @@ func TestAceDoTimeoutDevuelveLaRutaFinalCuandoFallaElRedirect(t *testing.T) {
 	if err == nil {
 		t.Fatal("se esperaba error en el engine")
 	}
-	if !isAceNestedManifest(acePathFromURL(finalURL)) {
-		t.Errorf("la ruta final %q no se reconoce como manifest anidado", acePathFromURL(finalURL))
+	if !IsAceNestedManifest(AcePathFromURL(finalURL)) {
+		t.Errorf("la ruta final %q no se reconoce como manifest anidado", AcePathFromURL(finalURL))
 	}
 }
 
@@ -192,7 +192,7 @@ func TestAceDoTimeoutCortaLosRedirectsEnBucle(t *testing.T) {
 	defer engine.Close()
 
 	llamadas := 0
-	resp, _, _, err := aceDoTimeout(engine.URL+"/ace/manifest.m3u8", false, aceTimeoutManifest,
+	resp, _, _, err := AceDoTimeout(engine.URL+"/ace/manifest.m3u8", false, aceTimeoutManifest,
 		func(u string, c *http.Client) (*http.Response, error) {
 			llamadas++
 			req, err := http.NewRequest("GET", u, nil)
@@ -211,13 +211,13 @@ func TestAceDoTimeoutCortaLosRedirectsEnBucle(t *testing.T) {
 }
 
 func TestAcePathFromURLQuitaElPrefijoAce(t *testing.T) {
-	if got := acePathFromURL("http://127.0.0.1:6878/ace/m/abc/def.m3u8"); got != "m/abc/def.m3u8" {
-		t.Errorf("acePathFromURL devolvió %q", got)
+	if got := AcePathFromURL("http://127.0.0.1:6878/ace/m/abc/def.m3u8"); got != "m/abc/def.m3u8" {
+		t.Errorf("AcePathFromURL devolvió %q", got)
 	}
-	if !isAceNestedManifest(acePathFromURL("http://127.0.0.1:6878/ace/m/abc/def.m3u8")) {
+	if !IsAceNestedManifest(AcePathFromURL("http://127.0.0.1:6878/ace/m/abc/def.m3u8")) {
 		t.Error("una URL /ace/m/ debe clasificarse como manifest anidado")
 	}
-	if isAceNestedManifest(acePathFromURL("http://127.0.0.1:6878/ace/manifest.m3u8")) {
+	if IsAceNestedManifest(AcePathFromURL("http://127.0.0.1:6878/ace/manifest.m3u8")) {
 		t.Error("el manifest principal no es anidado")
 	}
 }

@@ -1,4 +1,4 @@
-package app
+package ace
 
 import (
 	"tevasalpalo/internal/transport"
@@ -446,7 +446,7 @@ func TestBypassStatsCount(t *testing.T) {
 	}
 	resp3.Body.Close()
 
-	got := stats.snapshot()
+	got := stats.Stats()
 	if got["connect"] < 1 {
 		t.Errorf("connect = %d, se esperaba >= 1", got["connect"])
 	}
@@ -555,14 +555,14 @@ func TestBypassDialSinWarpVaDirecto(t *testing.T) {
 		}
 	}()
 
-	engineBypassStats = &bypassStats{}
+	EngineBypassStats = &bypassStats{}
 	conn, err := bypassDial("tcp", ln.Addr().String())
 	if err != nil {
 		t.Fatalf("bypassDial: %v", err)
 	}
 	conn.Close()
 
-	got := engineBypassStats.snapshot()
+	got := EngineBypassStats.Stats()
 	if got["via_direct"] != 1 {
 		t.Errorf("via_direct = %d, se esperaba 1", got["via_direct"])
 	}
@@ -598,7 +598,7 @@ func TestBypassDialWarpCaidoCaeADirecto(t *testing.T) {
 		}
 	}()
 
-	engineBypassStats = &bypassStats{}
+	EngineBypassStats = &bypassStats{}
 	// "localhost" obliga a pasar por la rama de resolución: es un nombre, no
 	// una IP, así que se intenta DoH y luego se cae a directo.
 	_, port, err := net.SplitHostPort(ln.Addr().String())
@@ -611,7 +611,7 @@ func TestBypassDialWarpCaidoCaeADirecto(t *testing.T) {
 	}
 	conn.Close()
 
-	got := engineBypassStats.snapshot()
+	got := EngineBypassStats.Stats()
 	if got["via_direct"] != 1 {
 		t.Errorf("via_direct = %d, se esperaba 1 (reserva)", got["via_direct"])
 	}
@@ -644,7 +644,7 @@ func TestBypassDialConIPNoResuelve(t *testing.T) {
 		}
 	}()
 
-	engineBypassStats = &bypassStats{}
+	EngineBypassStats = &bypassStats{}
 	start := time.Now()
 	conn, err := bypassDial("tcp", ln.Addr().String()) // ya es host:IP
 	if err != nil {
@@ -655,7 +655,7 @@ func TestBypassDialConIPNoResuelve(t *testing.T) {
 	if elapsed := time.Since(start); elapsed > time.Second {
 		t.Errorf("tardó %s en dialar una IP: no debería esperar a WARP", elapsed)
 	}
-	got := engineBypassStats.snapshot()
+	got := EngineBypassStats.Stats()
 	if got["dns_doh"] != 0 || got["dns_fail"] != 0 {
 		t.Errorf("con IP literal no debe haber intentos de DoH: %v", got)
 	}

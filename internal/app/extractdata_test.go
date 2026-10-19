@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"tevasalpalo/internal/ace"
 	"tevasalpalo/internal/transport"
 	"time"
 )
@@ -502,17 +503,17 @@ func TestSourcesTipoValido(t *testing.T) {
 	}
 }
 
-// SeemsHTML tiene que pillar un índice HTML sin dar falsos positivos con las
+// ace.SeemsHTML tiene que pillar un índice HTML sin dar falsos positivos con las
 // listas de verdad, que también llevan texto plano con "<" suelto.
 func TestSeemsHTML(t *testing.T) {
 	html := []byte(`<!DOCTYPE html><html lang="es"><head><title>Elcano.top</title></head><body>x</body></html>`)
-	if !SeemsHTML(html) {
+	if !ace.SeemsHTML(html) {
 		t.Error("no detectó un HTML normal")
 	}
-	if !SeemsHTML([]byte("\xef\xbb\xbf  <html>")) {
+	if !ace.SeemsHTML([]byte("\xef\xbb\xbf  <html>")) {
 		t.Error("no detectó HTML con BOM y espacios delante")
 	}
-	if !SeemsHTML([]byte("<body>directo sin doctype")) {
+	if !ace.SeemsHTML([]byte("<body>directo sin doctype")) {
 		t.Error("no detectó HTML que empieza por <body>")
 	}
 
@@ -522,7 +523,7 @@ func TestSeemsHTML(t *testing.T) {
 		"",
 	}
 	for _, l := range listas {
-		if SeemsHTML([]byte(l)) {
+		if ace.SeemsHTML([]byte(l)) {
 			t.Errorf("falso positivo con una lista: %q", l)
 		}
 	}

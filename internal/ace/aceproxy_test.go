@@ -1,4 +1,4 @@
-package app
+package ace
 
 import (
 	"tevasalpalo/internal/transport"
@@ -23,15 +23,15 @@ func TestAcestreamAPI(t *testing.T) {
 	// (descubrimiento) se prueba en TestBaseEngine*, porque cachea con
 	// sync.Once y sondea puertos reales.
 	t.Setenv("ACESTREAM_API", "http://vps.example:6878/")
-	if got := acestreamAPI(); got != "http://vps.example:6878" {
+	if got := AcestreamAPI(); got != "http://vps.example:6878" {
 		t.Fatalf("override con barra = %q", got)
 	}
 	t.Setenv("ACESTREAM_API", "http://vps.example:6878")
-	if got := acestreamAPI(); got != "http://vps.example:6878" {
+	if got := AcestreamAPI(); got != "http://vps.example:6878" {
 		t.Fatalf("override limpio = %q", got)
 	}
 	t.Setenv("ACESTREAM_API", "   ")
-	if got := acestreamAPI(); got != fmt.Sprintf("http://127.0.0.1:%d", httpPort) || strings.Contains(got, "vps") {
+	if got := AcestreamAPI(); got != fmt.Sprintf("http://127.0.0.1:%d", HttpPort) || strings.Contains(got, "vps") {
 		// Solo espacios = vacía: cae en discovery/cache, que nunca devuelve
 		// una URL heredada de otra variable. Basta con que empiece por
 		// http:// y no arrastre el valor anterior.
@@ -41,12 +41,12 @@ func TestAcestreamAPI(t *testing.T) {
 
 func TestAcestreamEngineHosts(t *testing.T) {
 	t.Setenv("ACESTREAM_API", "http://127.0.0.1:6878")
-	hosts := acestreamEngineHosts()
+	hosts := AcestreamEngineHosts()
 	if len(hosts) != 1 || hosts[0] != "127.0.0.1:6878" {
 		t.Fatalf("mismo host no se duplica = %v", hosts)
 	}
 	t.Setenv("ACESTREAM_API", "http://vps.example:6878")
-	hosts = acestreamEngineHosts()
+	hosts = AcestreamEngineHosts()
 	if len(hosts) != 2 || hosts[1] != "vps.example:6878" {
 		t.Fatalf("remoto = %v", hosts)
 	}
@@ -58,7 +58,7 @@ func TestAcestreamEngineHosts(t *testing.T) {
 func TestBaseEnginePriorizaLoopback(t *testing.T) {
 	sondeo := func(host string, _ int) bool { return true } // todo responde
 	gateway := func() (string, bool) { return "172.17.0.1", true }
-	if got := baseEngineConSondeo(httpPort, sondeo, gateway); got != "http://127.0.0.1:6878" {
+	if got := baseEngineConSondeo(HttpPort, sondeo, gateway); got != "http://127.0.0.1:6878" {
 		t.Fatalf("con todo disponible debe quedar en loopback, got %q", got)
 	}
 }
@@ -66,7 +66,7 @@ func TestBaseEnginePriorizaLoopback(t *testing.T) {
 func TestBaseEngineRecaeEnDockerHost(t *testing.T) {
 	sondeo := func(host string, _ int) bool { return host == "host.docker.internal" }
 	gateway := func() (string, bool) { return "172.17.0.1", true }
-	if got := baseEngineConSondeo(httpPort, sondeo, gateway); got != "http://host.docker.internal:6878" {
+	if got := baseEngineConSondeo(HttpPort, sondeo, gateway); got != "http://host.docker.internal:6878" {
 		t.Fatalf("host.docker.internal vivo debe ganar al gateway, got %q", got)
 	}
 }
@@ -76,7 +76,7 @@ func TestBaseEngineUsaGateway(t *testing.T) {
 	// y en el gateway (el host) está publicado el 6878 del engine.
 	sondeo := func(host string, _ int) bool { return host == "172.17.0.1" }
 	gateway := func() (string, bool) { return "172.17.0.1", true }
-	if got := baseEngineConSondeo(httpPort, sondeo, gateway); got != "http://172.17.0.1:6878" {
+	if got := baseEngineConSondeo(HttpPort, sondeo, gateway); got != "http://172.17.0.1:6878" {
 		t.Fatalf("gateway vivo debe usarse, got %q", got)
 	}
 }
@@ -85,12 +85,12 @@ func TestBaseEngineFallbackLoopback(t *testing.T) {
 	// Nada responde: loopback, como antes del descubrimiento.
 	sondeo := func(string, int) bool { return false }
 	gateway := func() (string, bool) { return "172.17.0.1", true }
-	if got := baseEngineConSondeo(httpPort, sondeo, gateway); got != "http://127.0.0.1:6878" {
+	if got := baseEngineConSondeo(HttpPort, sondeo, gateway); got != "http://127.0.0.1:6878" {
 		t.Fatalf("nada vivo debe volver a loopback, got %q", got)
 	}
 	// Sin /proc (Windows/macOS nativo): mismo resultado.
 	sinProc := func() (string, bool) { return "", false }
-	if got := baseEngineConSondeo(httpPort, sondeo, sinProc); got != "http://127.0.0.1:6878" {
+	if got := baseEngineConSondeo(HttpPort, sondeo, sinProc); got != "http://127.0.0.1:6878" {
 		t.Fatalf("sin fichero de rutas debe volver a loopback, got %q", got)
 	}
 }
@@ -99,7 +99,7 @@ func TestBaseEngineSinGatewayValido(t *testing.T) {
 	// gateway() devolviendo vacío añade solo los dos primeros candidatos.
 	sondeo := func(host string, _ int) bool { return host == "172.17.0.1" }
 	gateway := func() (string, bool) { return "", false }
-	if got := baseEngineConSondeo(httpPort, sondeo, gateway); got != "http://127.0.0.1:6878" {
+	if got := baseEngineConSondeo(HttpPort, sondeo, gateway); got != "http://127.0.0.1:6878" {
 		t.Fatalf("el gateway muerto no debe inventarse candidatos, got %q", got)
 	}
 }
@@ -245,26 +245,26 @@ func TestRewriteAceManifestLine(t *testing.T) {
 	local, origin := "127.0.0.1:3000", "http://127.0.0.1:3000"
 	defHosts := []string{"127.0.0.1:6878"}
 
-	if got := rewriteAceManifestLine("http://127.0.0.1:6878/ace/c/xxx/0.ts", origin, local, defHosts); got != "http://127.0.0.1:3000/ace/c/xxx/0.ts" {
+	if got := RewriteAceManifestLine("http://127.0.0.1:6878/ace/c/xxx/0.ts", origin, local, defHosts); got != "http://127.0.0.1:3000/ace/c/xxx/0.ts" {
 		t.Fatalf("engine local = %q", got)
 	}
 	remHosts := []string{"127.0.0.1:6878", "vps.example:6878"}
-	if got := rewriteAceManifestLine("http://vps.example:6878/ace/c/xxx/0.ts", origin, local, remHosts); got != "http://127.0.0.1:3000/ace/c/xxx/0.ts" {
+	if got := RewriteAceManifestLine("http://vps.example:6878/ace/c/xxx/0.ts", origin, local, remHosts); got != "http://127.0.0.1:3000/ace/c/xxx/0.ts" {
 		t.Fatalf("engine remoto = %q", got)
 	}
-	if got := rewriteAceManifestLine("http://vps.example:6878/ace/getstream?id=abc", origin, local, remHosts); got != "http://127.0.0.1:3000/ace/getstream?id=abc" {
+	if got := RewriteAceManifestLine("http://vps.example:6878/ace/getstream?id=abc", origin, local, remHosts); got != "http://127.0.0.1:3000/ace/getstream?id=abc" {
 		t.Fatalf("getstream remoto = %q", got)
 	}
-	if got := rewriteAceManifestLine("seg-12.ts", origin, local, defHosts); got != "http://127.0.0.1:3000/ace/seg-12.ts" {
+	if got := RewriteAceManifestLine("seg-12.ts", origin, local, defHosts); got != "http://127.0.0.1:3000/ace/seg-12.ts" {
 		t.Fatalf("relativo = %q", got)
 	}
-	if got := rewriteAceManifestLine("#EXTM3U", origin, local, defHosts); got != "#EXTM3U" {
+	if got := RewriteAceManifestLine("#EXTM3U", origin, local, defHosts); got != "#EXTM3U" {
 		t.Fatalf("comentario = %q", got)
 	}
-	if got := rewriteAceManifestLine("   ", origin, local, defHosts); got != "   " {
+	if got := RewriteAceManifestLine("   ", origin, local, defHosts); got != "   " {
 		t.Fatalf("vacía = %q", got)
 	}
-	if got := rewriteAceManifestLine("https://cdn.example.com/a.ts", origin, local, defHosts); got != "https://cdn.example.com/a.ts" {
+	if got := RewriteAceManifestLine("https://cdn.example.com/a.ts", origin, local, defHosts); got != "https://cdn.example.com/a.ts" {
 		t.Fatalf("absoluta ajena = %q", got)
 	}
 }
@@ -294,7 +294,7 @@ var errAceTestBoom = errors.New("boom")
 func TestAceDoRespectsAllowProxy(t *testing.T) {
 	// Remoto con allowProxy=false: directa aunque haya cadena (do simulado).
 	calls := 0
-	resp, via, err := aceDo("http://203.0.113.10/ace/x", false, aceFakeDo(&calls, false))
+	resp, via, err := AceDo("http://203.0.113.10/ace/x", false, aceFakeDo(&calls, false))
 	if err != nil || via != "direct" || calls != 1 {
 		t.Fatalf("sin proxy debe ir directo, got via=%q calls=%d err=%v", via, calls, err)
 	}
@@ -303,20 +303,20 @@ func TestAceDoRespectsAllowProxy(t *testing.T) {
 
 func TestProxyMediaFlag(t *testing.T) {
 	t.Setenv("PROXY_MEDIA", "")
-	setProxyMedia(false)
-	if proxyMediaEnabled() {
+	SetProxyMedia(false)
+	if ProxyMediaEnabled() {
 		t.Fatal("defecto OFF")
 	}
-	setProxyMedia(true)
-	if !proxyMediaEnabled() {
+	SetProxyMedia(true)
+	if !ProxyMediaEnabled() {
 		t.Fatal("tras set(true) debe estar ON")
 	}
-	setProxyMedia(false)
+	SetProxyMedia(false)
 }
 
 func TestParseBoolEnv(t *testing.T) {
 	t.Setenv("PROXY_MEDIA", "1")
-	setProxyMedia(false)
+	SetProxyMedia(false)
 	// Nota: el Once ya corrió en este proceso; parseBoolEnv se prueba directo.
 	for in, want := range map[string]bool{"1": true, "true": true, "YES": true, "on": true, "0": false, "off": false, "banana": false} {
 		t.Setenv("T_FOO_X", in)
@@ -331,22 +331,22 @@ func TestParseBoolEnv(t *testing.T) {
 }
 
 func TestMediaTransports(t *testing.T) {
-	setProxyMedia(false)
-	if got := mediaTransports(); len(got) != 1 || got[0] != "direct" {
+	SetProxyMedia(false)
+	if got := MediaTransports(); len(got) != 1 || got[0] != "direct" {
 		t.Fatalf("OFF = %v", got)
 	}
-	setProxyMedia(true)
+	SetProxyMedia(true)
 	t.Setenv("PROXY_MODE", "off")
-	if got := mediaTransports(); len(got) != 1 || got[0] != "direct" {
+	if got := MediaTransports(); len(got) != 1 || got[0] != "direct" {
 		t.Fatalf("ON pero PROXY_MODE=off = %v", got)
 	}
 	t.Setenv("PROXY_MODE", "")
 	t.Setenv("XRAY_LINK", "")
 	t.Setenv("XRAY_SUB", "")
-	if got := mediaTransports(); len(got) != 3 || got[0] != "tor" || got[2] != "direct" {
+	if got := MediaTransports(); len(got) != 3 || got[0] != "tor" || got[2] != "direct" {
 		t.Fatalf("ON por defecto = %v", got)
 	}
-	setProxyMedia(false)
+	SetProxyMedia(false)
 }
 
 func TestProxyChainWithDirectFallback(t *testing.T) {
@@ -363,36 +363,36 @@ func TestProxyChainWithDirectFallback(t *testing.T) {
 }
 
 func TestSocksDialContext(t *testing.T) {
-	if _, err := socksDialContext("ho st:1080"); err == nil {
+	if _, err := SocksDialContext("ho st:1080"); err == nil {
 		t.Fatal("dirección inválida debe dar error")
 	}
-	fn, err := socksDialContext("127.0.0.1:1")
+	fn, err := SocksDialContext("127.0.0.1:1")
 	if err != nil || fn == nil {
 		t.Fatalf("construcción válida: %v", err)
 	}
 }
 
 func TestOpenUpstreamNoTransports(t *testing.T) {
-	if _, _, err := openUpstream("http://127.0.0.1:1/x", "", nil); err == nil {
+	if _, _, err := OpenUpstream("http://127.0.0.1:1/x", "", nil); err == nil {
 		t.Fatal("sin transportes debe dar error")
 	}
 }
 
 func TestOpenUpstreamDirectFailsFast(t *testing.T) {
 	// Directa a puerto cerrado: error inmediato sin red real.
-	if _, _, err := openUpstream("http://127.0.0.1:1/x", "", []string{"direct"}); err == nil {
+	if _, _, err := OpenUpstream("http://127.0.0.1:1/x", "", []string{"direct"}); err == nil {
 		t.Fatal("directa caída debe dar error")
 	}
 }
 
 func TestStreamClientFor(t *testing.T) {
 	t.Setenv("SOCKS5_ADDR", "127.0.0.1:1")
-	c, err := streamClientFor("direct")
+	c, err := StreamClientFor("direct")
 	if err != nil || c.Transport == nil {
 		t.Fatalf("direct: %v", err)
 	}
 	for _, tr := range []string{"tor", "socks5"} {
-		c, err := streamClientFor(tr)
+		c, err := StreamClientFor(tr)
 		if err != nil || c.Transport == nil {
 			t.Fatalf("%s: %v", tr, err)
 		}
@@ -401,7 +401,7 @@ func TestStreamClientFor(t *testing.T) {
 
 func TestAceDoLoopbackFailsFast(t *testing.T) {
 	// Loopback con puerto cerrado: directa y error inmediato.
-	if _, via, err := aceDo("http://127.0.0.1:1/ace/x", true, aceTestDo("http://127.0.0.1:1/ace/x")); err == nil || via != "" {
+	if _, via, err := AceDo("http://127.0.0.1:1/ace/x", true, aceTestDo("http://127.0.0.1:1/ace/x")); err == nil || via != "" {
 		t.Fatalf("loopback caído debe dar error, got via=%q err=%v", via, err)
 	}
 }
@@ -409,7 +409,7 @@ func TestAceDoLoopbackFailsFast(t *testing.T) {
 func TestAceDoLoopbackDirect(t *testing.T) {
 	// Loopback usa directa sin tocar la cadena (do simulado, sin red).
 	calls := 0
-	resp, via, err := aceDo("http://127.0.0.1:6878/ace/x", true, aceFakeDo(&calls, false))
+	resp, via, err := AceDo("http://127.0.0.1:6878/ace/x", true, aceFakeDo(&calls, false))
 	if err != nil || via != "direct" || calls != 1 {
 		t.Fatalf("loopback debe ir directo en 1 llamada, got via=%q calls=%d err=%v", via, calls, err)
 	}
@@ -422,7 +422,7 @@ func TestAceDoRotatesOnTransportError(t *testing.T) {
 	t.Setenv("SOCKS5_ADDR", "127.0.0.1:1")
 	t.Setenv("PROXY_FALLBACK_DIRECT", "")
 	calls := 0
-	resp, via, err := aceDo("http://203.0.113.10/ace/x", true, aceFakeDo(&calls, true))
+	resp, via, err := AceDo("http://203.0.113.10/ace/x", true, aceFakeDo(&calls, true))
 	if err != nil || via != "tor" || calls != 2 {
 		t.Fatalf("debió rotar a tor, got via=%q calls=%d err=%v", via, calls, err)
 	}
@@ -437,7 +437,7 @@ func TestAceDoRemoteAllFail(t *testing.T) {
 	t.Setenv("SOCKS5_ADDR", "127.0.0.1:1")
 	t.Setenv("PROXY_FALLBACK_DIRECT", "")
 	calls := 0
-	_, _, err := aceDo("http://203.0.113.10/ace/x", true, func(string, *http.Client) (*http.Response, error) {
+	_, _, err := AceDo("http://203.0.113.10/ace/x", true, func(string, *http.Client) (*http.Response, error) {
 		calls++
 		return nil, errAceTestBoom
 	})
@@ -466,7 +466,7 @@ cc3d749cfd30877b418f1d59a80d9291e0f091c8/15.ts`
 
 	reescritas := 0
 	for i, l := range lines {
-		nueva := rewriteAceManifestLine(l, origen, "127.0.0.1:3000", engine)
+		nueva := RewriteAceManifestLine(l, origen, "127.0.0.1:3000", engine)
 		if nueva != l {
 			reescritas++
 		}
