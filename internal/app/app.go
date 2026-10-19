@@ -5,20 +5,18 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"os/signal"
 	"runtime"
-	"sync"
 	"syscall"
-	"tevasalpalo/internal/ace"
+	"time"
+
 	"tevasalpalo/internal/secrets"
 	"tevasalpalo/internal/source"
 	"tevasalpalo/internal/store"
+	"tevasalpalo/internal/supervisor"
 	"tevasalpalo/internal/telemetry"
-	"tevasalpalo/internal/transport"
 	"tevasalpalo/internal/web"
 	"tevasalpalo/update"
-	"time"
 )
 
 var shutdownChan = make(chan struct{})
@@ -96,32 +94,10 @@ func Main() {
 
 	telemetry.InitTelemetry()
 
-	avisoEnlacesXray()
-
-	// log.Println("📡 Iniciando Tor...")
-	cmdTor, err := transport.RunTor()
-	if err != nil {
-		log.Fatal("❌ Error al iniciar TOR: ", err)
-	}
-
-	// xray en-proceso opcional en segundo plano: con la sub hardcodeada puede
-	// tardar (prueba endpoints con tráfico); no bloquea el arranque — la
-	// cadena usa Tor mientras tanto y cambia sola a xray cuando esté listo.
-	var xh *transport.XrayHandle
-	var xhMu sync.Mutex
-	go func() {
-		h, err := transport.MaybeRunXray()
-		if err != nil {
-			log.Printf("⚠️  xray no disponible, se usará Tor: %v", err)
-			return
-		}
-		if h == nil {
-			return
-		}
-		xhMu.Lock()
-		xh = h
-		xhMu.Unlock()
-	}()
+	// Tor, xray y más tarde el engine: el supervisor guarda los manejadores
+	// y los corta en orden al cierre.
+	proc := supervisor.Nuevo()
+	proc.ArrancarProxies()
 
 	// Base de datos de AceStream. Se abre antes de nada porque permite
 	// cargar el listado del arranque anterior al instante: sin esto, la web
@@ -167,25 +143,7 @@ func Main() {
 
 	log.Println("🌐 Servidor web iniciando en http://localhost:3000")
 	time.Sleep(10 * time.Second)
-	var (
-		cmdAcestream   *exec.Cmd
-		cmdAcestreamMu sync.Mutex
-	)
-
-	env := os.Getenv("ENV")
-	if env != "dev" {
-		go func() {
-			cmd, err := ace.RunAceStream()
-			if err != nil {
-				log.Fatal("❌ Error al iniciar AceStream: ", err)
-			}
-			cmdAcestreamMu.Lock()
-			cmdAcestream = cmd
-			cmdAcestreamMu.Unlock()
-			// log.Println("🎉 Lista Canales TV lista. Abriendo interfaz...")
-			source.OpenBrowser(fmt.Sprintf("http://localhost:%d", ace.HttpWebServerPort))
-		}()
-	}
+	proc.ArrancarEngine()
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
@@ -206,44 +164,9 @@ func Main() {
 		log.Println("✅ Cerrado webserver correctamente")
 	}
 
-	if err := transport.StopTor(cmdTor); err != nil {
-		log.Printf("❌ Error al detener TOR: %v %v", err, cmdTor)
-	}
-
-	xhMu.Lock()
-	xhStopped := xh
-	xhMu.Unlock()
-	if err := transport.StopXray(xhStopped); err != nil {
-		log.Printf("❌ Error al cerrar xray: %v", err)
-	} else if xhStopped != nil {
-		log.Println("✅ Cerrado xray correctamente")
-	}
-
-	if err := transport.StopWarpIfRunning(); err != nil {
-		log.Printf("❌ Error al cerrar WARP: %v", err)
-	}
-
-	cmdAcestreamMu.Lock()
-	aceCmd := cmdAcestream
-	cmdAcestreamMu.Unlock()
-	if err := ace.StopAceStream(aceCmd); err != nil {
-		log.Printf("❌ Error al cerrar Acestream: %v", err)
-	} else if aceCmd != nil {
-		log.Println("✅ Cerrado ace correctamente")
-	}
+	proc.Parar()
 
 	// Último envío al central: sin esto se pierden justo los eventos del
 	// cierre, que suelen ser los que explican un fallo.
 	telemetry.ShutdownTelemetry(3 * time.Second)
-}
-
-// avisoEnlacesXray recuerda dónde pegar los enlaces de proxy, para no tener que
-// buscar el nombre cada vez. Se llama al arrancar y solo loguea si el fichero
-// no está: si ya existe, calla (el log de xray ya dice cuántos enlaces ha
-// encontrado).
-func avisoEnlacesXray() {
-	if p := transport.XrayLocalFile(); p != "" {
-		return
-	}
-	log.Printf("💡 Para usar enlaces de proxy (vless/vmess/trojan/ss/socks/wireguard): pégalos en %s, junto al ejecutable", transport.XrayLinksFile)
 }
