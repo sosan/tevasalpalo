@@ -97,9 +97,10 @@ func serveUpstream(c fiber.Ctx, resp *http.Response, finalURL, targetURL string)
 		return handleManifest(c, resp, finalURL) // Pasar la URL final después de redirecciones
 	}
 
-	// Buffer de lectura/copia para segmentos: los streams HLS entregan trozos
-	// de unos pocos megas, así que 64 KB vale de sobra y no reservamos el
-	// buffer de 60 MB de antes en cada petición de segmento.
+	// Buffer de lectura/copia para segmentos: el tamaño del buffer no limita
+	// el tamaño del vídeo, solo es el trozo de tránsito por cada copia, así
+	// que el vídeo pasa entero sea cual sea su duración. 256 KB es margen
+	// cómodo frente al buffer de 60 MB de antes, que se asignaba por petición.
 	// Copiar headers importantes
 	copyHeaders(c, resp)
 
@@ -109,7 +110,7 @@ func serveUpstream(c fiber.Ctx, resp *http.Response, finalURL, targetURL string)
 	// Obtener el writer de Fiber
 	fiberWriter := c.Response().BodyWriter()
 
-	const bufferSize = 64 * 1024
+	const bufferSize = 256 * 1024
 	copyBuf := make([]byte, bufferSize)
 	bufferedReader := bufio.NewReaderSize(resp.Body, bufferSize)
 
