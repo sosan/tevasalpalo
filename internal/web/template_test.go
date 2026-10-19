@@ -1,4 +1,4 @@
-package app
+package web
 
 // Tests del renderizado de las plantillas.
 //

@@ -16,6 +16,7 @@ import (
 	"tevasalpalo/internal/store"
 	"tevasalpalo/internal/telemetry"
 	"tevasalpalo/internal/transport"
+	"tevasalpalo/internal/web"
 	"tevasalpalo/update"
 	"time"
 )
@@ -144,7 +145,14 @@ func Main() {
 	// revés, la web no arranca hasta que respondan las 7 fuentes.
 	source.CargarListadoDesdeDisco()
 
-	webServer, err := StartWebServer()
+	web.OnShutdownApp = func() {
+		select {
+		case shutdownChan <- struct{}{}:
+		case <-time.After(3 * time.Second):
+			log.Println("⚠️ nadie escuchaba el shutdown; sigo")
+		}
+	}
+	webServer, err := web.StartWebServer()
 	if err != nil {
 		log.Printf("❌ Error en servidor web: %v", err)
 	}

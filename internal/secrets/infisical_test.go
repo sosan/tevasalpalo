@@ -183,7 +183,7 @@ func TestInfisicalAceptaSecretosVacios(t *testing.T) {
 // Este test falla si alguien lo mete como valor por defecto en el código.
 func TestElTokenDeInfisicalNoEstaEnElCodigo(t *testing.T) {
 	prohibido := "st.26028f0b" // prefijo del service token de este proyecto
-	for _, f := range []string{"infisical.go", "../telemetry/telemetry.go", "../app/main.go", "../app/server.go"} {
+	for _, f := range []string{"infisical.go", "../telemetry/telemetry.go", "../app/app.go", "../web/server.go"} {
 		raw, err := os.ReadFile(f)
 		if err != nil {
 			t.Fatalf("leer %s: %v", f, err)

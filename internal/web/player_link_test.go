@@ -1,4 +1,4 @@
-package app
+package web
 
 // Tests del enlace que el player pasa a HLS.js y del muestreo de telemetría.
 //

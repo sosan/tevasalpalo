@@ -235,10 +235,11 @@ jobs:
         run: |
           # Los tests NO pueden correr con GOOS=windows: el runner es ubuntu y
           # ejecutar el .exe da "exec format error". Se compilan (no se
-          # ejecutan): compilar el binario de test de internal/app arrastra
-          # todo el paquete y detecta errores de compilación para windows.
+          # ejecutan): compilar el binario de test del paquete web (el que
+          # encima de las capas ace/transport/store/source) arrastra todo el
+          # grafo y detecta errores de compilación para windows.
           GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
-            go test -c -o /dev/null ./internal/app
+            go test -c -o /dev/null ./internal/web
 
 
       - name: Upload binaries to release

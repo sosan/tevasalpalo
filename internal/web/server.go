@@ -1,4 +1,4 @@
-package app
+package web
 
 import (
 	"bufio"
@@ -421,12 +421,12 @@ func StartWebServer() (*fiber.App, error) {
 		data := cachedData
 		dataMutex.RUnlock()
 		return c.Render("index", fiber.Map{
-			"Days":                   data.Days,
-			"source.AllCompetitionsData":        data.AllCompetitions,
-			"source.TopCompetitions":        data.TopCompetitions,
-			"topCompetitionsOrdered": data.TopCompetitionsOrdered,
-			"DaysJSON":               data.DaysJSON,
-			"topCompetitionsJSON":    data.TopCompetitionsJSON,
+			"Days":                       data.Days,
+			"source.AllCompetitionsData": data.AllCompetitions,
+			"source.TopCompetitions":     data.TopCompetitions,
+			"topCompetitionsOrdered":     data.TopCompetitionsOrdered,
+			"DaysJSON":                   data.DaysJSON,
+			"topCompetitionsJSON":        data.TopCompetitionsJSON,
 		})
 	})
 
@@ -437,13 +437,13 @@ func StartWebServer() (*fiber.App, error) {
 
 		return c.Render("broadcasters", fiber.Map{
 			//
-			"Broadcasters":           data.BroadcastersOrdered,
-			"DaysJSON":               data.DaysJSON,
-			"Days":                   data.Days,
-			"source.AllCompetitionsData":        data.AllCompetitions,
-			"source.TopCompetitions":        data.TopCompetitions,
-			"topCompetitionsOrdered": data.TopCompetitionsOrdered,
-			"topCompetitionsJSON":    data.TopCompetitionsJSON,
+			"Broadcasters":               data.BroadcastersOrdered,
+			"DaysJSON":                   data.DaysJSON,
+			"Days":                       data.Days,
+			"source.AllCompetitionsData": data.AllCompetitions,
+			"source.TopCompetitions":     data.TopCompetitions,
+			"topCompetitionsOrdered":     data.TopCompetitionsOrdered,
+			"topCompetitionsJSON":        data.TopCompetitionsJSON,
 		})
 	})
 
@@ -732,7 +732,7 @@ func StartWebServer() (*fiber.App, error) {
 				return
 			}
 			time.Sleep(3 * time.Second)
-			shutdownChan <- struct{}{}
+			OnShutdownApp()
 		}()
 
 		return c.JSON(fiber.Map{
@@ -1528,3 +1528,8 @@ func handleAceManifest(c fiber.Ctx, resp *http.Response, engineHosts []string, h
 // 	fmt.Println("🏁 Transmisión desde FFmpeg finalizada.")
 // 	return nil // Fiber manejará la desconexión del cliente
 // })
+
+// OnShutdownApp lo fija el arranque (app.go): con este callback la web pide
+// el cierre ordenado del proceso (p. ej. tras una autoupdate que cambia el
+// binario). Sin fijarlo, no hay canal y no pasa nada.
+var OnShutdownApp func()

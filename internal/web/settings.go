@@ -1,4 +1,4 @@
-package app
+package web
 
 // Ajustes persistentes de la app, en settings.json junto al ejecutable.
 //
