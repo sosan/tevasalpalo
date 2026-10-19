@@ -45,6 +45,22 @@ func StartWebServer() (*fiber.App, error) {
 		return nil
 	}
 
+	app := nuevoServidor()
+
+	go func() {
+		if err := app.Listen("0.0.0.0:3000"); err != nil {
+			log.Printf("❌ Error en servidor web: %v", err)
+		}
+	}()
+
+	return app, nil
+}
+
+// nuevoServidor monta la app de Fiber completa (motor de plantillas, rutas,
+// estáticos) SIN ponerla a escuchar. El listen vive en StartWebServer: así los
+// tests pueden montar la app y invocarla con app.Test sin discordar con un
+// puerto ocupado de otra sesión de pruebas.
+func nuevoServidor() *fiber.App {
 	sub, err := fs.Sub(viewsFS, "views")
 	if err != nil {
 		log.Fatalf("failed to create sub FS: %v", err)
@@ -707,13 +723,7 @@ func StartWebServer() (*fiber.App, error) {
 		return fetchAndProxy(c, targetURL)
 	})
 
-	go func() {
-		if err := app.Listen("0.0.0.0:3000"); err != nil {
-			log.Printf("❌ Error en servidor web: %v", err)
-		}
-	}()
-
-	return app, nil
+	return app
 }
 
 // OnShutdownApp lo fija el arranque (app.go): con este callback la web pide
