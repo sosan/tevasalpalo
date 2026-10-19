@@ -314,6 +314,14 @@ jobs:
           # arriba.
           go test ./...
 
+      - name: Unit tests with race detector
+        run: |
+          # La app es concurrida por diseño (fiber + goroutines de fuentes +
+          # engine + tickers), así que el detector de carreras aquí es la
+          # primeras línea de defensa contra regresiones de la invariante
+          # copy-on-write del listado (ver internal/source/vars.go).
+          go test -race ./...
+
       - uses: actions/upload-artifact@v4
         with:
           name: portable-linux-amd64

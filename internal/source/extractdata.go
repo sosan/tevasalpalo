@@ -430,7 +430,7 @@ func FetchUpdatedList() error {
 	// El refresco se construye sobre un mapa privado y se publica al final
 	// con una sola asignación (invariante copy-on-write): los lectores
 	// concurrentes de la web nunca ven un mapa a medio escribir.
-	vivo := clonarBroadcasters(BroadcasterToAcestream)
+	vivo := SnapshotBroadcasters()
 
 	for _, src := range sources {
 		if _, dormida := enPausa[src.Name]; dormida && !src.Obligatoria {
@@ -507,7 +507,7 @@ func FetchUpdatedList() error {
 
 	// Publicar: una asignación, mapa nuevo; los lectores con vistas viejas
 	// siguen con el mapa anterior sin ver escrituras a medias.
-	BroadcasterToAcestream = vivo
+	publicarBroadcaster(vivo)
 	log.Printf("✅ Fuentes procesadas: %d/%d", fetchedCount, len(sources))
 
 	// Guardar el resultado en la base de datos: sirve para el arranque
@@ -540,7 +540,7 @@ func FetchUpdatedList() error {
 	log.Print("Filtrando canales TV....")
 	// transform uri links to base64 uri safe
 
-	TopCompetitions = transformCompetitionsToTop(AllCompetitionsData)
+	publicarTop(transformCompetitionsToTop(AllCompetitionsData))
 
 	// El callback lo fija la capa web (server.go): source no puede importar
 	// a la web sin ciclo, así que tras cada refresco avisa "listado listo".
@@ -1368,9 +1368,9 @@ func CargarListadoDesdeDisco() {
 		}
 		tmp[nombre] = BroadcasterInfo{Name: nombre, Links: enlaces}
 	}
-	BroadcasterToAcestream = tmp
-	ordenarListadoEnVivo(BroadcasterToAcestream)
+	ordenarListadoEnVivo(tmp)
+	publicarBroadcaster(tmp)
 
 	log.Printf("⚡ Listado cargado desde disco: %d canales (se refrescará con las fuentes)",
-		len(BroadcasterToAcestream))
+		len(tmp))
 }

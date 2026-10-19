@@ -105,9 +105,13 @@ func startTVProgramationDataRefresh() {
 	ticker := time.NewTicker(6 * time.Hour)
 	go func() {
 		for range ticker.C {
-			err := preloadProgramationTVData()
-			if err != nil {
-				log.Fatal("❌ Error refrescando datos: ", err)
+			// Un fallo puntual no mata la proceso: la web sigue sirviendo
+			// con lo que hay en cachedData y en 6h se reintenta. Un
+			// log.Fatal aquí mataba la app en producción sin cierre
+			// limpio (ni Tor/xray/engine ni flush de telemetría) justo
+			// por una descarga fallida.
+			if err := preloadProgramationTVData(); err != nil {
+				log.Printf("⚠️ refresco de programación fallido (se reintenta en 6h): %v", err)
 			}
 		}
 	}()

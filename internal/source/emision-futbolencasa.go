@@ -701,7 +701,7 @@ func addNewBroadcaster(days []DayView, broadcasterNameDestination, competitionNa
 				continue
 			}
 			for l := range days[i].Competitions[o] {
-				newBroadcaster := BroadcasterToAcestream[broadcasterNameDestination]
+				newBroadcaster, _ := BroadcasterVivo(broadcasterNameDestination)
 				days[i].Competitions[o][l].Broadcasters = append(days[i].Competitions[o][l].Broadcasters, newBroadcaster)
 			}
 		}
@@ -863,7 +863,7 @@ func changeBroadcasterName(days []DayView, broadcasterNameOrigin, broadcasterNam
 				for m := range days[i].Competitions[o][l].Broadcasters {
 					if strings.EqualFold(days[i].Competitions[o][l].Broadcasters[m].Name, broadcasterNameOrigin) {
 						// days[i].Competitions[o][l].Broadcasters[m].Name = broadcasterNameDestination // "sky sports" "SKY SPORTS BUNDESLIGA"
-						currentBroadcaster := BroadcasterToAcestream[broadcasterNameDestination]
+						currentBroadcaster, _ := BroadcasterVivo(broadcasterNameDestination)
 						days[i].Competitions[o][l].Broadcasters[m] = currentBroadcaster
 
 					}

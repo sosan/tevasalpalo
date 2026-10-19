@@ -1,5 +1,7 @@
 package source
 
+import "sync"
+
 // Opcionalmente, si los links tienen más información (como calidad, idioma, etc.)
 type AcestreamLink struct {
 	Hash     string `json:"hash"`
@@ -1797,6 +1799,8 @@ var AllCompetitionsData = AllCompetitions{
 // broadcasters (mapa + slices de links). Pensado para capturar una vista
 // estable antes de usarla sin locks.
 func SnapshotBroadcasters() map[string]BroadcasterInfo {
+	listadoMu.RLock()
+	defer listadoMu.RUnlock()
 	return clonarBroadcasters(BroadcasterToAcestream)
 }
 
@@ -1804,6 +1808,8 @@ func SnapshotBroadcasters() map[string]BroadcasterInfo {
 // top en vivo. CompetitionDetail es plano (strings/ints), así que basta con
 // copiar el mapa.
 func SnapshotTopCompetitions() map[string]CompetitionDetail {
+	listadoMu.RLock()
+	defer listadoMu.RUnlock()
 	out := make(map[string]CompetitionDetail, len(TopCompetitions))
 	for k, v := range TopCompetitions {
 		out[k] = v
@@ -1823,4 +1829,33 @@ func clonarBroadcasters(m map[string]BroadcasterInfo) map[string]BroadcasterInfo
 		out[k] = info
 	}
 	return out
+}
+
+// listadoMu protege la publicación de los mapas vivos: los escritores hacen
+// el swap copy-on-write bajo Lock y los lectores capturan su vista bajo
+// RLock. El mapa en sí nunca se muta publicado; el mutex cubre la
+// reasignación de la variable (que el race detector también ven cuenta).
+var listadoMu sync.RWMutex
+
+// publicarBroadcaster intercambia el listado vivo por uno nuevo completo.
+func publicarBroadcaster(m map[string]BroadcasterInfo) {
+	listadoMu.Lock()
+	defer listadoMu.Unlock()
+	BroadcasterToAcestream = m
+}
+
+// publicarTop intercambia el detalle de competiciones top por uno nuevo.
+func publicarTop(m map[string]CompetitionDetail) {
+	listadoMu.Lock()
+	defer listadoMu.Unlock()
+	TopCompetitions = m
+}
+
+// BroadcasterVivo devuelve una entrada del listado vivo. Cada llamada coge
+// su RLock momentáneo; para iterar todo el listado usa SnapshotBroadcasters.
+func BroadcasterVivo(nombre string) (BroadcasterInfo, bool) {
+	listadoMu.RLock()
+	defer listadoMu.RUnlock()
+	v, ok := BroadcasterToAcestream[nombre]
+	return v, ok
 }
