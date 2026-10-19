@@ -1,6 +1,7 @@
 package app
 
 import (
+	"tevasalpalo/internal/store"
 	"tevasalpalo/internal/transport"
 )
 
@@ -411,10 +412,10 @@ func FetchUpdatedList() error {
 	// descarga, pero su estado anterior se conserva para que el cálculo de
 	// exclusividad siga teniendo en cuenta lo que aportó la última vez.
 	ahora := time.Now()
-	enPausa := map[string]fuenteRegistro{}
-	if storeGlobal != nil {
-		for _, f := range storeGlobal.listarFuentes() {
-			if !f.debeConsultarse(ahora) {
+	enPausa := map[string]store.FuenteRegistro{}
+	if store.Global != nil {
+		for _, f := range store.Global.ListarFuentes() {
+			if !f.DebeConsultarse(ahora) {
 				enPausa[f.Nombre] = f
 			}
 		}
@@ -502,14 +503,14 @@ func FetchUpdatedList() error {
 	// Guardar el resultado en la base de datos: sirve para el arranque
 	// siguiente, para el historial de altas y bajas, y para saber qué fuente
 	// aporta qué. Es best effort: si falla, la app sigue igual.
-	if storeGlobal != nil {
+	if store.Global != nil {
 		// Se guarda el listado fusionado completo, no el que ha pasado el
 		// gateway estricto. Ese filtro existe para decidir qué se ofrece en la
 		// web y se come casi todo: con las fuentes reales, 1651 entradas de
 		// platinsport se quedan en 121. Para una base de datos de AceStream
 		// interesa el listado completo, no el curado para la interfaz.
 		paraGuardar := fusionadoBruto
-		altas, bajas, err := storeGlobal.guardarRefresco(
+		altas, bajas, err := store.Global.GuardarRefresco(
 			paraGuardar, porFuente, estadoFuente, intentosFuente, duracionFuente, pausadas)
 		switch {
 		case err != nil:
@@ -1273,4 +1274,87 @@ func quitarDuplicadosStrings(s []string) []string {
 // agotadas sin error fatal (p. ej. 429 persistente = IP limitada).
 func shouldProxyFallback(s Source, success, fatal bool) bool {
 	return !success && !fatal && !s.Proxied
+}
+
+// cargarListadoDesdeDisco pone el listado guardado en broadcasterToAcestream
+// para que la web pueda servir de inmediato. No sustituye a la red: cuando las
+// fuentes respondan, FetchUpdatedList lo reemplaza con datos frescos.
+//
+// Es la pieza que quita el arranque bloqueado. Sin base de datos no hace nada
+// y todo sigue como antes.
+// ordenarListadoEn vivo deja, en cada canal, el hash más probable primero.
+//
+// Es el uso de la disponibilidad: antes el player probaba el primero de la
+// lista y se comía el timeout entero si ese hash estaba muerto. Ahora prueba
+// el que se sabe que funciona.
+func ordenarListadoEnVivo(mapa map[string]BroadcasterInfo) {
+	if store.Global == nil || len(mapa) == 0 {
+		return
+	}
+	// El store se consulta desde varias partes: la ordenación corre con su
+	// propio mutex (OrdenarHashes).
+	ordenados, muertos := 0, 0
+	for nombre, info := range mapa {
+		if len(info.Links) < 2 {
+			continue
+		}
+		nuevos, descartados := store.Global.OrdenarHashes(info.Links)
+		muertos += descartados
+		if len(nuevos) == len(info.Links) {
+			distintos := false
+			for i := range nuevos {
+				if nuevos[i] != info.Links[i] {
+					distintos = true
+					break
+				}
+			}
+			if !distintos {
+				continue
+			}
+		}
+		enlaces := make([]string, len(nuevos))
+		for i, h := range nuevos {
+			enlaces[i] = "acestream://" + h
+		}
+		info.Links = enlaces
+		mapa[nombre] = info
+		ordenados++
+	}
+	if ordenados > 0 || muertos > 0 {
+		log.Printf("🎯 Hashes reordenados por disponibilidad en %d canales (%d enlaces muertos descartados)",
+			ordenados, muertos)
+	}
+}
+
+// cargarListadoDesdeDisco rehidrata el listado de la base (arranque rapido,
+// sin esperar al refresco de las fuentes) y lo ordena igual que la version viva.
+func cargarListadoDesdeDisco() {
+	if store.Global == nil {
+		return
+	}
+	guardados := store.Global.CargarCanales()
+	if len(guardados) == 0 {
+		return
+	}
+
+	// La base guarda el listado completo (sin pasar por el gateway estricto,
+	// que deja fuera la mayoría), así que no se puede reutilizar
+	// updateBroadcasterMapWithGatewayTolerant: eso filtraría otra vez y el
+	// arranque rápido serviría 121 canales de 1651.
+	//
+	// Se carga tal cual, con el mismo formato de enlaces que produce
+	// transformUriSafeBroadcasters.
+	tmp := make(map[string]BroadcasterInfo, len(guardados))
+	for nombre, hashes := range guardados {
+		enlaces := make([]string, len(hashes))
+		for i, h := range hashes {
+			enlaces[i] = "acestream://" + h
+		}
+		tmp[nombre] = BroadcasterInfo{Name: nombre, Links: enlaces}
+	}
+	broadcasterToAcestream = tmp
+	ordenarListadoEnVivo(broadcasterToAcestream)
+
+	log.Printf("⚡ Listado cargado desde disco: %d canales (se refrescará con las fuentes)",
+		len(broadcasterToAcestream))
 }

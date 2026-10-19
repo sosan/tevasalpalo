@@ -1,4 +1,4 @@
-package app
+package store
 
 // Base sembrada: una lista de canales de AceStream que viaja dentro del
 // binario para que una instalación nueva no arranque con cero.
@@ -81,17 +81,17 @@ func leerSemilla() (*semillaDocumento, error) {
 	return &doc, nil
 }
 
-// sembrarBaseVacia carga la base embebida en una base que no tiene canales.
+// SembrarBaseVacia carga la base embebida en una base que no tiene canales.
 //
 // Solo cuando el bucket está vacío: en cuanto hay un canal, la base es de
 // esa instalación y la instantánea ya no debe tocar nada.
 // Insertar en cada arranque machacaría lo que hayan traido las fuentes.
-func sembrarBaseVacia() (int, error) {
-	if storeGlobal == nil || storeGlobal.db == nil {
+func SembrarBaseVacia() (int, error) {
+	if Global == nil || Global.db == nil {
 		return 0, nil
 	}
 	vacia := false
-	err := storeGlobal.db.View(func(tx *bolt.Tx) error {
+	err := Global.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucketChannels))
 		if b == nil {
 			return fmt.Errorf("no hay bucket de canales")
@@ -115,7 +115,7 @@ func sembrarBaseVacia() (int, error) {
 
 	ahora := time.Now().UTC()
 	insertados := 0
-	err = storeGlobal.db.Update(func(tx *bolt.Tx) error {
+	err = Global.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucketChannels))
 		for _, c := range doc.Canales {
 			hashes := normalizarHashes(c.Hashes)
@@ -158,8 +158,8 @@ func normalizarHashes(hashes []string) []string {
 	salida := make([]string, 0, len(hashes))
 	vistos := map[string]bool{}
 	for _, h := range hashes {
-		n := normalizarHash(h)
-		if n == "" || !esHashAceStream(n) {
+		n := NormalizarHash(h)
+		if n == "" || !EsHashAceStream(n) {
 			continue
 		}
 		if vistos[n] {
@@ -171,15 +171,15 @@ func normalizarHashes(hashes []string) []string {
 	return salida
 }
 
-// generarSemilla escribe la instantánea desde la base actual. Es la forma de
+// GenerarSemilla escribe la instantánea desde la base actual. Es la forma de
 // renovar la base: se ejecuta con la app parada o sin tráfico, y el resultado
 // se compila dentro del binario siguiente.
-func generarSemilla() error {
-	if storeGlobal == nil || storeGlobal.db == nil {
+func GenerarSemilla() error {
+	if Global == nil || Global.db == nil {
 		return fmt.Errorf("no hay base de datos abierta")
 	}
 	doc := semillaDocumento{Generado: time.Now().UTC().Truncate(time.Hour)}
-	err := storeGlobal.db.View(func(tx *bolt.Tx) error {
+	err := Global.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucketChannels))
 		if b == nil {
 			return fmt.Errorf("no hay bucket de canales")
@@ -229,4 +229,18 @@ func generarSemilla() error {
 	log.Printf("✅ Semilla escrita: %d canales, %d KB comprimidos (sin comprimir %d KB)",
 		len(doc.Canales), buf.Len()/1024, len(cuerpo)/1024)
 	return nil
+}
+
+// esHashAceStream comprueba la forma: 40 hex. Filtra el ruido de la query sin
+// tener que mantener una lista de campos.
+func EsHashAceStream(h string) bool {
+	if len(h) != 40 {
+		return false
+	}
+	for _, r := range h {
+		if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'f')) {
+			return false
+		}
+	}
+	return true
 }

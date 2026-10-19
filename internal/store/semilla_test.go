@@ -1,4 +1,4 @@
-package app
+package store
 
 // Tests de la base sembrada.
 //
@@ -29,7 +29,7 @@ func TestLaSemillaEmbecidaTraeCanalesValidos(t *testing.T) {
 			t.Fatalf("un canal sin nombre: %+v", c)
 		}
 		for _, h := range c.Hashes {
-			if !esHashAceStream(h) {
+			if !EsHashAceStream(h) {
 				t.Fatalf("hash con mal formato en %q: %q", c.Nombre, h)
 			}
 			conHashes++
@@ -43,12 +43,12 @@ func TestLaSemillaEmbecidaTraeCanalesValidos(t *testing.T) {
 
 func TestSiembraUnaBaseVacia(t *testing.T) {
 	s := storeDePrueba(t)
-	storeGlobal = s
-	if n := len(s.cargarCanales()); n != 0 {
+	Global = s
+	if n := len(s.CargarCanales()); n != 0 {
 		t.Fatalf("la base de prueba debería estar vacía, tiene %d", n)
 	}
 
-	insertados, err := sembrarBaseVacia()
+	insertados, err := SembrarBaseVacia()
 	if err != nil {
 		t.Fatalf("sembrar: %v", err)
 	}
@@ -56,9 +56,9 @@ func TestSiembraUnaBaseVacia(t *testing.T) {
 		t.Fatal("no se sembró ningún canal")
 	}
 
-	cargados := s.cargarCanales()
+	cargados := s.CargarCanales()
 	if len(cargados) != insertados {
-		t.Errorf("cargarCanales ve %d canales, se sembraron %d", len(cargados), insertados)
+		t.Errorf("CargarCanales ve %d canales, se sembraron %d", len(cargados), insertados)
 	}
 	// Todos tienen que verse: es justo lo que hace que la lista no salga vacía.
 	for nombre, hashes := range cargados {
@@ -71,18 +71,18 @@ func TestSiembraUnaBaseVacia(t *testing.T) {
 
 func TestSiembraNoPisaUnaBaseQueYaTieneCosas(t *testing.T) {
 	s := storeDePrueba(t)
-	storeGlobal = s
-	if _, _, err := s.guardarRefresco(map[string][]string{
+	Global = s
+	if _, _, err := s.GuardarRefresco(map[string][]string{
 		"CANAL PROPIO": {"1111111111111111111111111111111111111111"},
 	}, nil, nil, nil, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 
-	insertados, _ := sembrarBaseVacia()
+	insertados, _ := SembrarBaseVacia()
 	if insertados != 0 {
 		t.Fatalf("sembró %d canales en una base que ya tenía contenido", insertados)
 	}
-	cargados := s.cargarCanales()
+	cargados := s.CargarCanales()
 	if len(cargados) != 1 {
 		t.Fatalf("la base debería seguir teniendo 1 canal, tiene %d", len(cargados))
 	}
@@ -96,22 +96,22 @@ func TestSiembraNoPisaUnaBaseQueYaTieneCosas(t *testing.T) {
 // momento y luego se queda a cero.
 func TestLoSembradoNoSeRetiraAlRefrescar(t *testing.T) {
 	s := storeDePrueba(t)
-	storeGlobal = s
-	sembrados, _ := sembrarBaseVacia()
+	Global = s
+	sembrados, _ := SembrarBaseVacia()
 	if sembrados == 0 {
 		t.Fatal("no hay nada sembrado que probar")
 	}
-	antes := len(s.cargarCanales())
+	antes := len(s.CargarCanales())
 
 	// Un refresco donde ninguna fuente publica nada de lo sembrado.
-	_, bajas, err := s.guardarRefresco(map[string][]string{}, nil, nil, nil, nil, nil)
+	_, bajas, err := s.GuardarRefresco(map[string][]string{}, nil, nil, nil, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if bajas != 0 {
 		t.Errorf("se Retirearon %d canales sembrados, no deberían retirarse", bajas)
 	}
-	if ahora := len(s.cargarCanales()); ahora != antes {
+	if ahora := len(s.CargarCanales()); ahora != antes {
 		t.Errorf("la lista pasó de %d a %d canales tras un refresco vacío", antes, ahora)
 	}
 }
@@ -121,12 +121,12 @@ func TestLoSembradoNoSeRetiraAlRefrescar(t *testing.T) {
 // respaldo de la base.
 func TestUnaFuenteAdoptaUnCanalSembrado(t *testing.T) {
 	s := storeDePrueba(t)
-	storeGlobal = s
-	sembrados, _ := sembrarBaseVacia()
+	Global = s
+	sembrados, _ := SembrarBaseVacia()
 
 	// Se coge un canal sembrado cualquiera.
 	var nombre string
-	for n := range s.cargarCanales() {
+	for n := range s.CargarCanales() {
 		nombre = n
 		break
 	}
@@ -135,10 +135,10 @@ func TestUnaFuenteAdoptaUnCanalSembrado(t *testing.T) {
 	}
 
 	nuevo := "2222222222222222222222222222222222222222"
-	s.guardarRefresco(map[string][]string{nombre: {nuevo}},
+	s.GuardarRefresco(map[string][]string{nombre: {nuevo}},
 		map[string]map[string][]string{"fuente": {nombre: {nuevo}}}, nil, nil, nil, nil)
 
-	cargados := s.cargarCanales()
+	cargados := s.CargarCanales()
 	hashes := cargados[nombre]
 	if len(hashes) != 1 || hashes[0] != nuevo {
 		t.Errorf("la fuente real debería haber sustituido los hashes: %v", hashes)
@@ -155,8 +155,8 @@ func TestUnaFuenteAdoptaUnCanalSembrado(t *testing.T) {
 	}
 }
 
-// hashRegistroDe lee el registro crudo de un canal, que cargarCanales no da.
-func (s *store) hashRegistroDe(nombre string) canalRegistro {
+// hashRegistroDe lee el registro crudo de un canal, que CargarCanales no da.
+func (s *Store) hashRegistroDe(nombre string) canalRegistro {
 	var reg canalRegistro
 	s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucketChannels))
@@ -173,13 +173,13 @@ func (s *store) hashRegistroDe(nombre string) canalRegistro {
 // histórico: sembrar 2.000 canales no son 2.000 altas.
 func TestLaSiembraNoGeneraAltas(t *testing.T) {
 	s := storeDePrueba(t)
-	storeGlobal = s
-	sembrarBaseVacia()
-	_, err := sembrarBaseVacia()
+	Global = s
+	SembrarBaseVacia()
+	_, err := SembrarBaseVacia()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n := s.contarEventos(); n != 0 {
+	if n := s.ContarEventos(); n != 0 {
 		t.Errorf("la siembra dejó %d eventos en el histórico, debería dejar 0", n)
 	}
 }

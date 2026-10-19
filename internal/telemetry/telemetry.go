@@ -62,14 +62,14 @@ type telemetryConfig struct {
 const eventServerLog = "server_log"
 
 var (
-	telMu      sync.RWMutex
-	telCfg     telemetryConfig
-	telBuf     *ringBuffer
-	telRot     *rotatingWriter
-	telEvents  *rotatingWriter
-	telBatch   *otlpExporter
-	telReady   bool
-	ipHasher   func(string) string
+	telMu     sync.RWMutex
+	telCfg    telemetryConfig
+	telBuf    *ringBuffer
+	telRot    *rotatingWriter
+	telEvents *rotatingWriter
+	telBatch  *otlpExporter
+	telReady  bool
+	ipHasher  func(string) string
 )
 
 // Identidad del binario para los eventos. El arranque la fija antes de

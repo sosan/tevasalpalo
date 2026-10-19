@@ -1,4 +1,4 @@
-package app
+package store
 
 // Tests de la disponibilidad calculada por nosotros.
 //
@@ -16,9 +16,9 @@ import (
 func TestEvidenciaDeSegmentoSubeLaDisponibilidad(t *testing.T) {
 	s := storeDePrueba(t)
 	h := "0000000000000000000000000000000000000031"
-	s.registrarEvidencia(h, evSegmentoOK)
+	s.RegistrarEvidencia(h, EvSegmentoOK)
 
-	reg := s.hash(h)
+	reg := s.Hash(h)
 	if v, conocida, origen := reg.disponibilidadEfectiva(time.Now()); !conocida || origen != "propia" || v <= 0.9 {
 		t.Errorf("tras un segmento ok: v=%v conocida=%v origen=%q", v, conocida, origen)
 	}
@@ -35,16 +35,16 @@ func TestEvidenciaDeSegmentoSubeLaDisponibilidad(t *testing.T) {
 func TestDosFallosDeSegmentoMatanElEnlace(t *testing.T) {
 	s := storeDePrueba(t)
 	h := "0000000000000000000000000000000000000032"
-	s.registrarEvidencia(h, evSegmentoErr)
-	if !s.hash(h).vivo() {
+	s.RegistrarEvidencia(h, EvSegmentoErr)
+	if !s.Hash(h).vivo() {
 		t.Fatal("un solo fallo de segmento no debe matar el enlace")
 	}
-	s.registrarEvidencia(h, evSegmentoErr)
-	if s.hash(h).vivo() {
+	s.RegistrarEvidencia(h, EvSegmentoErr)
+	if s.Hash(h).vivo() {
 		t.Error("dos fallos de segmento seguidos deben darlo por muerto")
 	}
-	if muertos := s.hashesMuertos(); len(muertos) != 1 || muertos[0] != h {
-		t.Errorf("hashesMuertos debería listarlo: %v", muertos)
+	if muertos := s.HashesMuertos(); len(muertos) != 1 || muertos[0] != h {
+		t.Errorf("HashesMuertos debería listarlo: %v", muertos)
 	}
 }
 
@@ -53,11 +53,11 @@ func TestDosFallosDeSegmentoMatanElEnlace(t *testing.T) {
 func TestUnAciertoLimpiaLaRachaDeFallos(t *testing.T) {
 	s := storeDePrueba(t)
 	h := "0000000000000000000000000000000000000033"
-	s.registrarEvidencia(h, evSegmentoErr)
-	s.registrarEvidencia(h, evSegmentoErr)
-	s.registrarEvidencia(h, evSegmentoOK)
+	s.RegistrarEvidencia(h, EvSegmentoErr)
+	s.RegistrarEvidencia(h, EvSegmentoErr)
+	s.RegistrarEvidencia(h, EvSegmentoOK)
 
-	reg := s.hash(h)
+	reg := s.Hash(h)
 	if reg.FallosSeguros != 0 {
 		t.Errorf("tras un acierto fallos_seguros = %d, se esperaba 0", reg.FallosSeguros)
 	}
@@ -71,14 +71,14 @@ func TestUnAciertoLimpiaLaRachaDeFallos(t *testing.T) {
 func TestPlaylistVaciaPocaYAcumulada(t *testing.T) {
 	s := storeDePrueba(t)
 	h := "0000000000000000000000000000000000000034"
-	s.registrarEvidencia(h, evPlaylistVacia)
-	if !s.hash(h).vivo() {
+	s.RegistrarEvidencia(h, EvPlaylistVacia)
+	if !s.Hash(h).vivo() {
 		t.Error("un único manifest vacío no debe hundir el enlace")
 	}
 	for i := 0; i < 4; i++ {
-		s.registrarEvidencia(h, evPlaylistVacia)
+		s.RegistrarEvidencia(h, EvPlaylistVacia)
 	}
-	if s.hash(h).vivo() {
+	if s.Hash(h).vivo() {
 		t.Error("varios manifests vacíos seguidos deberían hundir el enlace")
 	}
 }
@@ -88,7 +88,7 @@ func TestPlaylistVaciaPocaYAcumulada(t *testing.T) {
 // sino volver a "no se sabe".
 func TestEvidenciaSeAmortiguaConElTiempo(t *testing.T) {
 	base := time.Now()
-	reg := hashRegistro{Hash: "x", Propia: 1, PropiaEn: base}
+	reg := HashRegistro{Hash: "x", Propia: 1, PropiaEn: base}
 
 	v0, ok := reg.evidenciaVigente(base)
 	if !ok || v0 < 0.99 {
@@ -113,7 +113,7 @@ func TestEvidenciaSeAmortiguaConElTiempo(t *testing.T) {
 // Sin ningún dato el enlace se conserva y no se ordena por él: no se puede
 // descartar un stream por no saber nada de él.
 func TestHashSinDatosSeConservaYNoSeMandaAdelante(t *testing.T) {
-	reg := hashRegistro{Hash: "y"}
+	reg := HashRegistro{Hash: "y"}
 	if !reg.vivo() {
 		t.Fatal("un hash recién visto debe considerarse vivo")
 	}
@@ -129,19 +129,19 @@ func TestHashSinDatosSeConservaYNoSeMandaAdelante(t *testing.T) {
 // reciente; y si solo hay una de las dos, esa vale.
 func TestDisponibilidadEfectivaPrefiereLoMasReciente(t *testing.T) {
 	base := time.Now().UTC()
-	apiVieja := hashRegistro{Conocida: true, Disponibilidad: 0.9, MedidaEn: base}
+	apiVieja := HashRegistro{Conocida: true, Disponibilidad: 0.9, MedidaEn: base}
 	apiVieja.Propia, apiVieja.PropiaEn = -0.9, base.Add(time.Minute)
 	if v, _, origen := apiVieja.disponibilidadEfectiva(base); origen != "propia" || v > 0.2 {
 		t.Errorf("con la propia más reciente debe mandar la propia: v=%v origen=%q", v, origen)
 	}
 
-	apiNueva := hashRegistro{Conocida: true, Disponibilidad: 0.9, MedidaEn: base.Add(time.Minute)}
+	apiNueva := HashRegistro{Conocida: true, Disponibilidad: 0.9, MedidaEn: base.Add(time.Minute)}
 	apiNueva.Propia, apiNueva.PropiaEn = -0.9, base
 	if v, _, origen := apiNueva.disponibilidadEfectiva(base); origen != "api" || v != 0.9 {
 		t.Errorf("con la API más reciente debe mandar la API: v=%v origen=%q", v, origen)
 	}
 
-	soloAPI := hashRegistro{Conocida: true, Disponibilidad: 0.4}
+	soloAPI := HashRegistro{Conocida: true, Disponibilidad: 0.4}
 	if v, conocida, origen := soloAPI.disponibilidadEfectiva(base); !conocida || origen != "api" || v != 0.4 {
 		t.Errorf("solo API: v=%v conocida=%v origen=%q", v, conocida, origen)
 	}
@@ -150,27 +150,27 @@ func TestDisponibilidadEfectivaPrefiereLoMasReciente(t *testing.T) {
 // La API diciendo 0 significa "sin peers ahora" y debe seguir significando
 // muerto, como antes: por eso ambas señales comparten escala.
 func TestDisponibilidadCeroDeLaAPIMataElEnlace(t *testing.T) {
-	reg := hashRegistro{Hash: "z", Conocida: true, Disponibilidad: 0}
+	reg := HashRegistro{Hash: "z", Conocida: true, Disponibilidad: 0}
 	if reg.vivo() {
 		t.Error("la API diciendo 0 debe dar el enlace por muerto")
 	}
 }
 
-// resumenHashes tiene que distinguir "aprendiendo" de "bucket vacío", que fue
+// ResumenHashes tiene que distinguir "aprendiendo" de "bucket vacío", que fue
 // el estado en el que vivía esta capa sin que nada lo delatara.
 func TestResumenHashesDistingueLoQueHaAprendido(t *testing.T) {
 	s := storeDePrueba(t)
-	if r := s.resumenHashes(); r["total"] != 0 {
+	if r := s.ResumenHashes(); r["total"] != 0 {
 		t.Errorf("sin datos el resumen debería ir a 0, dio %v", r)
 	}
 
 	bueno := "0000000000000000000000000000000000000041"
 	malo := "0000000000000000000000000000000000000042"
-	s.registrarEvidencia(bueno, evSegmentoOK)
-	s.registrarEvidencia(malo, evSegmentoErr)
-	s.registrarEvidencia(malo, evSegmentoErr)
+	s.RegistrarEvidencia(bueno, EvSegmentoOK)
+	s.RegistrarEvidencia(malo, EvSegmentoErr)
+	s.RegistrarEvidencia(malo, EvSegmentoErr)
 
-	r := s.resumenHashes()
+	r := s.ResumenHashes()
 	if r["total"] != 2 {
 		t.Errorf("total = %v, se esperaban 2", r["total"])
 	}
@@ -191,9 +191,9 @@ func TestDetalleDeHashesExplicaLaPuntuacion(t *testing.T) {
 	s := storeDePrueba(t)
 	h := "0000000000000000000000000000000000000051"
 	otro := "0000000000000000000000000000000000000052"
-	s.registrarEvidencia(h, evSegmentoOK)
+	s.RegistrarEvidencia(h, EvSegmentoOK)
 
-	detalle := s.hashesOrdenadosPara([]string{h, otro})
+	detalle := s.HashesOrdenadosPara([]string{h, otro})
 	if len(detalle) != 2 {
 		t.Fatalf("se esperaban 2 entradas, hubo %d", len(detalle))
 	}
@@ -216,7 +216,7 @@ func TestOrdenarHashesIgnoraLosQueNoHayEnLaBase(t *testing.T) {
 	s := storeDePrueba(t)
 	entradas := []string{"0000000000000000000000000000000000000061",
 		"0000000000000000000000000000000000000062"}
-	salida, descartados := s.ordenarHashesPuntuados(entradas)
+	salida, descartados := s.OrdenarHashesPuntuados(entradas)
 	if descartados != 0 || len(salida) != len(entradas) {
 		t.Errorf("sin registros no se descarta nada: %v descartados=%d", salida, descartados)
 	}

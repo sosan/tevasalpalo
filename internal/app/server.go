@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"tevasalpalo/internal/store"
 	"tevasalpalo/internal/telemetry"
 	"tevasalpalo/internal/transport"
 	"tevasalpalo/update"
@@ -279,7 +280,7 @@ func StartWebServer() (*fiber.App, error) {
 			// Un segmento que el engine no puede servir sí es evidencia en
 			// contra: ahí no hay ambigüedad, el medio no llegó.
 			if hashProbado != "" && esSegmento {
-				storeGlobal.registrarEvidencia(hashProbado, evSegmentoErr)
+				store.Global.RegistrarEvidencia(hashProbado, store.EvSegmentoErr)
 			}
 			// La ruta y el timeout van en el mensaje a propósito. Con solo
 			// "(2m0s)" no se distingue un manifest principal de uno
@@ -306,7 +307,7 @@ func StartWebServer() (*fiber.App, error) {
 		// externa. Los manifests los anota handleAceManifest, que sí sabe si
 		// traerían algo que reproducir.
 		if hashProbado != "" && esSegmento && resp.StatusCode == 200 {
-			storeGlobal.registrarEvidencia(hashProbado, evSegmentoOK)
+			store.Global.RegistrarEvidencia(hashProbado, store.EvSegmentoOK)
 		}
 
 		// 🔥 SI ES UN MANIFEST M3U8, MODIFICAR LAS URLs
@@ -589,13 +590,13 @@ func StartWebServer() (*fiber.App, error) {
 				"error": "requiere TELEMETRY_API_TOKEN o conexión desde localhost",
 			})
 		}
-		out := fiber.Map{"estado": storeGlobal.resumen()}
+		out := fiber.Map{"estado": store.Global.Resumen()}
 
 		switch c.Query("que") {
 		case "fuentes":
-			out["fuentes"] = storeGlobal.listarFuentes()
+			out["fuentes"] = store.Global.ListarFuentes()
 		case "buscar":
-			out["resultados"] = storeGlobal.buscarCaneles(c.Query("q"), 50)
+			out["resultados"] = store.Global.BuscarCaneles(c.Query("q"), 50)
 		case "historial":
 			n := 50
 			if v := c.Query("n"); v != "" {
@@ -603,19 +604,19 @@ func StartWebServer() (*fiber.App, error) {
 					n = i
 				}
 			}
-			out["eventos"] = storeGlobal.eventosRecientes(n)
+			out["eventos"] = store.Global.EventosRecientes(n)
 		case "hashes":
 			// Estado de la capa de calidad de los enlaces y por qué un canal
 			// pone un hash delante de otro. Con ?canal= se ve el detalle.
-			out["hashes"] = storeGlobal.resumenHashes()
-			out["muertos"] = storeGlobal.hashesMuertos()
+			out["hashes"] = store.Global.ResumenHashes()
+			out["muertos"] = store.Global.HashesMuertos()
 			if q := c.Query("canal"); q != "" {
-				out["detalle"] = storeGlobal.hashesOrdenadosPara(storeGlobal.hashesDeCanal(q))
+				out["detalle"] = store.Global.HashesOrdenadosPara(store.Global.HashesDeCanal(q))
 			}
 		default:
 			// Sin ?que, un resumen de las fuentes es lo más útil: dice de
 			// dónde viene cada canal y cuál se podría quitar.
-			out["fuentes"] = storeGlobal.listarFuentes()
+			out["fuentes"] = store.Global.ListarFuentes()
 		}
 		return c.JSON(out)
 	})
@@ -1053,9 +1054,9 @@ func handleAceManifest(c fiber.Ctx, resp *http.Response, engineHosts []string, h
 	// pesa poco y no hunde un enlace por un refresco en unlucky.
 	if hash != "" && resp.StatusCode == 200 {
 		if reescritas > 0 {
-			storeGlobal.registrarEvidencia(hash, evPlaylistOK)
+			store.Global.RegistrarEvidencia(hash, store.EvPlaylistOK)
 		} else {
-			storeGlobal.registrarEvidencia(hash, evPlaylistVacia)
+			store.Global.RegistrarEvidencia(hash, store.EvPlaylistVacia)
 		}
 	}
 

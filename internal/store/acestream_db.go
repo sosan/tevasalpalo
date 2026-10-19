@@ -1,4 +1,4 @@
-package app
+package store
 
 // Base de datos local de los AceStream.
 //
@@ -89,8 +89,8 @@ type canalRegistro struct {
 	Permanente bool `json:"permanente,omitempty"`
 }
 
-// fuenteRegistro es lo que se guarda por fuente.
-type fuenteRegistro struct {
+// FuenteRegistro es lo que se guarda por fuente.
+type FuenteRegistro struct {
 	Nombre      string    `json:"nombre"`
 	UltimoOK    time.Time `json:"ultimo_ok"`
 	UltimoError string    `json:"ultimo_error"`
@@ -135,22 +135,22 @@ func nivelIntervaloPara(ciclos int) int {
 	return nivelesIntervalo[idx]
 }
 
-// debeConsultarse dice si toca preguntar por esta fuente ahora mismo.
-func (r fuenteRegistro) debeConsultarse(ahora time.Time) bool {
+// DebeConsultarse dice si toca preguntar por esta fuente ahora mismo.
+func (r FuenteRegistro) DebeConsultarse(ahora time.Time) bool {
 	if r.ProximaConsulta.IsZero() || r.UltimaConsulta.IsZero() {
 		return true
 	}
 	return !ahora.Before(r.ProximaConsulta)
 }
 
-// hashRegistro es lo que se sabe de un infohash concreto.
+// HashRegistro es lo que se sabe de un infohash concreto.
 //
 // De aquí sale la decisión que más tiempo ahorra: qué hash se le pasa al
 // player. Antes probaba el primero de la lista y, si estaba muerto, esperaba
 // el timeout entero (hasta 2 minutos) antes de saberlo. Con disponibilidad y
 // con el propio histórico de intentos, los hashes muertos se pueden poner al
 // final o directamente dejar de ofrecer.
-type hashRegistro struct {
+type HashRegistro struct {
 	Hash string `json:"hash"`
 
 	// Disponibilidad que publica la API de AceStream. Va de 0 a 1 y es el dato
@@ -197,22 +197,22 @@ type hashRegistro struct {
 // esta capa muerta: mataba hashes que funcionaban y, para no hacerlo, no se
 // anotaba nada en absoluto.
 const (
-	evPlaylistOK    = "playlist_ok"
-	evPlaylistVacia = "playlist_vacia"
-	evSegmentoOK    = "segmento_ok"
-	evSegmentoErr   = "segmento_err"
+	EvPlaylistOK    = "playlist_ok"
+	EvPlaylistVacia = "playlist_vacia"
+	EvSegmentoOK    = "segmento_ok"
+	EvSegmentoErr   = "segmento_err"
 )
 
 var pesoEvidencia = map[string]float64{
-	evPlaylistOK: 0.6,
+	EvPlaylistOK: 0.6,
 	// Un manifest sin una sola URL no tiene nada que reproducir. Pesa poco a
 	// propósito: solo uno no demuestra nada, pero cuatro seguidos sí.
-	evPlaylistVacia: -0.15,
+	EvPlaylistVacia: -0.15,
 	// Llegó media: la prueba más fuerte de que el stream está vivo.
-	evSegmentoOK: 0.9,
+	EvSegmentoOK: 0.9,
 	// El engine no pudo servir un segmento concreto. Menos de la mitad que el
 	// acierto porque un 404 aislado también es ruido de red.
-	evSegmentoErr: -0.45,
+	EvSegmentoErr: -0.45,
 }
 
 const (
@@ -254,7 +254,7 @@ func enEscala01(e float64) float64 {
 // evidenciaVigente es la evidencia propia descontando el tiempo transcurrido.
 // Devuelve false si nunca hemos observado nada: sin datos no se puede afirmar
 // nada, y un hash recién visto tiene que contar como vivo.
-func (r hashRegistro) evidenciaVigente(ahora time.Time) (float64, bool) {
+func (r HashRegistro) evidenciaVigente(ahora time.Time) (float64, bool) {
 	if r.PropiaEn.IsZero() {
 		return 0, false
 	}
@@ -269,7 +269,7 @@ func (r hashRegistro) evidenciaVigente(ahora time.Time) (float64, bool) {
 // disponibilidadEfectiva devuelve la disponibilidad unificada en 0..1 y de
 // dónde sale. Gana la propia si es más reciente: está medida sobre este stream
 // y desde esta máquina, no copiada de otra parte.
-func (r hashRegistro) disponibilidadEfectiva(ahora time.Time) (float64, bool, string) {
+func (r HashRegistro) disponibilidadEfectiva(ahora time.Time) (float64, bool, string) {
 	propia, hayPropia := r.evidenciaVigente(ahora)
 	propia01 := enEscala01(propia)
 	switch {
@@ -296,11 +296,11 @@ func (r hashRegistro) disponibilidadEfectiva(ahora time.Time) (float64, bool, st
 //
 // Un hash sin ningún dato (recién visto, nunca probado) se considera vivo:
 // no se puede descartar un stream solo por no saber nada de él.
-func (r hashRegistro) vivo() bool {
+func (r HashRegistro) vivo() bool {
 	return r.vivoEn(time.Now())
 }
 
-func (r hashRegistro) vivoEn(ahora time.Time) bool {
+func (r HashRegistro) vivoEn(ahora time.Time) bool {
 	if r.FallosSeguros >= fallosParaDarPorMuerto {
 		return false
 	}
@@ -313,13 +313,13 @@ func (r hashRegistro) vivoEn(ahora time.Time) bool {
 // puntuar ordena los hashes de mejor a peor. A igualdad de todo, el orden es
 // el de entrada, que viene de las fuentes y es el que conoce mejor el
 // proveedor.
-func (r hashRegistro) puntuar() float64 {
+func (r HashRegistro) puntuar() float64 {
 	return r.puntuarEn(time.Now())
 }
 
 // puntuarEn es puntuar con el instante explícito, para poder comprobar cómo
 // decae una puntuación vieja sin tener que esperar un día.
-func (r hashRegistro) puntuarEn(ahora time.Time) float64 {
+func (r HashRegistro) puntuarEn(ahora time.Time) float64 {
 	p := 0.5 // sin datos: neutro, ni sube ni baja
 	if v, conocida, _ := r.disponibilidadEfectiva(ahora); conocida {
 		p = v
@@ -339,8 +339,8 @@ func (r hashRegistro) puntuarEn(ahora time.Time) float64 {
 	return p
 }
 
-// eventoHistorial es una entrada del histórico.
-type eventoHistorial struct {
+// EventoHistorial es una entrada del histórico.
+type EventoHistorial struct {
 	Fecha   time.Time `json:"fecha"`
 	Tipo    string    `json:"tipo"`
 	Canal   string    `json:"canal"`
@@ -355,7 +355,7 @@ const (
 	eventoDesaparece = "desaparece"
 )
 
-type store struct {
+type Store struct {
 	mu sync.Mutex
 	db *bolt.DB
 	// rutaOverride lo usan los tests para no escribir el fichero junto al
@@ -363,24 +363,24 @@ type store struct {
 	rutaOverride string
 }
 
-var storeGlobal *store
+var Global *Store
 
-// abrirStoreEn abre la base en una ruta concreta. La usa abrirStore y los
+// AbrirStoreEn abre la base en una ruta concreta. La usa AbrirStore y los
 // tests; fuera de los tests no hay razón para llamarla.
-func abrirStoreEn(ruta string) *store {
+func AbrirStoreEn(ruta string) *Store {
 	s, err := prepararStore(ruta)
 	if err != nil {
 		log.Printf("⚠️  base de datos: no se pudo abrir %s: %v (se sigue sin persistencia)", ruta, err)
 		return nil
 	}
-	storeGlobal = s
+	Global = s
 	return s
 }
 
-// abrirStore abre (o crea) la base. Devuelve nil sin error si no se puede: la
+// AbrirStore abre (o crea) la base. Devuelve nil sin error si no se puede: la
 // app tiene que funcionar igual sin base, solo que sin arranque rápido ni
 // histórico. Perder la persistencia no puede impedir ver el vídeo.
-func abrirStore() *store {
+func AbrirStore() *Store {
 	ruta := nombreDB
 	if p := storePath(); p != "" {
 		ruta = p
@@ -394,14 +394,14 @@ func abrirStore() *store {
 	if err != nil {
 		return nil
 	}
-	storeGlobal = s
+	Global = s
 	return s
 }
 
 // prepararStore hace el trabajo de abrir la base y preparar los buckets,
 // sin tocar el global. Separado para que los tests puedan abrir una base en un
 // temporal sin interferir con la de producción.
-func prepararStore(ruta string) (*store, error) {
+func prepararStore(ruta string) (*Store, error) {
 	db, err := bolt.Open(ruta, 0o600, &bolt.Options{Timeout: 3 * time.Second})
 	if err != nil {
 		// Timeout quiere decir que otra instancia tiene el fichero abierto.
@@ -440,14 +440,14 @@ func prepararStore(ruta string) (*store, error) {
 		db.Close()
 		return nil, err
 	}
-	return &store{db: db}, nil
+	return &Store{db: db}, nil
 }
 
 // storePath es la ruta de la base, junto al ejecutable. La respeta si ya hay
 // un store abierto, para que los tests puedan trabajar en un temporal.
 func storePath() string {
-	if storeGlobal != nil && storeGlobal.rutaOverride != "" {
-		return storeGlobal.rutaOverride
+	if Global != nil && Global.rutaOverride != "" {
+		return Global.rutaOverride
 	}
 	exe, err := os.Executable()
 	if err != nil {
@@ -456,17 +456,17 @@ func storePath() string {
 	return filepath.Join(filepath.Dir(exe), nombreDB)
 }
 
-func cerrarStore() {
-	if storeGlobal == nil || storeGlobal.db == nil {
+func CerrarStore() {
+	if Global == nil || Global.db == nil {
 		return
 	}
-	storeGlobal.db.Close()
-	storeGlobal = nil
+	Global.db.Close()
+	Global = nil
 }
 
-// cargarCanales lee el bucket entero. Es lo que hace rápido el arranque: una
+// CargarCanales lee el bucket entero. Es lo que hace rápido el arranque: una
 // pasada por ~2.000 claves, sin red y sin parsear las 7 fuentes.
-func (s *store) cargarCanales() map[string][]string {
+func (s *Store) CargarCanales() map[string][]string {
 	salida := make(map[string][]string)
 	if s == nil || s.db == nil {
 		return salida
@@ -497,10 +497,10 @@ func (s *store) cargarCanales() map[string][]string {
 	return salida
 }
 
-// guardarRefresco escribe el resultado de un ciclo completo de fuentes:
+// GuardarRefresco escribe el resultado de un ciclo completo de fuentes:
 // fusiona el listado, calcula altas y bajas, y registra el aporte de cada
 // fuente. Todo en una transacción para que no queden estados intermedios.
-func (s *store) guardarRefresco(
+func (s *Store) GuardarRefresco(
 	fusionado map[string][]string,
 	porFuente map[string]map[string][]string,
 	estado map[string]string,
@@ -570,7 +570,7 @@ func (s *store) guardarRefresco(
 			switch {
 			case !existia:
 				altas++
-				if err := escribirEvento(hs, eventoHistorial{
+				if err := escribirEvento(hs, EventoHistorial{
 					Fecha: ahora, Tipo: eventoNuevo, Canal: canonico,
 					Fuentes: reg.Fuentes, Hashes: len(hashes),
 				}); err != nil {
@@ -580,7 +580,7 @@ func (s *store) guardarRefresco(
 				// Estaba en la base pero no en el ciclo anterior: vuelve.
 				altas++
 				reg.PrimeraVez = previa.PrimeraVez
-				if err := escribirEvento(hs, eventoHistorial{
+				if err := escribirEvento(hs, EventoHistorial{
 					Fecha: ahora, Tipo: eventoVuelve, Canal: canonico,
 					Fuentes: reg.Fuentes, Hashes: len(hashes),
 				}); err != nil {
@@ -639,7 +639,7 @@ func (s *store) guardarRefresco(
 			if err := ch.Put([]byte(nombre), raw); err != nil {
 				return err
 			}
-			if err := escribirEvento(hs, eventoHistorial{
+			if err := escribirEvento(hs, EventoHistorial{
 				Fecha: ahora, Tipo: eventoDesaparece, Canal: nombre,
 				Fuentes: reg.Fuentes, Hashes: len(reg.Hashes),
 			}); err != nil {
@@ -693,9 +693,9 @@ func registrarFuentes(tx *bolt.Tx, porFuente map[string]map[string][]string,
 	// Se parte del registro anterior para conservar UltimoOK: si una fuente
 	// lleva tres días caída, hay que seguir sabiendo cuándo fue la última vez
 	// que trajo algo, no perder ese dato en el primer fallo.
-	anteriores := map[string]fuenteRegistro{}
+	anteriores := map[string]FuenteRegistro{}
 	if err := b.ForEach(func(k, v []byte) error {
-		var r fuenteRegistro
+		var r FuenteRegistro
 		if err := json.Unmarshal(v, &r); err == nil {
 			anteriores[string(k)] = r
 		}
@@ -710,7 +710,7 @@ func registrarFuentes(tx *bolt.Tx, porFuente map[string]map[string][]string,
 			totalHashes += len(hs)
 		}
 		prev := anteriores[nombre]
-		reg := fuenteRegistro{
+		reg := FuenteRegistro{
 			Nombre:               nombre,
 			Entradas:             len(canales),
 			Hashes:               totalHashes,
@@ -793,7 +793,7 @@ func algunaFuenteRespondio(fuentes []string, estado map[string]string) bool {
 // escribirEvento añade una entrada al histórico. La clave lleva el timestamp
 // primero para que el orden natural de bbolt sea el cronológico, y el canal
 // detrás para desempatar eventos del mismo instante.
-func escribirEvento(b *bolt.Bucket, ev eventoHistorial) error {
+func escribirEvento(b *bolt.Bucket, ev EventoHistorial) error {
 	clave := fmt.Sprintf("%s#%s", ev.Fecha.UTC().Format(time.RFC3339Nano), ev.Canal)
 	raw, err := json.Marshal(ev)
 	if err != nil {
@@ -834,19 +834,19 @@ func contarClaves(b *bolt.Bucket) int {
 	return n
 }
 
-// listarFuentes devuelve el estado de cada fuente, ordenado por lo que aporta.
-func (s *store) listarFuentes() []fuenteRegistro {
+// ListarFuentes devuelve el estado de cada fuente, ordenado por lo que aporta.
+func (s *Store) ListarFuentes() []FuenteRegistro {
 	if s == nil || s.db == nil {
 		return nil
 	}
-	var salida []fuenteRegistro
+	var salida []FuenteRegistro
 	s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucketSources))
 		if b == nil {
 			return nil
 		}
 		return b.ForEach(func(_, v []byte) error {
-			var reg fuenteRegistro
+			var reg FuenteRegistro
 			if err := json.Unmarshal(v, &reg); err != nil {
 				return nil
 			}
@@ -863,7 +863,7 @@ func (s *store) listarFuentes() []fuenteRegistro {
 // buscarCanales busca por subcadena del nombre, usando el índice de claves del
 // bucket en vez de recorrer el mapa entero. El prefijo se quita antes de
 // filtrar para no perder las mayúsculas del nombre real.
-func (s *store) buscarCaneles(texto string, limite int) []string {
+func (s *Store) BuscarCaneles(texto string, limite int) []string {
 	if s == nil || s.db == nil {
 		return nil
 	}
@@ -900,12 +900,12 @@ func (s *store) buscarCaneles(texto string, limite int) []string {
 	return salida
 }
 
-// eventosRecientes devuelve los últimos eventos del histórico.
-func (s *store) eventosRecientes(n int) []eventoHistorial {
+// EventosRecientes devuelve los últimos eventos del histórico.
+func (s *Store) EventosRecientes(n int) []EventoHistorial {
 	if s == nil || s.db == nil || n <= 0 {
 		return nil
 	}
-	var salida []eventoHistorial
+	var salida []EventoHistorial
 	s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucketHistory))
 		if b == nil {
@@ -913,7 +913,7 @@ func (s *store) eventosRecientes(n int) []eventoHistorial {
 		}
 		c := b.Cursor()
 		for k, v := c.Last(); k != nil && n > 0; k, v = c.Prev() {
-			var ev eventoHistorial
+			var ev EventoHistorial
 			if err := json.Unmarshal(v, &ev); err != nil {
 				continue
 			}
@@ -927,7 +927,7 @@ func (s *store) eventosRecientes(n int) []eventoHistorial {
 
 // resumen es el estado global para la UI y /api/logs.
 // resumen es el estado global para la UI y /api/logs.
-func (s *store) resumen() map[string]any {
+func (s *Store) Resumen() map[string]any {
 	if s == nil || s.db == nil {
 		return map[string]any{"disponible": false}
 	}
@@ -958,15 +958,15 @@ func (s *store) resumen() map[string]any {
 		"vistos":        vistos,
 		"desaparecidos": canales - vistos,
 		"de_una_fuente": soloUnaFuente,
-		"eventos":       s.contarEventos(),
-		"bytes":         telemetry.TamanoFichero(s.rutaActual()),
+		"eventos":       s.ContarEventos(),
+		"bytes":         telemetry.TamanoFichero(s.RutaActual()),
 	}
 }
 
-// contarEventos cuenta las entradas del histórico, que es lo que acota el
+// ContarEventos cuenta las entradas del histórico, que es lo que acota el
 // disco. db.Stats().KeyN daría todas las claves de todos los buckets, que no
 // es lo que se quiere mostrar.
-func (s *store) contarEventos() int {
+func (s *Store) ContarEventos() int {
 	if s == nil || s.db == nil {
 		return 0
 	}
@@ -982,7 +982,7 @@ func (s *store) contarEventos() int {
 	return total
 }
 
-func (s *store) rutaActual() string {
+func (s *Store) RutaActual() string {
 	if s == nil {
 		return ""
 	}
@@ -1004,97 +1004,13 @@ func clavesOrdenadas(m map[string]bool) []string {
 	return salida
 }
 
-// cargarListadoDesdeDisco pone el listado guardado en broadcasterToAcestream
-// para que la web pueda servir de inmediato. No sustituye a la red: cuando las
-// fuentes respondan, FetchUpdatedList lo reemplaza con datos frescos.
-//
-// Es la pieza que quita el arranque bloqueado. Sin base de datos no hace nada
-// y todo sigue como antes.
-// ordenarListadoEn vivo deja, en cada canal, el hash más probable primero.
-//
-// Es el uso de la disponibilidad: antes el player probaba el primero de la
-// lista y se comía el timeout entero si ese hash estaba muerto. Ahora prueba
-// el que se sabe que funciona.
-func ordenarListadoEnVivo(mapa map[string]BroadcasterInfo) {
-	if storeGlobal == nil || len(mapa) == 0 {
-		return
-	}
-	// Se usa el mutex del store y no el de la carga de fuentes: aquí ya
-	// han terminado todas las goroutines, pero el store se consulta desde
-	// varias partes y no se quiere que se solapen.
-	storeGlobal.mu.Lock()
-	defer storeGlobal.mu.Unlock()
-	ordenados, muertos := 0, 0
-	for nombre, info := range mapa {
-		if len(info.Links) < 2 {
-			continue
-		}
-		nuevos, descartados := storeGlobal.ordenarHashesPuntuados(info.Links)
-		muertos += descartados
-		if len(nuevos) == len(info.Links) {
-			distintos := false
-			for i := range nuevos {
-				if nuevos[i] != info.Links[i] {
-					distintos = true
-					break
-				}
-			}
-			if !distintos {
-				continue
-			}
-		}
-		enlaces := make([]string, len(nuevos))
-		for i, h := range nuevos {
-			enlaces[i] = "acestream://" + h
-		}
-		info.Links = enlaces
-		mapa[nombre] = info
-		ordenados++
-	}
-	if ordenados > 0 || muertos > 0 {
-		log.Printf("🎯 Hashes reordenados por disponibilidad en %d canales (%d enlaces muertos descartados)",
-			ordenados, muertos)
-	}
-}
-
-func cargarListadoDesdeDisco() {
-	if storeGlobal == nil {
-		return
-	}
-	guardados := storeGlobal.cargarCanales()
-	if len(guardados) == 0 {
-		return
-	}
-
-	// La base guarda el listado completo (sin pasar por el gateway estricto,
-	// que deja fuera la mayoría), así que no se puede reutilizar
-	// updateBroadcasterMapWithGatewayTolerant: eso filtraría otra vez y el
-	// arranque rápido serviría 121 canales de 1651.
-	//
-	// Se carga tal cual, con el mismo formato de enlaces que produce
-	// transformUriSafeBroadcasters.
-	tmp := make(map[string]BroadcasterInfo, len(guardados))
-	for nombre, hashes := range guardados {
-		enlaces := make([]string, len(hashes))
-		for i, h := range hashes {
-			enlaces[i] = "acestream://" + h
-		}
-		tmp[nombre] = BroadcasterInfo{Name: nombre, Links: enlaces}
-	}
-	broadcasterToAcestream = tmp
-	ordenarListadoEnVivo(broadcasterToAcestream)
-
-	log.Printf("⚡ Listado cargado desde disco: %d canales (se refrescará con las fuentes)",
-		len(broadcasterToAcestream))
-}
-
 // registrarHashResultado anota que un hash funcionó o falló. Es la fuente de
 // datos que no depende de ninguna API: el propio proxy la alimenta cada vez que
 // el player pide un stream.
 //
 // No bloquea el arranque del vídeo: si la escritura falla, el playback sigue
 // igual. Perder una anotación no puede tumbar la reproducción.
-// registrarEvidencia anota una observación sobre un hash. Es la única vía por
+// RegistrarEvidencia anota una observación sobre un hash. Es la única vía por
 // la que la base aprende cómo son los enlaces, y la que hace que ordenar y
 // descartar hashes dejen de ser un adorno: sin ella el bucket se queda vacío
 // y el.player sigue probando el primer hash de la lista a ciegas.
@@ -1103,12 +1019,12 @@ func cargarListadoDesdeDisco() {
 // si es que aún no han entrado pares o que el canal está muerto. Anotarlo
 // como fallo era el error que motivó excluir los manifests, y excluirlos
 // fue lo que dejó este código sin usar.
-func (s *store) registrarEvidencia(hash, evidencia string) {
+func (s *Store) RegistrarEvidencia(hash, evidencia string) {
 	peso, ok := pesoEvidencia[evidencia]
 	if !ok {
 		return
 	}
-	hash = normalizarHash(hash)
+	hash = NormalizarHash(hash)
 	if s == nil || s.db == nil || hash == "" {
 		return
 	}
@@ -1119,10 +1035,10 @@ func (s *store) registrarEvidencia(hash, evidencia string) {
 			return nil
 		}
 		clave := []byte(hash)
-		reg := hashRegistro{Hash: hash}
+		reg := HashRegistro{Hash: hash}
 		if v := b.Get(clave); v != nil {
 			if err := json.Unmarshal(v, &reg); err != nil {
-				reg = hashRegistro{Hash: hash}
+				reg = HashRegistro{Hash: hash}
 			}
 		}
 		reg.Intentos++
@@ -1140,22 +1056,22 @@ func (s *store) registrarEvidencia(hash, evidencia string) {
 		reg.PropiaEn = ahora
 
 		switch evidencia {
-		case evPlaylistOK:
+		case EvPlaylistOK:
 			reg.PlaylistsOK++
 			reg.OK++
 			reg.FallosSeguros = 0
 			reg.UltimaOK = ahora
-		case evPlaylistVacia:
+		case EvPlaylistVacia:
 			reg.PlaylistsVnc++
 			reg.Fallos++
 			reg.FallosSeguros++
 			reg.UltimoFallo = ahora
-		case evSegmentoOK:
+		case EvSegmentoOK:
 			reg.SegmentosOK++
 			reg.OK++
 			reg.FallosSeguros = 0
 			reg.UltimaOK = ahora
-		case evSegmentoErr:
+		case EvSegmentoErr:
 			reg.SegmentosErr++
 			reg.Fallos++
 			reg.FallosSeguros++
@@ -1181,17 +1097,17 @@ func (s *store) registrarEvidencia(hash, evidencia string) {
 
 // registrarHashResultado conserva la vía anterior (éxito/fallo de una petición
 // de datos) y la traduce a evidencia, para no perder llamadas ya hechas.
-func (s *store) registrarHashResultado(hash string, ok bool) {
+func (s *Store) RegistrarHashResultado(hash string, ok bool) {
 	if ok {
-		s.registrarEvidencia(hash, evSegmentoOK)
+		s.RegistrarEvidencia(hash, EvSegmentoOK)
 		return
 	}
-	s.registrarEvidencia(hash, evSegmentoErr)
+	s.RegistrarEvidencia(hash, EvSegmentoErr)
 }
 
-// normalizarHash deja el infohash en minúsculas y sin acestream:// delante, que
+// NormalizarHash deja el infohash en minúsculas y sin acestream:// delante, que
 // es como llega desde unas rutas y desde otras.
-func normalizarHash(h string) string {
+func NormalizarHash(h string) string {
 	h = strings.TrimSpace(strings.ToLower(h))
 	for _, pre := range []string{"acestream://", "p; acestream://", "p;", "acestream:"} {
 		h = strings.TrimPrefix(h, pre)
@@ -1210,7 +1126,7 @@ func normalizarHash(h string) string {
 // Es idempotente: importar el mismo fichero dos veces no cambia nada. Una
 // medición más antigua que la que ya tenemos no pisa la nueva, porque el
 // timestamp de la API va en segundos y puede venir de una copia guardada.
-func (s *store) importarDisponibilidad(cuerpo []byte) (nuevos, actualizados, ignorados int, err error) {
+func (s *Store) ImportarDisponibilidad(cuerpo []byte) (nuevos, actualizados, ignorados int, err error) {
 	if s == nil || s.db == nil {
 		return 0, 0, 0, fmt.Errorf("sin base de datos")
 	}
@@ -1231,17 +1147,17 @@ func (s *store) importarDisponibilidad(cuerpo []byte) (nuevos, actualizados, ign
 			return nil
 		}
 		for _, it := range entrada {
-			hash := normalizarHash(it.Infohash)
+			hash := NormalizarHash(it.Infohash)
 			if hash == "" {
 				ignorados++
 				continue
 			}
 			clave := []byte(hash)
-			reg := hashRegistro{Hash: hash}
+			reg := HashRegistro{Hash: hash}
 			existente := b.Get(clave)
 			if existente != nil {
 				if err := json.Unmarshal(existente, &reg); err != nil {
-					reg = hashRegistro{Hash: hash}
+					reg = HashRegistro{Hash: hash}
 				}
 			}
 
@@ -1284,7 +1200,7 @@ func (s *store) importarDisponibilidad(cuerpo []byte) (nuevos, actualizados, ign
 	return nuevos, actualizados, ignorados, err
 }
 
-// ordenarHashesPuntuados devuelve los hashes de un canal ordenados de mejor a
+// OrdenarHashesPuntuados devuelve los hashes de un canal ordenados de mejor a
 // peor, y descarta los que la base considera muertos. Devuelve además cuántos
 // ha quitado, para poder decirlo en el log en vez de dejar un contador que
 // siempre valía cero.
@@ -1296,7 +1212,18 @@ func (s *store) importarDisponibilidad(cuerpo []byte) (nuevos, actualizados, ign
 // sus enlaces muertos se deja como estaba: el player puede probarlos y suena
 // un aviso de que no hay nada que probar, que es distinto de no tener ningún
 // enlace con el que responder.
-func (s *store) ordenarHashesPuntuados(hashes []string) ([]string, int) {
+// OrdenarHashes ordena una lista con el mutex del store tomado (uso externo:
+// extractdata reordena el listado vivo sin tocar el campo privado mu).
+func (s *Store) OrdenarHashes(hashes []string) ([]string, int) {
+	if s == nil {
+		return hashes, 0
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.OrdenarHashesPuntuados(hashes)
+}
+
+func (s *Store) OrdenarHashesPuntuados(hashes []string) ([]string, int) {
 	if s == nil || s.db == nil || len(hashes) <= 1 {
 		return hashes, 0
 	}
@@ -1314,10 +1241,10 @@ func (s *store) ordenarHashesPuntuados(hashes []string) ([]string, int) {
 			return nil
 		}
 		for i, h := range hashes {
-			reg := hashRegistro{Hash: h}
-			if v := b.Get([]byte(normalizarHash(h))); v != nil {
+			reg := HashRegistro{Hash: h}
+			if v := b.Get([]byte(NormalizarHash(h))); v != nil {
 				if err := json.Unmarshal(v, &reg); err != nil {
-					reg = hashRegistro{Hash: h}
+					reg = HashRegistro{Hash: h}
 				}
 			}
 			items = append(items, conPuntos{hash: h, punto: reg.puntuar(), pos: i, vivo: reg.vivo()})
@@ -1344,9 +1271,9 @@ func (s *store) ordenarHashesPuntuados(hashes []string) ([]string, int) {
 	return salida, muertos
 }
 
-// hashesDeCanal devuelve los hashes de un canal tal como están guardados, para
+// HashesDeCanal devuelve los hashes de un canal tal como están guardados, para
 // poder explicar en detalle por qué se prueban en ese orden.
-func (s *store) hashesDeCanal(nombre string) []string {
+func (s *Store) HashesDeCanal(nombre string) []string {
 	if s == nil || s.db == nil || nombre == "" {
 		return nil
 	}
@@ -1370,14 +1297,14 @@ func (s *store) hashesDeCanal(nombre string) []string {
 	return hashes
 }
 
-// hashesMuertos lista los hashes que la base considera muertos, para poder
+// HashesMuertos lista los hashes que la base considera muertos, para poder
 // revisarlos y para vaciar de la lista los que sobran.
 //
 // Usa vivo() y solo vivo(): cuando esta función exigía además un número de
 // fallos seguidos, decía que un enlace estaba muerto por un camino y el
 // ranking lo descartaba por otro. "Muerto" tiene que significar una sola cosa,
 // que es la que decide qué se ofrece.
-func (s *store) hashesMuertos() []string {
+func (s *Store) HashesMuertos() []string {
 	if s == nil || s.db == nil {
 		return nil
 	}
@@ -1389,7 +1316,7 @@ func (s *store) hashesMuertos() []string {
 			return nil
 		}
 		return b.ForEach(func(_, v []byte) error {
-			var reg hashRegistro
+			var reg HashRegistro
 			if err := json.Unmarshal(v, &reg); err != nil {
 				return nil
 			}
@@ -1405,9 +1332,9 @@ func (s *store) hashesMuertos() []string {
 
 // hash devuelve el registro de un infohash, o uno vacío si no se sabe nada.
 // Nunca devuelve nil, para que el llamante no tenga que comprobarlo.
-func (s *store) hash(h string) hashRegistro {
-	h = normalizarHash(h)
-	reg := hashRegistro{Hash: h}
+func (s *Store) Hash(h string) HashRegistro {
+	h = NormalizarHash(h)
+	reg := HashRegistro{Hash: h}
 	if s == nil || s.db == nil || h == "" {
 		return reg
 	}
@@ -1418,7 +1345,7 @@ func (s *store) hash(h string) hashRegistro {
 		}
 		if v := b.Get([]byte(h)); v != nil {
 			if err := json.Unmarshal(v, &reg); err != nil {
-				reg = hashRegistro{Hash: h}
+				reg = HashRegistro{Hash: h}
 			}
 		}
 		return nil
@@ -1426,10 +1353,10 @@ func (s *store) hash(h string) hashRegistro {
 	return reg
 }
 
-// actualizarDisponibilidad fija la disponibilidad de un hash. Es la operación
+// ActualizarDisponibilidad fija la disponibilidad de un hash. Es la operación
 // que usa internamente la importación por lotes.
-func (s *store) actualizarDisponibilidad(h string, disponibilidad float64, medida time.Time) error {
-	h = normalizarHash(h)
+func (s *Store) ActualizarDisponibilidad(h string, disponibilidad float64, medida time.Time) error {
+	h = NormalizarHash(h)
 	if s == nil || s.db == nil || h == "" {
 		return nil
 	}
@@ -1439,10 +1366,10 @@ func (s *store) actualizarDisponibilidad(h string, disponibilidad float64, medid
 			return nil
 		}
 		clave := []byte(h)
-		reg := hashRegistro{Hash: h}
+		reg := HashRegistro{Hash: h}
 		if v := b.Get(clave); v != nil {
 			if err := json.Unmarshal(v, &reg); err != nil {
-				reg = hashRegistro{Hash: h}
+				reg = HashRegistro{Hash: h}
 			}
 		}
 		reg.Conocida = true
@@ -1456,12 +1383,12 @@ func (s *store) actualizarDisponibilidad(h string, disponibilidad float64, medid
 	})
 }
 
-// resumenHashes da el estado global para /api/db.
-// resumenHashes cuenta cómo está la capa de calidad de los enlaces. Es lo que
+// ResumenHashes da el estado global para /api/db.
+// ResumenHashes cuenta cómo está la capa de calidad de los enlaces. Es lo que
 // dice si el bucket hashes está aprendiendo de verdad o si lleva meses vacío,
 // que era el estado en el que estaba: la base parecía saber de enlaces y no
 // sabía nada, porque nada la alimentaba.
-func (s *store) resumenHashes() map[string]any {
+func (s *Store) ResumenHashes() map[string]any {
 	if s == nil || s.db == nil {
 		return map[string]any{"disponible": false}
 	}
@@ -1477,7 +1404,7 @@ func (s *store) resumenHashes() map[string]any {
 			return nil
 		}
 		return b.ForEach(func(_, v []byte) error {
-			var reg hashRegistro
+			var reg HashRegistro
 			if err := json.Unmarshal(v, &reg); err != nil {
 				return nil
 			}
@@ -1525,14 +1452,14 @@ func (s *store) resumenHashes() map[string]any {
 	}
 }
 
-// hashesOrdenadosPara devuelve los hashes de un canal ya puntuados, para
+// HashesOrdenadosPara devuelve los hashes de un canal ya puntuados, para
 // consultar por qué se pone uno primero. Explica el desempate y de dónde sale
 // cada dato, que es la diferencia entre "está mal puesto" y "no hay dato".
-func (s *store) hashesOrdenadosPara(hashes []string) []map[string]any {
+func (s *Store) HashesOrdenadosPara(hashes []string) []map[string]any {
 	ahora := time.Now().UTC()
 	out := make([]map[string]any, 0, len(hashes))
 	for _, h := range hashes {
-		reg := s.hash(h)
+		reg := s.Hash(h)
 		efectiva, conocida, origen := reg.disponibilidadEfectiva(ahora)
 		out = append(out, map[string]any{
 			"hash":             reg.Hash,

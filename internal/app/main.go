@@ -11,6 +11,7 @@ import (
 	"sync"
 	"syscall"
 	"tevasalpalo/internal/secrets"
+	"tevasalpalo/internal/store"
 	"tevasalpalo/internal/telemetry"
 	"tevasalpalo/internal/transport"
 	"tevasalpalo/update"
@@ -58,9 +59,9 @@ func Main() {
 	// build, no necesita proxy, red ni central, y si fuera más tarde
 	// arrancaría todo eso para nada y podría morir por un Tor ocupado.
 	if generarSemillaPedida {
-		if s := abrirStore(); s != nil {
-			defer cerrarStore()
-			if err := generarSemilla(); err != nil {
+		if s := store.AbrirStore(); s != nil {
+			defer store.CerrarStore()
+			if err := store.GenerarSemilla(); err != nil {
 				log.Fatal("❌ ", err)
 			}
 			return
@@ -123,16 +124,16 @@ func Main() {
 	// cargar el listado del arranque anterior al instante: sin esto, la web
 	// tarda entre 27 y 70 segundos en levantarse mientras espera a las 7
 	// fuentes remotas.
-	if s := abrirStore(); s != nil {
-		defer cerrarStore()
+	if s := store.AbrirStore(); s != nil {
+		defer store.CerrarStore()
 
 		// Antes de leer nada: si la base está vacía (instalación nueva o
 		// borrada a mano), se siembra con la instantánea embebida. Así el
 		// listado que se carga un instante después ya tiene canales y la web
 		// no muestra una lista vacía mientras llegan las fuentes.
-		sembrarBaseVacia()
+		store.SembrarBaseVacia()
 
-		if guardados := len(s.cargarCanales()); guardados > 0 {
+		if guardados := len(s.CargarCanales()); guardados > 0 {
 			log.Printf("💾 Base de datos lista: %d canales del último arranque", guardados)
 		}
 	}

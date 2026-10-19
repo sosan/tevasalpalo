@@ -1,6 +1,10 @@
 package app
 
 import (
+	"tevasalpalo/internal/store"
+)
+
+import (
 	"tevasalpalo/internal/transport"
 )
 
@@ -618,7 +622,7 @@ func hashDePeticionAce(acePath, queryString string) string {
 		if j := strings.IndexAny(resto, "/?"); j >= 0 {
 			resto = resto[:j]
 		}
-		return normalizarHash(resto)
+		return store.NormalizarHash(resto)
 	}
 	if strings.Contains(p, "content/") || strings.Contains(p, "hls/") {
 		return hashDeQuery(queryString)
@@ -651,7 +655,7 @@ func hashDeRutaAce(acePath, queryString string, conRedirect bool, rutaFinal stri
 			if j := strings.IndexAny(resto, "/?"); j >= 0 {
 				resto = resto[:j]
 			}
-			if h := normalizarHash(resto); esHashAceStream(h) {
+			if h := store.NormalizarHash(resto); store.EsHashAceStream(h) {
 				return h
 			}
 		}
@@ -669,7 +673,7 @@ func hashDeRutaAce(acePath, queryString string, conRedirect bool, rutaFinal stri
 				if j := strings.IndexAny(resto, "/?"); j >= 0 {
 					resto = resto[:j]
 				}
-				if h := normalizarHash(resto); esHashAceStream(h) {
+				if h := store.NormalizarHash(resto); store.EsHashAceStream(h) {
 					return h
 				}
 			}
@@ -691,23 +695,9 @@ func hashDeQuery(queryString string) string {
 		if k != "id" && k != "infohash" && k != "hash" && k != "stream" {
 			continue
 		}
-		if h := normalizarHash(v); esHashAceStream(h) {
+		if h := store.NormalizarHash(v); store.EsHashAceStream(h) {
 			return h
 		}
 	}
 	return ""
-}
-
-// esHashAceStream comprueba la forma: 40 hex. Filtra el ruido de la query sin
-// tener que mantener una lista de campos.
-func esHashAceStream(h string) bool {
-	if len(h) != 40 {
-		return false
-	}
-	for _, r := range h {
-		if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'f')) {
-			return false
-		}
-	}
-	return true
 }
