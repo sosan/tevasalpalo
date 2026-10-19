@@ -517,16 +517,25 @@ var (
 	reCleanSpaces    = regexp.MustCompile(`\s+`)
 )
 
+// cleanChannelNameFutbolEnCasa recorta del nombre del canal los sufijos
+// decorativos que traen las fuentes de fútbol. Se aplica en bucle hasta que no
+// cambia: las cadenas reales encadenan sufijos ("DAZN 3 : VER PARTIDO (3)") y
+// con una sola pasada el VER PARTIDO intermedio sobrevivía.
 func cleanChannelNameFutbolEnCasa(s string) string {
 	s = strings.TrimSpace(s)
-	s = reVerPartido.ReplaceAllString(s, "")
-	s = strings.TrimSpace(s)
-	s = reMovistarParen.ReplaceAllString(s, "")
-	s = strings.TrimSpace(s)
-	s = reDaznVerDirecto.ReplaceAllString(s, "")
-	s = strings.TrimSpace(s)
-	s = reOrangeNumber.ReplaceAllString(s, "")
-	s = strings.TrimSpace(s)
+	// Bucle do-while (condición al final): en la primera pasada hay que limpiar
+	// aunque `prev == s`.
+	for {
+		prev := s
+		s = reMovistarParen.ReplaceAllString(s, "")
+		s = reVerPartido.ReplaceAllString(s, "")
+		s = reDaznVerDirecto.ReplaceAllString(s, "")
+		s = reOrangeNumber.ReplaceAllString(s, "")
+		s = strings.TrimSpace(s)
+		if prev == s {
+			break
+		}
+	}
 	// Nota: el mapeo de LALIGA TV M1-M4 a Hypermotion se hace en FindBroadcaster()
 	// con contexto de competitionName, para no contaminar Serie A Italiana
 	// con enlaces de Hypermotion (ej: Genoa-Como con "LaLiga TV M3" -> no es Hypermotion)
@@ -557,9 +566,13 @@ func isRelevant(competition string) bool {
 	// Normalize the input competition name
 	normalizedComp := normalizeForComparisonWithoutSpaces(competition)
 
-	// Check if the normalized competition name matches any normalized relevant league
+	// Check if the normalized competition name matches any normalized relevant
+	// league. Antes se comparaba contra el nombre EN BRUTO de la lista, así que
+	// "laliga ea sports" contra "LaLigaEASports" nunca casaban y la función
+	// descartaba TODAS las competiciones. Con ambas partes normalizadas
+	// vuelve a tener sentido.
 	for _, league := range relevantLeagues {
-		if normalizedComp == league {
+		if normalizedComp == normalizeForComparisonWithoutSpaces(league) {
 			return true
 		}
 	}
