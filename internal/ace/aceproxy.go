@@ -103,8 +103,36 @@ func baseEngineConSondeo(puerto int, sondear func(string, int) bool, gateway fun
 			return fmt.Sprintf("http://%s:%d", c.host, puerto)
 		}
 	}
-	log.Printf("⚠️  ACESTREAM_API vacía y ningún candidato responde en el puerto %d (127.0.0.1, host.docker.internal, gateway); base por defecto: 127.0.0.1", puerto)
+	// Sin motor no hay player que valga: avisar es casi lo único útil que se
+	// puede hacer aquí. El caso que más confunde es el contenedor acestream
+	// "healthy" que no publica el 6878 al host (arrancado fuera del compose,
+	// o con el mapeo caído): la app cae en "ningún candidato" aunque el motor
+	// esté vivo dentro. La pista es lo que se puede ver sin red real: si hay
+	// socket docker (Linux con compose) y el motor no responde en ninguno de
+	// los tres sitios, casi seguro es un contenedor sin el puerto publicado.
+	aviso := "ACESTREAM_API vacía y ningún candidato responde en el puerto %d"
+	if dockerSocketAccesible() {
+		aviso += " (motor caído, o el contenedor acestream sin el 6878 publicado al host: docker port acestream debe mostrar 6878/tcp -> 0.0.0.0:6878)"
+	} else {
+		aviso += " (motor caído en el host: revisa el binario acestreamengine del runtime o ACESTREAM_API)"
+	}
+	aviso += "; base por defecto: 127.0.0.1"
+	log.Printf(aviso, puerto)
 	return fmt.Sprintf("http://127.0.0.1:%d", puerto)
+}
+
+// dockerSocketAccesible dice si el entorno parece Docker por la presencia del
+// socket, sin tocar red ni asumir permisos de root (que solo se necesitan para
+// hablar con el daemon, no para que esto sea una pista). Windows/macOS nativo
+// (motor embebido) no tienen socket, así que la advertencia se queda corta
+// ahí y no inventa un contenedor que no existe.
+func dockerSocketAccesible() bool {
+	for _, ruta := range []string{"/var/run/docker.sock", "/run/docker.sock"} {
+		if fi, err := os.Stat(ruta); err == nil && fi.Mode()&os.ModeSocket != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // engineDialHost sondea el puerto TCP de un host (resuelve DNS también),
