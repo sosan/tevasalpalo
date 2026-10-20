@@ -158,8 +158,12 @@ func TestOrdenarListadoEnVivo(t *testing.T) {
 	ordenarListadoEnVivo(canales)
 
 	got := canales["VIVO Y MUERTO"].Links
-	if len(got) != 1 || got[0] != "acestream://"+hashVivo {
-		t.Errorf("canal mixto: %v (el muerto se va y el vivo queda)", got)
+	// OrdenarHashes devuelve hashes normalizados (sin esquema); el listado se
+	// publica tal cual y el player los sirve por /ace/. Antes se re-prefijaba
+	// "acestream://" aquí, lo que dejaba un prefijo doble en los enlaces que
+	// ya lo traían (ver OrdenarHashesPuntuados y transformUriSafeBroadcasters).
+	if len(got) != 1 || got[0] != hashVivo {
+		t.Errorf("canal mixto: %v (el muerto se va y el vivo queda, sin prefijo)", got)
 	}
 	if len(canales["Solo uno"].Links) != 1 || canales["Solo uno"].Links[0] != hashVivo {
 		t.Errorf("canal de 1: no debería tocarse (queda sin prefijo), hay %v", canales["Solo uno"].Links)

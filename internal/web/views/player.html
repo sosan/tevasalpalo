@@ -488,6 +488,10 @@ const tel = (() => {
 
     // URL que se le pasa a HLS.js para un enlace, sea cual sea su forma
     // (hash suelto, ;base64 de acestream:// o ;base64 de proxy "p;").
+    // Cualquier otra cosa que decodifique el ;base64 (binario de una línea
+    // mal parseada, base64 roto por un ToLower anterior, URLs que no pasan
+    // por el proxy) se rechaza con null: el player muestra el aviso de
+    // "enlace no válido" en vez de pedirle al motor una URL sin sentido.
     function hlsUrlPara(linkID, pid) {
         if (!linkID.includes(";")) {
             return isValidAceId(linkID) ? buildHlsUrl(linkID, pid) : null;
@@ -497,7 +501,7 @@ const tel = (() => {
             return `/api/iptv/${linkID}`;
         }
         const hash = hashDeAcestream(decoded);
-        return hash ? buildHlsUrl(hash, pid) : decoded;
+        return hash ? buildHlsUrl(hash, pid) : null;
     }
 
     function showErrorOverlay(message, subMessage) {

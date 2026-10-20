@@ -11,7 +11,8 @@ openspec/*
 xray-links.txt
 settings.json
 .telemetry.env
-logs/*
+logs/
 runtime/
-
+*.jsonl
+*.log
 .gotmp/
