@@ -294,6 +294,19 @@ func nuevoServidor() *fiber.App {
 		if resp.StatusCode >= 400 {
 			bodyBytes, _ := io.ReadAll(resp.Body)
 			log.Printf("❌ Ace Stream devolvió error %d para %s: %s", resp.StatusCode, targetURL, string(bodyBytes))
+			// "download not found" del engine es la señal de muerte más fuerte
+			// que tenemos para un hash: ni timeout ni error de red, el motor
+			// dice que ese segmento no existe. Se anota tres veces seguidas
+			// (fallosParaDarPorMuerto=3) para cruzar el corte al instante sin
+			// esperar a que disponibilidad externa baje, y para que el próximo
+			// ordenarListadoEnVivo lo descarte en vez de tenerlo encima con
+			// FallosSeguros=1 mientras el jugador se estrella 5 veces seguidas.
+			if hashProbado != "" && esSegmento &&
+				(resp.StatusCode == 404 || strings.Contains(strings.ToLower(string(bodyBytes)), "download not found")) {
+				for i := 0; i < 3; i++ {
+					store.Global.RegistrarEvidencia(hashProbado, store.EvSegmentoErr)
+				}
+			}
 			return c.SendString(string(bodyBytes))
 		}
 

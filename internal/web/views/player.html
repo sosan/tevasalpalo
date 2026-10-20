@@ -389,7 +389,7 @@
     // manifest anidado (8s) y no los 2m que costaba antes de que el proxy
     // respetara el redirect: 5 intentos dan margen de sobra para que entren
     // pares sin alargar la espera cuando el canal está muerto de verdad.
-    const MAX_RETRIES = 5;
+    const MAX_RETRIES = 3;
 
     // Telemetría del player. No habla nunca con el central: postea a
     // /api/telemetry de esta misma app y el servidor reenvía, para que las
@@ -725,7 +725,27 @@ maxBufferHole: 10,
                                 }, 2000 * (retryCount + 1)); // backoff exponencial
                             } else {
                                 console.error("Máximo de reintentos alcanzado. No se puede cargar el stream.");
-                                showErrorOverlay('No se puede cargar el stream', 'El canal no está disponible o el enlace ha expirado.');
+                                if (isNetworkRetryable(data.details)) {
+                                    // Tras agotar los reintentos con un error que
+                                    // en teoría es recuperable (fragLoadError,
+                                    // fragLoadTimeOut...), lo más probable es
+                                    // que el canal se haya cortado: el motor
+                                    // responde "download not found" o los peers
+                                    // P2P han dejado de servir el hash. Se avisa
+                                    // con claridad para que el usuario pase al
+                                    // siguiente Link del evento en vez de
+                                    // quedarse reintentando con backoff.
+                                    showErrorOverlay('El canal se ha cortado',
+                                        `El enlace dejó de servir (${data.details}). ` +
+                                        `Sin peers P2P no hay nada que reproducir ` +
+                                        `hasta que el emisor vuelva.<br><br>` +
+                                        `Prueba con otro <b>Link</b> del evento ` +
+                                        `(botones arriba), o <b>Reintentar</b> si ` +
+                                        `crees que vuelve.`);
+                                } else {
+                                    showErrorOverlay('No se puede cargar el stream',
+                                        'El canal no está disponible o el enlace ha expirado.');
+                                }
                             }
                             break;
                         case Hls.ErrorTypes.MEDIA_ERROR:
@@ -733,9 +753,20 @@ maxBufferHole: 10,
                             // HEVC/H.265 no soportado -> evita bucle infinito de Media attached
                             const isHevcError = data.details === 'mediaSourceRequiresReset' || data.details === 'bufferAppendingError';
                             if (isHevcError) {
-                                const hevcSupported = MediaSource.isTypeSupported('video/mp4; codecs="hvc1.1.6.L120.B0"') ||
-                                                      MediaSource.isTypeSupported('video/mp4; codecs="hev1.1.6.L120.B0"') ||
-                                                      MediaSource.isTypeSupported('video/mp4; codecs="hvc1.1.6.L93.B0"');
+                                // HEVC con los perfiles más habituales del
+                                // acestream (Main 10: L120/L150, Main: L93).
+                                // Probar varios perfiles evita mandar a
+                                // recoverMediaError a un canal que el navegador
+                                // jamás va a poder decodificar y que solo
+                                // ciclaría "Media attached" hasta agotar el
+                                // contador.
+                                const hevcSupported =
+                                    MediaSource.isTypeSupported('video/mp4; codecs="hvc1.1.6.L120.B0"') ||
+                                    MediaSource.isTypeSupported('video/mp4; codecs="hev1.1.6.L120.B0"') ||
+                                    MediaSource.isTypeSupported('video/mp4; codecs="hvc1.1.6.L150.B0"') ||
+                                    MediaSource.isTypeSupported('video/mp4; codecs="hev1.1.6.L150.B0"') ||
+                                    MediaSource.isTypeSupported('video/mp4; codecs="hvc1.1.6.L93.B0"') ||
+                                    MediaSource.isTypeSupported('video/mp4; codecs="hev1.1.6.L93.B0"');
                                 if (!hevcSupported) {
                                     console.warn('HEVC no soportado en este navegador');
                                     showErrorOverlay('Codec no soportado (HEVC/H.265)',
