@@ -352,6 +352,51 @@ donde `TELEMETRY_LDFLAGS` es un secret de Actions con la línea que imprime el
 generador. Nota: **no lo pongas en `.env.prod`**, que el job también carga y que
 acaba en los logs del build.
 
+### Build de Windows con `.telemetry.env` por defecto
+
+`scripts/build-windows.sh` ya no necesita que le pases las variables a mano.
+Si encuentra un `.telemetry.env` en la raíz del repo (está en `.gitignore`, así
+que no viaja al repo), lo cifra junto con las credenciales de Infisical y lo
+incrusta con el mismo contenedor cifrado que usa CI:
+
+```sh
+export CLAVE_SECRETOS=$(openssl rand -hex 32)   # solo si aún no la tienes
+./scripts/build-windows.sh
+```
+
+El `portable.exe` resultante sale con la telemetría central ya configurada: al
+arrancar verás `🔑 Infisical: …` y `📊 Telemetría activa (fichero local + central)`
+sin que nadie haya exportado nada antes de compilar.
+
+Lo que mete el contenedor, tal y como está el `.telemetry.env`:
+
+| Del fichero | Va a |
+|---|---|
+| `INFISICAL_TOKEN`, `INFISICAL_PROJECT_ID`, `INFISICAL_ENV`, `INFISICAL_PATH` | Campos propios de Infisical (de ahí salen las demás en runtime) |
+| `TELEMETRY_HASH_SALT` | Campo propio `hash_salt` (no se duplica en las variables) |
+| El resto de `TELEMETRY_*` (endpoint, usuario, contraseña, `LOG_DIR`, `EXPORT_LOGS`…) | `Variables`, que se aplican al arrancar con `setenvSiVacio` |
+
+El entorno ya definido **gana** siempre sobre el fichero: si exportas
+`TELEMETRY_OTLP_URL` a mano, esa gana sobre lo que diga el `.telemetry.env`. Y
+`TELEMETRY_VARIABLES` tiene prioridad sobre el fichero entero.
+
+Sin `.telemetry.env` (o sin `CLAVE_SECRETOS`) el build sigue adelante **sin
+secretos**: el portable arranca con solo el motor embebido y sin telemetría
+central, que es lo que necesita un fork o una build sin credenciales.
+
+Para apuntar a otro fichero:
+
+```sh
+TELEMETRY_ENV_FILE=/ruta/mis-secretos.env ./scripts/build-windows.sh
+```
+
+Y para subir el valor a Actions (esto es lo que la action ya lee como
+`TELEMETRY_LDFLAGS`):
+
+```sh
+TELEMETRY_ENV_FILE=.telemetry.env ./portable --genera-secretos
+```
+
 ### Al arrancar
 
 El contenedor se descifra antes de nada, se aplica al entorno **sin pisar lo
