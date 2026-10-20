@@ -15,4 +15,5 @@ logs/
 runtime/
 *.jsonl
 *.log
+acestream.db
 .gotmp/
