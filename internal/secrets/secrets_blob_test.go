@@ -311,3 +311,86 @@ func TestLaFechaDelSnippetSeEvalua(t *testing.T) {
 		t.Errorf("VERSION_BUILD = %q no tiene el formato esperado: %v", got, err)
 	}
 }
+
+// Un .telemetry.env típico debe salir con las TELEMETRY_* dentro del
+// contenedor cifrado, para que el build de Windows salga con la telemetría
+// puesta sin tener que exportarlas a mano ni pegarlas en Infisical.
+func TestGeneradorLeeFicheroTelemetryEnv(t *testing.T) {
+	dir := t.TempDir()
+	envFile := dir + "/.telemetry.env"
+	cuerpo := strings.Join([]string{
+		"# comentario",
+		"TELEMETRY_ENABLED=1",
+		`TELEMETRY_OTLP_URL="https://otlp.example/otlp"`,
+		"TELEMETRY_USER=251374",
+		"TELEMETRY_PASSWORD=glc_secreto",
+		"TELEMETRY_HASH_SALT=salt-propio",
+		"OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf",
+		"",
+		"INFISICAL_TOKEN=st.token",
+		"INFISICAL_PROJECT_ID=d818000d",
+		"INFISICAL_ENV=prod",
+		"INFISICAL_PATH=/streaming",
+	}, "\n")
+	if err := os.WriteFile(envFile, []byte(cuerpo), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("TELEMETRY_ENV_FILE", envFile)
+	// El entorno no debe interferir con lo que viene del fichero.
+	for _, k := range []string{
+		"INFISICAL_TOKEN", "INFISICAL_PROJECT_ID", "INFISICAL_ENV", "INFISICAL_PATH",
+		"TELEMETRY_HASH_SALT", "TELEMETRY_VARIABLES", "TELEMETRY_USER",
+	} {
+		os.Unsetenv(k)
+	}
+
+	leído := leerFicheroEnv(ficheroTelemetryEnv())
+	if leído["TELEMETRY_USER"] != "251374" {
+		t.Fatalf("no leyó TELEMETRY_USER del fichero: %q", leído["TELEMETRY_USER"])
+	}
+	// Las comillas del .env no deben acabar en el valor.
+	if leído["TELEMETRY_OTLP_URL"] != "https://otlp.example/otlp" {
+		t.Fatalf("las comillas se colaron en el valor: %q", leído["TELEMETRY_OTLP_URL"])
+	}
+
+	cfg := configInfisical{
+		Token:     valorPrimero(leído, "INFISICAL_TOKEN", os.Getenv("INFISICAL_TOKEN")),
+		ProjectID: valorPrimero(leído, "INFISICAL_PROJECT_ID", os.Getenv("INFISICAL_PROJECT_ID")),
+		Env:       valorPrimero(leído, "INFISICAL_ENV", os.Getenv("INFISICAL_ENV")),
+		Path:      valorPrimero(leído, "INFISICAL_PATH", os.Getenv("INFISICAL_PATH")),
+		HashSalt:  valorPrimero(leído, "TELEMETRY_HASH_SALT", os.Getenv("TELEMETRY_HASH_SALT")),
+	}
+	for k, v := range variablesTelemetryDeFichero(leído) {
+		if cfg.Variables == nil {
+			cfg.Variables = map[string]string{}
+		}
+		cfg.Variables[k] = v
+	}
+
+	if cfg.Token == "" || cfg.ProjectID == "" || cfg.Env == "" {
+		t.Fatalf("el fichero no llenó lo de Infisical: %+v", cfg)
+	}
+	if cfg.HashSalt != "salt-propio" {
+		t.Errorf("HashSalt = %q", cfg.HashSalt)
+	}
+	// Lo importante: las variables de Grafana que no viven en Infisical.
+	if cfg.Variables["TELEMETRY_OTLP_URL"] != "https://otlp.example/otlp" {
+		t.Errorf("falta TELEMETRY_OTLP_URL en el contenedor: %v", cfg.Variables)
+	}
+	if cfg.Variables["TELEMETRY_PASSWORD"] != "glc_secreto" {
+		t.Errorf("falta TELEMETRY_PASSWORD en el contenedor")
+	}
+	// El hash_salt tiene campo propio: no debe duplicarse en Variables.
+	if _, dup := cfg.Variables["TELEMETRY_HASH_SALT"]; dup {
+		t.Errorf("TELEMETRY_HASH_SALT se metió dos veces")
+	}
+	// Y el token tampoco viaja en claro dentro del bundle.
+	blob, err := cifrarContenedor("clave", cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(blob, "glc_secreto") || strings.Contains(blob, "st.token") {
+		t.Errorf("el token o la contraseña viajan en claro en el contenedor")
+	}
+}

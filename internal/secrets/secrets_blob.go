@@ -279,13 +279,19 @@ func GenerarSecretosIncrustados() error {
 		return errors.New("falta CLAVE_SECRETOS")
 	}
 
+	// .telemetry.env es la fuente de verdad de la telemetría en local (está en
+	// .gitignore, así que no viaja al repo). Si existe, se lee aquí para que
+	// el contenedor salga con las TELEMETRY_* ya dentro sin tener que pegarlas
+	// a mano ni exportarlas antes. El entorno ya definido gana siempre.
+	delFichero := leerFicheroEnv(ficheroTelemetryEnv())
+
 	cfg := configInfisical{
-		Token:     os.Getenv("INFISICAL_TOKEN"),
-		ProjectID: os.Getenv("INFISICAL_PROJECT_ID"),
-		Env:       os.Getenv("INFISICAL_ENV"),
-		Path:      os.Getenv("INFISICAL_PATH"),
-		URL:       os.Getenv("INFISICAL_URL"),
-		HashSalt:  os.Getenv("TELEMETRY_HASH_SALT"),
+		Token:     valorPrimero(delFichero, "INFISICAL_TOKEN", os.Getenv("INFISICAL_TOKEN")),
+		ProjectID: valorPrimero(delFichero, "INFISICAL_PROJECT_ID", os.Getenv("INFISICAL_PROJECT_ID")),
+		Env:       valorPrimero(delFichero, "INFISICAL_ENV", os.Getenv("INFISICAL_ENV")),
+		Path:      valorPrimero(delFichero, "INFISICAL_PATH", os.Getenv("INFISICAL_PATH")),
+		URL:       valorPrimero(delFichero, "INFISICAL_URL", os.Getenv("INFISICAL_URL")),
+		HashSalt:  valorPrimero(delFichero, "TELEMETRY_HASH_SALT", os.Getenv("TELEMETRY_HASH_SALT")),
 	}
 	if v := os.Getenv("TELEMETRY_VARIABLES"); v != "" {
 		cfg.Variables = map[string]string{}
@@ -294,6 +300,16 @@ func GenerarSecretosIncrustados() error {
 			if k, val, ok := strings.Cut(par, "="); ok {
 				cfg.Variables[k] = val
 			}
+		}
+	}
+	// Lo que haya en TELEMETRY_VARIABLES tiene prioridad sobre el fichero:
+	// quien lo exporta a mano sabe lo que hace.
+	for k, val := range variablesTelemetryDeFichero(delFichero) {
+		if cfg.Variables == nil {
+			cfg.Variables = map[string]string{}
+		}
+		if _, ya := cfg.Variables[k]; !ya {
+			cfg.Variables[k] = val
 		}
 	}
 
@@ -354,6 +370,86 @@ func GenerarSecretosIncrustados() error {
 // revisarPlaceholders busca valores de relleno que se cuelan sin querer. Un
 // token o una clave de ejemplo siguen funcionando: cifran, compilan y auth
 // fallan más tarde con un error que no señala la causa.
+// ficheroTelemetryEnv dice de dónde leer la config local de telemetría:
+// TELEMETRY_ENV_FILE si está, y si no el .telemetry.env del cwd (el habitual
+// tanto en local como en el build de Windows).
+func ficheroTelemetryEnv() string {
+	if v := strings.TrimSpace(os.Getenv("TELEMETRY_ENV_FILE")); v != "" {
+		return v
+	}
+	return ".telemetry.env"
+}
+
+// leerFicheroEnv parsea un fichero estilo .env (CLAVE=valor, # comentarios y
+// comillas opcionales). Devuelve nil si el fichero no existe: el generador
+// tiene que seguir sirviendo con solo el entorno, que es lo que pasa en una
+// instalación normal o en un fork sin credenciales.
+func leerFicheroEnv(ruta string) map[string]string {
+	data, err := os.ReadFile(ruta)
+	if err != nil {
+		return nil
+	}
+	vars := map[string]string{}
+	for _, linea := range strings.Split(string(data), "\n") {
+		linea = strings.TrimSpace(linea)
+		if linea == "" || strings.HasPrefix(linea, "#") {
+			continue
+		}
+		k, v, ok := strings.Cut(linea, "=")
+		if !ok {
+			continue
+		}
+		k = strings.TrimSpace(k)
+		v = strings.TrimSpace(v)
+		// El fichero las trae entre comillas en algunos casos; se quitan para
+		// que el valor sea exactamente lo que se exportaría en la shell.
+		if len(v) >= 2 && (strings.HasPrefix(v, `"`) && strings.HasSuffix(v, `"`) ||
+			strings.HasPrefix(v, "'") && strings.HasSuffix(v, "'")) {
+			v = v[1 : len(v)-1]
+		}
+		if k != "" {
+			vars[k] = v
+		}
+	}
+	if len(vars) == 0 {
+		return nil
+	}
+	return vars
+}
+
+// variablesTelemetryDeFichero recoge las TELEMETRY_* del fichero para meterlas
+// en el contenedor cifrado. TELEMETRY_HASH_SALT se deja fuera a propósito: ya
+// tiene campo propio en configInfisical. Se ignoran TELEMETRY_VARIABLES y las
+// INFISICAL_*, que las lleva el generador aparte.
+func variablesTelemetryDeFichero(vars map[string]string) map[string]string {
+	out := map[string]string{}
+	for k, v := range vars {
+		if !strings.HasPrefix(k, "TELEMETRY_") {
+			continue
+		}
+		switch k {
+		case "TELEMETRY_VARIABLES", "TELEMETRY_HASH_SALT":
+			continue
+		}
+		if v != "" {
+			out[k] = v
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// valorPrimero devuelve el valor del mapa si no está vacío, y si no el del
+// entorno. El entorno manda: lo exportado a mano gana sobre el fichero.
+func valorPrimero(vars map[string]string, clave, delEntorno string) string {
+	if v := strings.TrimSpace(vars[clave]); v != "" {
+		return v
+	}
+	return delEntorno
+}
+
 func revisarPlaceholders(clave string, cfg configInfisical) []string {
 	marcas := []string{
 		"TU-", "TU_", "pega-aqui", "PEGA_AQUI", "cambia-esto", "CAMBIAR",
