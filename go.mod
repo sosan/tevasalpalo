@@ -3,7 +3,7 @@ module tevasalpalo
 go 1.26.0
 
 require (
-	github.com/gofiber/fiber/v3 v3.5.0
+	github.com/gofiber/fiber/v3 v3.6.1
 	github.com/xtls/xray-core v1.260327.0
 	go.etcd.io/bbolt v1.4.3
 	go.opentelemetry.io/otel v1.47.0
