@@ -71,7 +71,7 @@ require (
 )
 
 require (
-	github.com/PuerkitoBio/goquery v1.13.0
+	github.com/PuerkitoBio/goquery v1.14.0
 	github.com/andybalholm/brotli v1.2.3 // indirect
 	// github.com/chromedp/chromedp v0.14.1
 	github.com/gofiber/template/html/v3 v3.0.10
